@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>简单计算器</title>
+    <style>
+        /* 重置页面默认样式，确保页面占满整个视口 */
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            /* 100%视口高度 */
+            width: 100vw;
+            /* 100%视口宽度 */
+            overflow: hidden;
+            /* 防止出现滚动条 */
+        }
+
+        /* 主容器样式 */
+        .calculator {
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+            /* 边框盒模型，使padding包含在宽高中 */
+            display: flex;
+            /* 使用弹性布局 */
+            flex-direction: column;
+            /* 垂直排列 */
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        /* 标题样式 */
+        h1 {
+            text-align: center;
+            color: #333;
+            margin: 0 0 20px 0;
+            padding: 0;
+            font-size: 28px;
+            flex-shrink: 0;
+            /* 防止标题被压缩 */
+        }
+
+        /* 输入框样式 */
+        textarea {
+            flex: 1;
+            /* 占据主要空间 */
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+            resize: none;
+            /* 禁止手动调整大小 */
+            font-family: monospace;
+            /* 等宽字体 */
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 结果显示区域样式 */
+        .result-container {
+            flex-shrink: 0;
+            /* 防止被压缩 */
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        /* 保存按钮样式 */
+        .save-button {
+            flex-shrink: 0;
+            padding: 10px 20px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        /* 历史记录容器样式 */
+        .history-container {
+            flex: 0.5;
+            /* 占据剩余空间的一半 */
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            overflow-y: auto;
+            /* 允许垂直滚动 */
+            min-height: 150px;
+        }
+
+        /* 历史记录项样式 */
+        .history-item {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        /* 最后一个历史记录项不显示底边框 */
+        .history-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="calculator">
+        <h1>在线计算器</h1>
+        <textarea id="numbers" placeholder="输入算术表达式，每行或空格分隔 (例如:
+1+2 3*4
+10/2 5-1)" oninput="calculateSum()"></textarea>
+        <div class="result-container">
+            <p>总和: <span id="result">0</span></p>
+        </div>
+        <button class="save-button" onclick="saveToHistory()">保存结果</button>
+        <div class="history-container">
+            <h3>历史记录</h3>
+            <div id="history"></div>
+        </div>
+    </div>
+
+    <script>
+        // 安全地计算单个表达式
+        function evaluateExpression(expr) {
+            try {
+                // 使用Function构造器执行表达式，添加严格模式
+                return Function('"use strict";return (' + expr + ')')();
+            } catch (e) {
+                return 0;  // 表达式无效时返回0
+            }
+        }
+
+        // 计算所有表达式的总和
+        function calculateSum() {
+            const input = document.getElementById('numbers').value;
+            const expressions = input
+                .split(/[\n\s]+/)  // 按换行或空格分割
+                .filter(expr => expr.trim() !== '')  // 过滤空字符串
+                .reduce((acc, curr) => acc + evaluateExpression(curr), 0);  // 计算总和
+            document.getElementById('result').textContent = expressions.toFixed(2);  // 显示两位小数
+        }
+
+        // 保存当前结果到历史记录
+        function saveToHistory() {
+            const result = document.getElementById('result').textContent;
+            const input = document.getElementById('numbers').value;
+            const timestamp = new Date().toLocaleString();  // 获取当前时间
+
+            // 创建历史记录项
+            const historyItem = document.createElement('div');
+            historyItem.className = 'history-item';
+            historyItem.innerHTML = `
+                <div>时间: ${timestamp}</div>
+                <div>表达式: ${input}</div>
+                <div>结果: ${result}</div>
+            `;
+
+            // 将新记录插入到历史记录的顶部
+            const historyContainer = document.getElementById('history');
+            historyContainer.insertBefore(historyItem, historyContainer.firstChild);
+        }
+    </script>
+</body>
+
+</html>
