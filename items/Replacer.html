@@ -1,145 +1,247 @@
-<head></head>
-<title>Replacer</title>
-<style>
-    /* 重置页面默认样式，确保页面占满整个视口 */
-    html,
-    body {
-        margin: 0;
-        padding: 0;
-        height: 100vh;
-        /* 100%视口高度 */
-        width: 100vw;
-        /* 100%视口宽度 */
-        overflow: hidden;
-        /* 防止出现滚动条 */
-    }
+<head>
+    <meta charset="UTF-8">
+    <title>文本替换工具</title>
+    <style>
+        /* 重置页面默认样式，确保页面占满整个视口 */
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            /* 100%视口高度 */
+            width: 100vw;
+            /* 100%视口宽度 */
+            /* overflow: hidden;
+            防止出现滚动条 */
+        }
 
-    /* 主容器样式 */
-    .calculator {
-        width: 100%;
-        height: 100%;
-        padding: 20px;
-        box-sizing: border-box;
-        /* 边框盒模型，使padding包含在宽高中 */
-        display: flex;
-        /* 使用弹性布局 */
-        flex-direction: column;
-        /* 垂直排列 */
-        font-family: Arial, sans-serif;
-        overflow: hidden;
-    }
+        /* 主容器样式 */
+        .calculator {
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+            /* 边框盒模型，使padding包含在宽高中 */
+            display: flex;
+            /* 使用弹性布局 */
+            flex-direction: column;
+            /* 垂直排列 */
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
 
-    /* 标题样式 */
-    h1 {
-        text-align: center;
-        color: #333;
-        margin: 0 0 20px 0;
-        padding: 0;
-        font-size: 28px;
-        flex-shrink: 0;
-        /* 防止标题被压缩 */
-    }
+        /* 标题样式 */
+        h1 {
+            text-align: center;
+            color: #333;
+            margin: 0 0 20px 0;
+            padding: 0;
+            font-size: 28px;
+            flex-shrink: 0;
+            /* 防止标题被压缩 */
+        }
 
-    /* 输入框样式 */
-    textarea {
-        flex: 1;
-        /* 占据主要空间 */
-        width: 100%;
-        padding: 15px;
-        margin-bottom: 20px;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        font-size: 16px;
-        box-sizing: border-box;
-        resize: none;
-        /* 禁止手动调整大小 */
-        font-family: monospace;
-        /* 等宽字体 */
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    }
+        /* 输入框样式 */
+        textarea {
+            flex: 1;
+            /* 占据主要空间 */
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+            resize: none;
+            /* 禁止手动调整大小 */
+            font-family: monospace;
+            /* 等宽字体 */
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
 
-    /* 结果显示区域样式 */
-    .result-container {
-        flex-shrink: 0;
-        /* 防止被压缩 */
-        padding: 15px;
-        background: #f5f5f5;
-        border-radius: 8px;
-        margin-bottom: 20px;
-    }
+        /* 结果显示区域样式 */
+        .result-container {
+            flex-shrink: 0;
+            /* 防止被压缩 */
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
 
-    /* 保存按钮样式 */
-    .save-button {
-        flex-shrink: 0;
-        padding: 10px 20px;
-        background-color: #2196F3;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 16px;
-        margin-bottom: 20px;
-    }
+        /* 保存按钮样式 */
+        .save-button {
+            flex-shrink: 0;
+            padding: 10px 20px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
 
-    /* 历史记录容器样式 */
-    .history-container {
-        flex: 0.5;
-        /* 占据剩余空间的一半 */
-        padding: 15px;
-        background: #f5f5f5;
-        border-radius: 8px;
-        overflow-y: auto;
-        /* 允许垂直滚动 */
-        min-height: 150px;
-    }
+        /* 历史记录容器样式 */
+        .history-container {
+            flex: 0.5;
+            /* 占据剩余空间的一半 */
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            overflow-y: auto;
+            /* 允许垂直滚动 */
+            min-height: 150px;
+        }
 
-    /* 历史记录项样式 */
-    .history-item {
-        padding: 8px;
-        border-bottom: 1px solid #ddd;
-    }
+        /* 历史记录项样式 */
+        .history-item {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
 
-    /* 最后一个历史记录项不显示底边框 */
-    .history-item:last-child {
-        border-bottom: none;
-    }
-</style>
+        /* 最后一个历史记录项不显示底边框 */
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        /* 更新主容器样式 */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            display: grid;
+            gap: 20px;
+        }
+
+        /* 输入容器样式优化 */
+        .input-container {
+            background: #fff;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 文本框样式优化 */
+        textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.5;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+
+        /* 按钮容器样式 */
+        .button-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        /* 按钮样式统一 */
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        /* 主要按钮样式 */
+        #replaceButton {
+            background-color: #2196F3;
+            color: white;
+        }
+
+        #replaceButton:hover {
+            background-color: #1976D2;
+        }
+
+        /* 次要按钮样式 */
+        .button-container button:not(#replaceButton) {
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .button-container button:not(#replaceButton):hover {
+            background-color: #e0e0e0;
+        }
+
+        /* 历史记录样式优化 */
+        .history-container {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .history-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .restore-button {
+            margin-top: 10px;
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .restore-button:hover {
+            background-color: #388E3C;
+        }
+    </style>
 </head>
 
 <body>
-    <h1>Replacer</h1>
-    <div class="tab-pane col-12 " id="panel-replacer">
-        <div class="container">
-            <div class="input-container">
-                <textarea id="originalText" rows="4" placeholder="请输入原始文本"></textarea>
-                <div class="button-container">
-                    <button id="pasteOriginal">粘贴</button>
-                    <button id="copyOriginal">复制</button>
-                </div>
-            </div>
-            <div class="input-container">
-                <textarea id="textToReplace" rows="4" placeholder="请输入被替换文本"></textarea>
-                <div class="button-container">
-                    <button id="pasteToReplace">粘贴</button>
-                    <button id="copyToReplace">复制</button>
-                </div>
-            </div>
-            <div class="input-container">
-                <textarea id="replacementText" rows="4" placeholder="请输入替换文本"></textarea>
-                <div class="button-container">
-                    <button id="pasteReplacement">粘贴</button>
-                    <button id="copyReplacement">复制</button>
-                </div>
-            </div>
-            <div class="input-container">
-                <textarea id="outputText" rows="4" placeholder="替换后的文本" readonly></textarea>
-                <div class="button-container">
-                    <button id="replaceButton">替换</button>
-                    <button id="copyOutput">复制</button>
-                    <button id="clearButton">清空</button>
-                </div>
+    <div class="container">
+        <h1>文本替换工具</h1>
+
+        <div class="input-container">
+            <textarea id="originalText" placeholder="请输入原始文本..."></textarea>
+            <div class="button-container">
+                <button id="pasteOriginal">粘贴</button>
+                <button id="copyOriginal">复制</button>
             </div>
         </div>
+
+        <div class="input-container">
+            <textarea id="textToReplace" placeholder="请输入需要被替换的文本..."></textarea>
+            <div class="button-container">
+                <button id="pasteToReplace">粘贴</button>
+                <button id="copyToReplace">复制</button>
+            </div>
+        </div>
+
+        <div class="input-container">
+            <textarea id="replacementText" placeholder="请输入替换后的文本..."></textarea>
+            <div class="button-container">
+                <button id="pasteReplacement">粘贴</button>
+                <button id="copyReplacement">复制</button>
+            </div>
+        </div>
+
+        <div class="input-container">
+            <textarea id="outputText" placeholder="替换结果将显示在这里..." readonly></textarea>
+            <div class="button-container">
+                <button id="replaceButton">替换</button>
+                <button id="copyOutput">复制结果</button>
+                <button id="clearButton">清空所有</button>
+            </div>
+        </div>
+
         <div class="history-container">
             <h3>历史记录</h3>
             <div id="historyList"></div>
