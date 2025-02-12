@@ -52,15 +52,18 @@
 </head>
 
 <body>
-    <button id="toggle-btn">切换侧边栏</button>
+    <button id="toggle-btn">侧边栏</button>
     <div id="sidebar">
         <!-- 在这里直接列出你的文件 -->
+        <div class="file-item" data-file="Welcome.html">Main</div>
         <div class="file-item" data-file="Calculator.html">Calculator</div>
         <div class="file-item" data-file="file2.html">文件2</div>
         <div class="file-item" data-file="file3.html">文件3</div>
     </div>
+
+    <!-- 默认打开Welcome页面 -->
     <div id="content">
-        <iframe id="content-frame" style="width: 100%; height: 100%; border: none;"></iframe>
+        <iframe id="content-frame" style="width: 100%; height: 100%; border: none;" src="items/Welcome.html"></iframe>
     </div>
 
     <script>
