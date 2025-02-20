@@ -182,7 +182,47 @@
     <script>
         let selectedFunction = '';
 
-        // 功能按钮点击事件
+        // 添加示例数据对象
+        const examples = {
+            'A': {
+                input: "17\nTools",
+                output: "'17',\n'Tools',"
+            },
+            'B': {
+                input: "17\nTools",
+                output: "17 Tools"
+            },
+            'C': {
+                input: "hello world\ngood morning",
+                output: "Hello world\nGood morning"
+            },
+            'D': {
+                input: "hello world\ngood morning",
+                output: "Hello World\nGood Morning"
+            },
+            'E': {
+                input: "17\nTools",
+                output: "17__c\nTools__c"
+            },
+            'F': {
+                input: "hello world\ngood morning",
+                output: "helloworld\ngoodmorning"
+            },
+            'G': {
+                input: "Hello World\nGOOD MORNING",
+                output: "hello world\ngood morning"
+            },
+            'H': {
+                input: "Hello World\ngood morning",
+                output: "HELLO WORLD\nGOOD MORNING"
+            },
+            'I': {
+                input: "17 123\nTools test abc",
+                output: "17\nTools"
+            }
+        };
+
+        // 修改功能按钮点击事件
         document.querySelectorAll('.function-button').forEach(button => {
             button.addEventListener('click', function () {
                 document.querySelectorAll('.function-button').forEach(btn => {
@@ -190,6 +230,14 @@
                 });
                 this.classList.add('active');
                 selectedFunction = this.dataset.function;
+
+                // 更新输入输出框的提示文本
+                const inputArea = document.getElementById('input');
+                const outputArea = document.getElementById('output');
+                const example = examples[selectedFunction];
+
+                inputArea.placeholder = `请在此输入需要转换的文本...\n示例输入：\n${example.input}`;
+                outputArea.placeholder = `转换后的结果将显示在这里...\n示例输出：\n${example.output}`;
             });
         });
 
