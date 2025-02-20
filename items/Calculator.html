@@ -45,9 +45,10 @@
 
         /* 输入框样式 */
         textarea {
-            flex: 1;
-            /* 占据主要空间 */
+            flex: none;
             width: 100%;
+            height: 250px;
+            /* 调整为与历史记录框相同的高度 */
             padding: 15px;
             margin-bottom: 20px;
             border: 1px solid #ddd;
@@ -150,14 +151,25 @@
         function saveToHistory() {
             const result = document.getElementById('result').textContent;
             const input = document.getElementById('numbers').value;
-            const timestamp = new Date().toLocaleString();  // 获取当前时间
+            const timestamp = new Date().toLocaleString();
+
+            // 格式化表达式
+            const formattedExpr = input
+                .split(/[\n\s]+/)
+                .filter(expr => expr.trim() !== '')
+                .map(expr => {
+                    // 如果是负数或者计算结果为负数的表达式，用括号括起来
+                    const value = evaluateExpression(expr);
+                    return value < 0 ? `(${expr})` : expr;
+                })
+                .join('+');
 
             // 创建历史记录项
             const historyItem = document.createElement('div');
             historyItem.className = 'history-item';
             historyItem.innerHTML = `
                 <div>时间: ${timestamp}</div>
-                <div>表达式: ${input}</div>
+                <div>表达式: ${formattedExpr}</div>
                 <div>结果: ${result}</div>
             `;
 
