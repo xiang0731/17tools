@@ -165,6 +165,7 @@
             <button class="function-button" data-function="F">F-去除空格</button>
             <button class="function-button" data-function="G">G-转换小写</button>
             <button class="function-button" data-function="H">H-转换大写</button>
+            <button class="function-button" data-function="I">I-提取首个字符</button>
         </div>
 
         <textarea id="input" placeholder="请在此输入需要转换的文本..."></textarea>
@@ -221,7 +222,7 @@
                     result = lines.map(line => `'${line}',`).join('\n');
                     break;
                 case 'B':
-                    result = lines.map(line => `${line},`).join(' ');
+                    result = lines.map(line => `${line}`).join(' ');
                     break;
                 case 'C':
                     result = lines.map(line => {
@@ -246,6 +247,13 @@
                     break;
                 case 'H':
                     result = lines.map(line => line.toUpperCase()).join('\n');
+                    break;
+                case 'I':
+                    result = lines.map(line => {
+                        // 使用正则表达式匹配第一个空格或制表符
+                        const match = line.match(/^([^\s\t]+)/);
+                        return match ? match[1] : line;
+                    }).join('\n');
                     break;
             }
 
