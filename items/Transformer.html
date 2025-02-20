@@ -159,7 +159,7 @@
     <h1>文本转换工具</h1>
     <div class="container">
         <div class="function-buttons">
-            <button class="function-button" data-function="A">A-在字符前添加</button>
+            <button class="function-button" data-function="A">A-添加单引号和逗号</button>
             <button class="function-button" data-function="B">B-合并为一行</button>
             <button class="function-button" data-function="C">C-句首字母大写</button>
             <button class="function-button" data-function="D">D-单词首字母大写</button>
@@ -168,12 +168,14 @@
             <button class="function-button" data-function="G">G-转换小写</button>
             <button class="function-button" data-function="H">H-转换大写</button>
             <button class="function-button" data-function="I">I-提取首个字符</button>
+            <button class="function-button" data-function="J">J-添加前缀</button>
+            <button class="function-button" data-function="K">K-添加后缀</button>
         </div>
 
         <textarea id="input" placeholder="请在此输入需要转换的文本..."></textarea>
 
         <!-- 添加辅助输入框 -->
-        <textarea id="auxiliaryInput" placeholder="请输入要添加的前缀内容..." style="min-height: 50px;"></textarea>
+        <textarea id="auxiliaryInput" placeholder="请输入要添加的前缀内容..."></textarea>
 
         <div class="action-buttons">
             <button class="action-button" id="clearBtn">清除</button>
@@ -190,8 +192,8 @@
         // 添加示例数据对象
         const examples = {
             'A': {
-                input: "First\nSecond\nThird",
-                output: "prefix.First\nprefix.Second\nprefix.Third"
+                input: "17\nTools",
+                output: "'17',\n'Tools',"
             },
             'B': {
                 input: "17\nTools",
@@ -224,6 +226,16 @@
             'I': {
                 input: "17 123\nTools test abc",
                 output: "17\nTools"
+            },
+            'J': {
+                input: "A\nB\nC",
+                output: "a.A\na.B\na.C",
+                auxiliary: "a."
+            },
+            'K': {
+                input: "A\nB\nC",
+                output: "A.a\nB.a\nC.a",
+                auxiliary: ".a"
             }
         };
 
@@ -239,19 +251,21 @@
                 // 更新输入输出框的提示文本
                 const inputArea = document.getElementById('input');
                 const outputArea = document.getElementById('output');
+                const auxiliaryArea = document.getElementById('auxiliaryInput');
                 const example = examples[selectedFunction];
 
-                inputArea.placeholder = `请在此输入需要转换的文本...\n示例输入：\n${example.input}`;
-                outputArea.placeholder = `转换后的结果将显示在这里...\n示例输出：\n${example.output}`;
+                inputArea.placeholder = `请在此输入需要处理的文本...\n示例输入：\n${example.input}`;
+                auxiliaryArea.placeholder = `请输入要添加的内容...\n示例输入：\n${example.auxiliary}`;
+                outputArea.placeholder = `处理后的结果将显示在这里...\n示例输出：\n${example.output}`;
             });
         });
 
         // 清除按钮
         document.getElementById('clearBtn').addEventListener('click', function () {
             document.getElementById('input').value = '';
+            document.getElementById('auxiliaryInput').value = '';
             document.getElementById('output').value = '';
         });
-
         // 复制按钮
         document.getElementById('copyBtn').addEventListener('click', function () {
             const output = document.getElementById('output');
@@ -267,13 +281,14 @@
             }
 
             const input = document.getElementById('input').value;
+            // 添加suffix
+            const suffix = document.getElementById('auxiliaryInput').value || '';
             const lines = input.split('\n');
             let result = '';
 
             switch (selectedFunction) {
                 case 'A':
-                    const prefix = document.getElementById('auxiliaryInput').value || '';
-                    result = lines.map(line => `${prefix}${line}`).join('\n');
+                    result = lines.map(line => `'${line}',`).join('\n');
                     break;
                 case 'B':
                     result = lines.map(line => `${line}`).join(' ');
@@ -309,8 +324,13 @@
                         return match ? match[1] : line;
                     }).join('\n');
                     break;
+                case 'J':
+                    result = lines.map(line => `${suffix}${line}`).join('\n');
+                    break;
+                case 'K':
+                    result = lines.map(line => `${line}${suffix}`).join('\n');
+                    break;
             }
-
             document.getElementById('output').value = result;
         });
     </script>
