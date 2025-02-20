@@ -175,7 +175,7 @@
         <textarea id="input" placeholder="请在此输入需要转换的文本..."></textarea>
 
         <!-- 添加辅助输入框 -->
-        <textarea id="auxiliaryInput" placeholder="请输入要添加的前缀内容..."></textarea>
+        <textarea id="auxiliaryInput" placeholder="请输入要添加的内容..."></textarea>
 
         <div class="action-buttons">
             <button class="action-button" id="clearBtn">清除</button>
@@ -193,49 +193,59 @@
         const examples = {
             'A': {
                 input: "17\nTools",
+                auxiliary: "注意：当前功能下此输入框无作用",
                 output: "'17',\n'Tools',"
             },
             'B': {
                 input: "17\nTools",
+                auxiliary: "注意：当前功能下此输入框无作用",
                 output: "17 Tools"
             },
             'C': {
                 input: "hello world\ngood morning",
+                auxiliary: "注意：当前功能下此输入框无作用",
                 output: "Hello world\nGood morning"
             },
             'D': {
                 input: "hello world\ngood morning",
+                auxiliary: "注意：当前功能下此输入框无作用",
                 output: "Hello World\nGood Morning"
             },
             'E': {
                 input: "17\nTools",
+                auxiliary: "注意：当前功能下此输入框无作用",
                 output: "17__c\nTools__c"
             },
             'F': {
                 input: "hello world\ngood morning",
+                auxiliary: "注意：当前功能下此输入框无作用",
                 output: "helloworld\ngoodmorning"
             },
             'G': {
                 input: "Hello World\nGOOD MORNING",
+                auxiliary: "注意：当前功能下此输入框无作用",
                 output: "hello world\ngood morning"
             },
             'H': {
                 input: "Hello World\ngood morning",
+                auxiliary: "注意：当前功能下此输入框无作用",
                 output: "HELLO WORLD\nGOOD MORNING"
             },
             'I': {
                 input: "17 123\nTools test abc",
+                auxiliary: "注意：当前功能下此输入框无作用",
                 output: "17\nTools"
             },
             'J': {
                 input: "A\nB\nC",
-                output: "a.A\na.B\na.C",
-                auxiliary: "a."
+                auxiliary: "a.",
+                output: "a.A\na.B\na.C"
+
             },
             'K': {
                 input: "A\nB\nC",
-                output: "A.a\nB.a\nC.a",
-                auxiliary: ".a"
+                auxiliary: ".a",
+                output: "A.a\nB.a\nC.a"
             }
         };
 
