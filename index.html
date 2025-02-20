@@ -48,6 +48,16 @@
         .file-item:hover {
             background-color: #ddd;
         }
+
+        #footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background-color: #f1f1f1;
+            padding: 10px;
+            text-align: center;
+            font-size: 14px;
+        }
     </style>
 </head>
 
@@ -64,8 +74,23 @@
 
     <!-- 默认打开Welcome页面 -->
     <div id="content">
-        <iframe id="content-frame" style="width: 100%; height: 100%; border: none;" src="items/Welcome.html"></iframe>
+        <iframe id="content-frame" style="width: 100%; height: calc(100% - 40px); border: none;"
+            src="items/Welcome.html"></iframe>
     </div>
+
+    <!-- 添加访问量统计显示区域 -->
+    <div id="footer">
+        <span id="busuanzi_container_site_pv">
+            本站总访问量<span id="busuanzi_value_site_pv"></span>次
+        </span>
+        &nbsp;|&nbsp;
+        <span id="busuanzi_container_site_uv">
+            访客数<span id="busuanzi_value_site_uv"></span>人次
+        </span>
+    </div>
+
+    <!-- 添加不蒜子脚本 -->
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
 
     <script>
         // 切换侧边栏
