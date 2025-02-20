@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>文本转换工具</title>
+    <title>文本处理工具</title>
     <style>
         /* 基础样式重置 */
         * {
@@ -154,74 +154,40 @@
 </head>
 
 <body>
-    <h1>文本转换工具</h1>
+    <h1>文本处理工具</h1>
     <div class="container">
         <div class="function-buttons">
             <button class="function-button" data-function="A">A-在字符前添加</button>
-            <button class="function-button" data-function="B">B-合并为一行</button>
-            <button class="function-button" data-function="C">C-句首字母大写</button>
-            <button class="function-button" data-function="D">D-单词首字母大写</button>
-            <button class="function-button" data-function="E">E-添加__c</button>
-            <button class="function-button" data-function="F">F-去除空格</button>
-            <button class="function-button" data-function="G">G-转换小写</button>
-            <button class="function-button" data-function="H">H-转换大写</button>
-            <button class="function-button" data-function="I">I-提取首个字符</button>
+            <button class="function-button" data-function="B">B-在字符后添加</button>
         </div>
 
-        <textarea id="input" placeholder="请在此输入需要转换的文本..."></textarea>
+        <textarea id="input" placeholder="请在此输入需要处理的文本..."></textarea>
 
-        <!-- 添加辅助输入框 -->
-        <textarea id="auxiliaryInput" placeholder="请输入要添加的前缀内容..." style="min-height: 50px;"></textarea>
+        <textarea id="auxiliaryInput" placeholder="请输入要添加的前缀..."></textarea>
 
         <div class="action-buttons">
             <button class="action-button" id="clearBtn">清除</button>
-            <button class="action-button" id="submitBtn">转换</button>
+            <button class="action-button" id="submitBtn">处理</button>
             <button class="action-button" id="copyBtn">复制结果</button>
         </div>
 
-        <textarea id="output" readonly placeholder="转换后的结果将显示在这里..."></textarea>
+        <textarea id="output" readonly placeholder="处理后的结果将显示在这里..."></textarea>
     </div>
 
     <script>
         let selectedFunction = '';
 
-        // 添加示例数据对象
+        // 修改示例数据对象
         const examples = {
             'A': {
-                input: "First\nSecond\nThird",
-                output: "prefix.First\nprefix.Second\nprefix.Third"
+                input: "A\nB\nC",
+                output: "a.A\na.B\na.C",
+                auxiliary: "a."
             },
             'B': {
-                input: "17\nTools",
-                output: "17 Tools"
-            },
-            'C': {
-                input: "hello world\ngood morning",
-                output: "Hello world\nGood morning"
-            },
-            'D': {
-                input: "hello world\ngood morning",
-                output: "Hello World\nGood Morning"
-            },
-            'E': {
-                input: "17\nTools",
-                output: "17__c\nTools__c"
-            },
-            'F': {
-                input: "hello world\ngood morning",
-                output: "helloworld\ngoodmorning"
-            },
-            'G': {
-                input: "Hello World\nGOOD MORNING",
-                output: "hello world\ngood morning"
-            },
-            'H': {
-                input: "Hello World\ngood morning",
-                output: "HELLO WORLD\nGOOD MORNING"
-            },
-            'I': {
-                input: "17 123\nTools test abc",
-                output: "17\nTools"
+                input: "A\nB\nC",
+                output: "A.a\nB.a\nC.a",
+                auxiliary: ".a"
             }
         };
 
@@ -237,16 +203,19 @@
                 // 更新输入输出框的提示文本
                 const inputArea = document.getElementById('input');
                 const outputArea = document.getElementById('output');
+                const auxiliaryArea = document.getElementById('auxiliaryInput');
                 const example = examples[selectedFunction];
 
-                inputArea.placeholder = `请在此输入需要转换的文本...\n示例输入：\n${example.input}`;
-                outputArea.placeholder = `转换后的结果将显示在这里...\n示例输出：\n${example.output}`;
+                inputArea.placeholder = `请在此输入需要处理的文本...\n示例输入：\n${example.input}`;
+                outputArea.placeholder = `处理后的结果将显示在这里...\n示例输出：\n${example.output}`;
+                auxiliaryArea.placeholder = `请输入要添加的前缀...\n示例输入：\n${example.auxiliary}`;
             });
         });
 
         // 清除按钮
         document.getElementById('clearBtn').addEventListener('click', function () {
             document.getElementById('input').value = '';
+            document.getElementById('auxiliaryInput').value = '';
             document.getElementById('output').value = '';
         });
 
@@ -257,55 +226,24 @@
             document.execCommand('copy');
         });
 
-        // 提交按钮
+        // 修改提交按钮的处理逻辑
         document.getElementById('submitBtn').addEventListener('click', function () {
             if (!selectedFunction) {
-                alert('请先选择一个转换功能！');
+                alert('请先选择一个功能！');
                 return;
             }
 
             const input = document.getElementById('input').value;
+            const suffix = document.getElementById('auxiliaryInput').value || '';
             const lines = input.split('\n');
             let result = '';
 
             switch (selectedFunction) {
                 case 'A':
-                    const prefix = document.getElementById('auxiliaryInput').value || '';
-                    result = lines.map(line => `${prefix}${line}`).join('\n');
+                    result = lines.map(line => `${suffix}${line}`).join('\n');
                     break;
                 case 'B':
-                    result = lines.map(line => `${line}`).join(' ');
-                    break;
-                case 'C':
-                    result = lines.map(line => {
-                        return line.charAt(0).toUpperCase() + line.slice(1);
-                    }).join('\n');
-                    break;
-                case 'D':
-                    result = lines.map(line => {
-                        return line.split(' ').map(word =>
-                            word.charAt(0).toUpperCase() + word.slice(1)
-                        ).join(' ');
-                    }).join('\n');
-                    break;
-                case 'E':
-                    result = lines.map(line => `${line}__c`).join('\n');
-                    break;
-                case 'F':
-                    result = lines.map(line => line.replace(/\s/g, '')).join('\n');
-                    break;
-                case 'G':
-                    result = lines.map(line => line.toLowerCase()).join('\n');
-                    break;
-                case 'H':
-                    result = lines.map(line => line.toUpperCase()).join('\n');
-                    break;
-                case 'I':
-                    result = lines.map(line => {
-                        // 使用正则表达式匹配第一个空格或制表符
-                        const match = line.match(/^([^\s\t]+)/);
-                        return match ? match[1] : line;
-                    }).join('\n');
+                    result = lines.map(line => `${line}${suffix}`).join('\n');
                     break;
             }
 

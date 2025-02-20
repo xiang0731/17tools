@@ -52,13 +52,14 @@
 </head>
 
 <body>
-    <button id="toggle-btn">侧边栏</button>
+    <button id="toggle-btn">&lt;&lt;</button>
     <div id="sidebar">
         <!-- 在这里直接列出你的文件 -->
-        <div class="file-item" data-file="Welcome.html">Main</div>
-        <div class="file-item" data-file="Calculator.html">Calculator</div>
-        <div class="file-item" data-file="Replacer.html">Replacer</div>
-        <div class="file-item" data-file="Transformer.html">Transformer</div>
+        <div class="file-item" data-file="Welcome.html">Main 主页</div>
+        <div class="file-item" data-file="Calculator.html">Calculator 快速求和</div>
+        <div class="file-item" data-file="Replacer.html">Replacer 文本替换</div>
+        <div class="file-item" data-file="TextProcessor.html">TextProcessor 文本处理</div>
+        <div class="file-item" data-file="Transformer.html">Transformer 文本转换</div>
     </div>
 
     <!-- 默认打开Welcome页面 -->
@@ -69,7 +70,16 @@
     <script>
         // 切换侧边栏
         document.getElementById('toggle-btn').addEventListener('click', function () {
-            document.getElementById('sidebar').classList.toggle('collapsed');
+            const sidebar = document.getElementById('sidebar');
+            const btn = document.getElementById('toggle-btn');
+            sidebar.classList.toggle('collapsed');
+
+            // 根据侧边栏状态更新按钮文本
+            if (sidebar.classList.contains('collapsed')) {
+                btn.innerHTML = '>>';
+            } else {
+                btn.innerHTML = '<<';
+            }
         });
 
         // 为所有文件项添加点击事件
