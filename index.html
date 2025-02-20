@@ -52,11 +52,17 @@
         #footer {
             position: fixed;
             bottom: 0;
-            width: 100%;
+            right: 0;
             background-color: #f1f1f1;
             padding: 10px;
             text-align: center;
             font-size: 14px;
+            transition: 0.3s;
+            width: calc(100% - 250px);
+        }
+
+        #footer.full-width {
+            width: 100%;
         }
     </style>
 </head>
@@ -100,7 +106,9 @@
         document.getElementById('toggle-btn').addEventListener('click', function () {
             const sidebar = document.getElementById('sidebar');
             const btn = document.getElementById('toggle-btn');
+            const footer = document.getElementById('footer');
             sidebar.classList.toggle('collapsed');
+            footer.classList.toggle('full-width');
 
             // 根据侧边栏状态更新按钮文本
             if (sidebar.classList.contains('collapsed')) {
