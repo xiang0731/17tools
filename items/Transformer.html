@@ -170,6 +170,8 @@
             <button class="function-button" data-function="I">I-提取首个字符</button>
             <button class="function-button" data-function="J">J-添加前缀</button>
             <button class="function-button" data-function="K">K-添加后缀</button>
+            <button class="function-button" data-function="L">L-提取特定前值</button>
+            <button class="function-button" data-function="M">M-提取特定后值</button>
         </div>
 
         <textarea id="input" placeholder="请在此输入需要转换的文本..."></textarea>
@@ -246,6 +248,16 @@
                 input: "A\nB\nC",
                 auxiliary: ".a",
                 output: "A.a\nB.a\nC.a"
+            },
+            'L': {
+                input: "a-1234-1\nb-dfiaf-2",
+                auxiliary: "-",
+                output: "a\nb"
+            },
+            'M': {
+                input: "a-1234-1\nb-dfiaf-2",
+                auxiliary: "-",
+                output: "1\n2"
             }
         };
 
@@ -339,6 +351,18 @@
                     break;
                 case 'K':
                     result = lines.map(line => `${line}${suffix}`).join('\n');
+                    break;
+                case 'L':
+                    result = lines.map(line => {
+                        const index = line.indexOf(suffix);
+                        return index !== -1 ? line.substring(0, index) : line;
+                    }).join('\n');
+                    break;
+                case 'M':
+                    result = lines.map(line => {
+                        const index = line.lastIndexOf(suffix);
+                        return index !== -1 ? line.substring(index + suffix.length) : line;
+                    }).join('\n');
                     break;
             }
             document.getElementById('output').value = result;
