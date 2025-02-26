@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="zh"><!-- 设置网页语言为中文 -->
+
+<head>
+    <meta charset="UTF-8"><!-- 设置字符编码为UTF-8，支持中文等各种字符 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"><!-- 设置视口以适应移动设备 -->
+    <title>动画效果</title><!-- 设置网页标题 -->
+    <style>
+        /* CSS样式开始 */
+        body {
+            margin: 0;
+            /* 移除页面边距 */
+            height: 100vh;
+            /* 设置高度为视口的100%，vh表示视口高度 */
+            display: flex;
+            /* 使用弹性布局 */
+            justify-content: center;
+            /* 水平居中 */
+            align-items: center;
+            /* 垂直居中 */
+            background-color: white;
+            /* 背景颜色设为白色 */
+        }
+
+        .container {
+            position: relative;
+            /* 设置相对定位，使内部元素可以基于它定位 */
+            text-align: center;
+            /* 文本居中 */
+        }
+
+        .title {
+            position: absolute;
+            /* 绝对定位 */
+            width: 100%;
+            /* 宽度设为100% */
+            top: 60px;
+            /* 从矩形顶部向下移动60像素，放置在副标题下方 */
+            left: 50%;
+            /* 水平居中的第一步：左边缘放在容器中点 */
+            transform: translateX(-50%);
+            /* 水平居中的第二步：向左移动自身宽度的一半 */
+            font-size: 24px;
+            /* 字体大小 */
+            color: #666;
+            /* 字体颜色为灰色 */
+            font-family: "Microsoft YaHei", sans-serif;
+            /* 字体设置为微软雅黑，如果没有则使用无衬线字体 */
+            text-align: center;
+            /* 文本居中 */
+            z-index: 2;
+            /* 增加层级，确保显示在其他元素之上 */
+        }
+
+        .subtitle {
+            position: absolute;
+            /* 绝对定位 */
+            width: 90%;
+            /* 宽度设为90%，比标题略窄，避免过长 */
+            top: 15px;
+            /* 从矩形顶部向下移动15像素，位于标题上方 */
+            left: 50%;
+            /* 水平居中的第一步：左边缘放在容器中点 */
+            transform: translateX(-50%);
+            /* 水平居中的第二步：向左移动自身宽度的一半 */
+            font-size: 16px;
+            /* 字体大小 */
+            color: #888;
+            /* 字体颜色为浅灰色 */
+            font-family: "Microsoft YaHei", sans-serif;
+            /* 字体设置为微软雅黑，如果没有则使用无衬线字体 */
+            text-align: center;
+            /* 文本居中 */
+            z-index: 2;
+            /* 增加层级，确保显示在其他元素之上 */
+        }
+
+        .rectangle {
+            width: 800px;
+            /* 设置宽度为800像素 */
+            height: 480px;
+            /* 设置高度为480像素 */
+            background-color: #f0f0f0;
+            /* 背景色为浅灰色 */
+            border-radius: 15px;
+            /* 设置圆角为15像素，使矩形四角变圆 */
+            opacity: 0;
+            /* 初始透明度为0（完全透明） */
+            animation: fadeIn 1s ease forwards;
+            /* 应用淡入动画，持续1秒，保持最终状态 */
+            position: relative;
+            /* 设置相对定位 */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            /* 添加阴影效果 */
+        }
+
+        .face {
+            position: absolute;
+            /* 绝对定位 */
+            left: 50%;
+            /* 水平居中第一步 */
+            top: 55%;
+            /* 垂直方向放置在矩形55%的位置 */
+            transform: translate(-50%, -50%);
+            /* 水平垂直居中的第二步：向左上移动自身宽高的一半 */
+            width: 300px;
+            /* 宽度300像素 */
+            height: 300px;
+            /* 高度300像素 */
+            background: linear-gradient(to bottom, #B8D8BE, #FFE17F);
+            /* 从上到下的颜色渐变，从灰绿色到黄色 */
+            border-radius: 50%;
+            /* 设置为50%使其成为圆形 */
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+            /* 添加阴影效果 */
+        }
+
+        .eyes {
+            position: absolute;
+            /* 绝对定位 */
+            width: 80px;
+            /* 宽度从60px增加到80px */
+            height: 80px;
+            /* 高度从60px增加到80px */
+            background-color: white;
+            /* 背景色为白色 */
+            border-radius: 50%;
+            /* 设置为50%使其成为圆形 */
+            top: 80px;
+            /* 从face顶部向下距离由90px减少到80px，使眼睛位置更合适 */
+            display: flex;
+            /* 使用弹性布局 */
+            justify-content: center;
+            /* 水平居中 */
+            align-items: center;
+            /* 垂直居中 */
+            border: none;
+            /* 无边框 */
+            overflow: hidden;
+            /* 添加overflow:hidden确保瞳孔不超出眼睛边界 */
+            box-shadow:
+                inset 0 2px 10px rgba(0, 0, 0, 0.1),
+                /* 内部上阴影 */
+                inset 0 -2px 10px rgba(0, 0, 0, 0.1),
+                /* 内部下阴影 */
+                0 2px 5px rgba(0, 0, 0, 0.1);
+            /* 外部阴影 */
+            z-index: 1;
+            /* 确保眼睛在正确的层级 */
+        }
+
+        .eye-left {
+            left: 60px;
+            /* 左眼定位：从70px调整到60px，考虑到眼睛变大后的位置平衡 */
+        }
+
+        .eye-right {
+            right: 60px;
+            /* 右眼定位：从70px调整到60px，考虑到眼睛变大后的位置平衡 */
+        }
+
+        /* 设置左眼初始位置 */
+        .eye-left .pupil {
+            margin: 0;
+            /* 移除外边距 */
+            transform: translate(14px, 14px);
+            /* 初始位置：从12px增加到14px，使瞳孔在更大的眼睛中保持相对位置 */
+        }
+
+        /* 设置右眼初始位置 */
+        .eye-right .pupil {
+            margin: 0;
+            /* 移除外边距 */
+            transform: translate(-14px, -14px);
+            /* 初始位置：从-12px调整到-14px，使瞳孔在更大的眼睛中保持相对位置 */
+        }
+
+        .pupil {
+            position: relative;
+            /* 将定位改为相对定位 */
+            width: 40px;
+            /* 宽度从30px增加到40px */
+            height: 40px;
+            /* 高度从30px增加到40px */
+            background-color: #8B4513;
+            /* 棕色背景 */
+            border-radius: 50%;
+            /* 设置为50%使其成为圆形 */
+            transition: transform 0.1s ease;
+            /* 添加平滑过渡效果，使眼球移动更自然 */
+            box-shadow:
+                inset 0 2px 4px rgba(0, 0, 0, 0.4),
+                /* 内部上阴影 */
+                inset 0 -2px 4px rgba(0, 0, 0, 0.2),
+                /* 内部下阴影 */
+                0 2px 4px rgba(0, 0, 0, 0.2);
+            /* 外部阴影 */
+            z-index: 0;
+            /* 确保瞳孔在眼睛内部 */
+        }
+
+        .mouth {
+            position: absolute;
+            /* 绝对定位 */
+            width: 148px;
+            /* 宽度148像素 */
+            height: 70px;
+            /* 高度70像素 */
+            background-color: #FF6B6B;
+            /* 背景色为粉红色 */
+            bottom: 50px;
+            /* 距离face底部50像素 */
+            left: 50%;
+            /* 水平居中第一步 */
+            transform: translateX(-50%);
+            /* 水平居中第二步 */
+            overflow: hidden;
+            /* 隐藏超出部分 */
+            border-radius: 0 0 148px 148px;
+            /* 底部圆角，创建微笑形状 */
+            transition: all 0.3s ease;
+            /* 所有属性变化时添加平滑过渡 */
+            box-shadow:
+                inset 0 -15px 15px -10px rgba(0, 0, 0, 0.3),
+                /* 内部下阴影 */
+                0 5px 10px -5px rgba(0, 0, 0, 0.2);
+            /* 外部下阴影 */
+        }
+
+        .tooth {
+            position: absolute;
+            /* 绝对定位 */
+            width: 25px;
+            /* 宽度25像素 */
+            height: 12px;
+            /* 高度12像素 */
+            background-color: white;
+            /* 白色背景 */
+            border-radius: 0 0 5px 5px;
+            /* 底部圆角 */
+            top: 2px;
+            /* 距离mouth顶部2像素 */
+            right: 30px;
+            /* 距离mouth右侧30像素 */
+        }
+
+        .tongue {
+            position: absolute;
+            /* 绝对定位 */
+            width: 73px;
+            /* 宽度73像素 */
+            height: 40px;
+            /* 高度40像素 */
+            background-color: #FF9999;
+            /* 背景色为浅粉色 */
+            border-radius: 63%;
+            /* 圆角百分比，创造舌头的形状 */
+            bottom: -12px;
+            /* 位置在mouth底部以下12像素 */
+            left: 23px;
+            /* 距离mouth左侧23像素 */
+            transform: rotate(-5deg);
+            /* 逆时针旋转5度 */
+            box-shadow: inset 0 5px 15px -5px rgba(0, 0, 0, 0.3);
+            /* 内阴影 */
+        }
+
+        .blush {
+            position: absolute;
+            /* 绝对定位 */
+            width: 60px;
+            /* 宽度60像素 */
+            height: 30px;
+            /* 高度30像素 */
+            background-color: rgba(255, 99, 132, 0.3);
+            /* 浅粉色带30%透明度 */
+            border-radius: 50%;
+            /* 设置为50%使其成为椭圆形 */
+            top: 150px;
+            /* 距离face顶部150像素 */
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.1);
+            /* 内阴影 */
+        }
+
+        .blush-left {
+            left: 35px;
+            /* 左脸红晕：距离face左侧35像素 */
+        }
+
+        .blush-right {
+            right: 35px;
+            /* 右脸红晕：距离face右侧35像素 */
+        }
+
+        .buttons {
+            position: absolute;
+            /* 绝对定位 */
+            bottom: 40px;
+            /* 距离rectangle底部40像素 */
+            left: 0;
+            /* 左侧对齐rectangle */
+            right: 0;
+            /* 右侧对齐rectangle */
+            display: flex;
+            /* 使用弹性布局 */
+            justify-content: space-between;
+            /* 两个按钮分别靠左右两侧 */
+            padding: 0 50px;
+            /* 左右内边距50像素 */
+        }
+
+        .btn {
+            padding: 10px 35px;
+            /* 上下内边距10像素，左右内边距35像素 */
+            font-size: 16px;
+            /* 字体大小16像素 */
+            border: none;
+            /* 无边框 */
+            border-radius: 5px;
+            /* 圆角5像素 */
+            color: white;
+            /* 字体颜色为白色 */
+            cursor: pointer;
+            /* 鼠标悬停时显示手指图标 */
+            font-family: "Microsoft YaHei", sans-serif;
+            /* 字体设为微软雅黑 */
+            transition: transform 0.2s ease;
+            /* 变换时添加平滑过渡 */
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            /* 鼠标悬停时按钮放大5% */
+        }
+
+        .btn-keep {
+            background-color: #4CAF50;
+            /* 绿色背景 */
+        }
+
+        .btn-uninstall {
+            background-color: #FF4444;
+            /* 红色背景 */
+        }
+
+        /* 添加悬浮文字的动画样式 */
+        @keyframes floatAndFade {
+            0% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            100% {
+                opacity: 0;
+                transform: translateY(-100px);
+            }
+        }
+
+        .floating-text {
+            position: fixed;
+            color: #FF4444;
+            font-size: 20px;
+            font-weight: bold;
+            pointer-events: none;
+            /* 确保文字不会影响鼠标事件 */
+            animation: floatAndFade 1.5s ease-out forwards;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+            z-index: 9999;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                /* 起始状态：完全透明 */
+                transform: translateY(20px);
+                /* 起始位置：向下偏移20像素 */
+            }
+
+            to {
+                opacity: 1;
+                /* 结束状态：完全不透明 */
+                transform: translateY(0);
+                /* 结束位置：恢复到原位 */
+            }
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script><!-- 引入jQuery库，用于简化DOM操作 -->
+    <script>
+        $(document).ready(function () {
+            // 当文档加载完成后执行的代码
+            const $rectangle = $('.rectangle'); // 获取矩形元素
+            const $eyes = $('.eyes'); // 获取眼睛元素
+            const $mouth = $('.mouth'); // 获取嘴巴元素
+            const $title = $('.title'); // 获取标题元素
+
+            $rectangle.on('mousemove', function (e) {
+                // 监听矩形上的鼠标移动事件
+                // 移除检查鼠标是否在标题区域的代码，让所有区域都处理事件
+                const rect = $rectangle[0].getBoundingClientRect(); // 获取矩形元素的位置和尺寸信息
+                const mouseX = e.clientX - rect.left; // 计算鼠标相对于矩形左边的位置
+                const mouseY = e.clientY - rect.top; // 计算鼠标相对于矩形顶部的位置
+
+                // 获取保留和卸载按钮的位置信息
+                const $keepBtn = $('.btn-keep');
+                const $uninstallBtn = $('.btn-uninstall');
+                const keepBtnRect = $keepBtn[0].getBoundingClientRect();
+                const uninstallBtnRect = $uninstallBtn[0].getBoundingClientRect();
+
+                // 计算鼠标到两个按钮的距离
+                const distToKeep = Math.hypot(
+                    (e.clientX - (keepBtnRect.left + keepBtnRect.width / 2)),
+                    (e.clientY - (keepBtnRect.top + keepBtnRect.height / 2))
+                );
+                const distToUninstall = Math.hypot(
+                    (e.clientX - (uninstallBtnRect.left + uninstallBtnRect.width / 2)),
+                    (e.clientY - (uninstallBtnRect.top + uninstallBtnRect.height / 2))
+                );
+
+                // 定义最大距离范围（用于归一化）
+                const maxDist = Math.hypot(rect.width, rect.height) / 2;
+
+                // 计算鼠标离开保留按钮到靠近卸载按钮的进度（0-1之间）
+                // 保留按钮附近为0，卸载按钮附近为1
+                let progress = (distToKeep / (distToKeep + distToUninstall));
+
+                // 确保值在0-1之间
+                progress = Math.max(0, Math.min(1, progress));
+
+                // 处理眼球移动（保持原来的逻辑）
+                $eyes.each(function () {
+                    const $eye = $(this); // 当前眼睛元素
+                    const eyeRect = this.getBoundingClientRect(); // 获取眼睛元素的位置和尺寸信息
+                    const eyeCenterX = eyeRect.left + eyeRect.width / 2 - rect.left; // 计算眼睛中心X坐标
+                    const eyeCenterY = eyeRect.top + eyeRect.height / 2 - rect.top; // 计算眼睛中心Y坐标
+
+                    const angle = Math.atan2(mouseY - eyeCenterY, mouseX - eyeCenterX); // 计算鼠标到眼睛中心的角度
+                    const maxDistance = 20; // 将眼球移动的最大距离从15增加到20，适应更大的眼睛
+
+                    const distance = Math.min(
+                        maxDistance,
+                        Math.hypot(mouseX - eyeCenterX, mouseY - eyeCenterY) / 5
+                    ); // 计算眼球移动距离，有上限值
+
+                    const pupilX = Math.cos(angle) * distance; // 计算瞳孔X方向的位移
+                    const pupilY = Math.sin(angle) * distance; // 计算瞳孔Y方向的位移
+
+                    $eye.find('.pupil').css('transform', `translate(${pupilX}px, ${pupilY}px)`); // 移动瞳孔
+                });
+
+                // 处理嘴巴形状变化和位置
+                // 计算嘴巴的偏移量，基于鼠标在整个矩形中的位置
+                const centerX = rect.width / 2; // 矩形中心X坐标
+                const centerY = rect.height / 2; // 矩形中心Y坐标
+                // 嘴巴随着鼠标移动而移动，数字越大移动距离越大
+                const maxOffset = 8;  // 最大偏移像素
+
+                // 计算相对于中心点的偏移
+                const offsetX = ((mouseX - centerX) / centerX) * maxOffset;
+                const offsetY = ((mouseY - centerY) / centerY) * maxOffset;
+
+                // 嘴巴在开心和沮丧最大值时的圆角
+                // 基于progress直接计算嘴巴的圆角形状，实现完全平滑的过渡
+                // 计算底部圆角（从148px逐渐变为0）
+                const bottomRadius = Math.max(8, 148 * (1 - progress));
+                // 计算顶部圆角（从0逐渐变为148px）
+                const topRadius = Math.max(8, 148 * progress);
+
+                // 设置嘴巴CSS，形状完全由progress值决定
+                $mouth.css({
+                    'border-radius': `${topRadius}px ${topRadius}px ${bottomRadius}px ${bottomRadius}px`,
+                    'height': '70px',
+                    'bottom': `${50 - offsetY / 2}px`,
+                    'transform': `translateX(calc(-50% + ${offsetX / 2}px))`
+                });
+
+                // 处理脸部渐变色
+                // 使用相同的progress值来更新脸部颜色
+                const baseGreen = 216;  // 绿色基础值
+                const targetYellow = 255;  // FFE17F 的 RGB 值
+                const targetGreen = 225;   // FFE17F 的 RGB 值
+                const targetBlue = 127;    // FFE17F 的 RGB 值
+
+                // 根据位置计算RGB分量
+                let redValue, blueValue;
+                if (progress <= 0.5) {
+                    // 从 FFE17F 到灰绿色
+                    redValue = Math.floor(targetYellow - progress * 2 * (targetYellow - 184));  // 184 是灰绿色的红色分量
+                    blueValue = Math.floor(targetBlue + progress * 2 * (190 - targetBlue));    // 190 是灰绿色的蓝色分量
+                } else {
+                    // 从灰绿色到深灰绿色
+                    redValue = Math.floor(184 - (progress - 0.5) * 2 * (184 - 164));
+                    blueValue = Math.floor(190 - (progress - 0.5) * 2 * (190 - 170));
+                }
+
+                const topColor = `rgb(${redValue}, ${baseGreen}, ${blueValue})`; // 创建RGB颜色字符串
+                $('.face').css('background', `linear-gradient(to bottom, ${topColor}, #FFE17F)`); // 设置脸部渐变背景
+
+                // 处理脸颊红晕的透明度和阴影
+                const blushOpacity = Math.max(0, 1 - progress);  // 从1逐渐减小到0
+                const shadowOpacity = Math.max(0, 1 - progress);  // 阴影也跟随透明度变化
+                $('.blush').css({
+                    'background-color': `rgba(255, 99, 132, ${blushOpacity * 0.3})`, // 设置红晕颜色和透明度
+                    'box-shadow': `inset 0 2px 5px rgba(0, 0, 0, ${shadowOpacity * 0.1})` // 设置红晕阴影
+                });
+            });
+
+            // 鼠标离开时重置所有状态
+            $rectangle.on('mouseleave', function () {
+                $('.eye-left .pupil').css('transform', 'translate(14px, 14px)'); // 左眼瞳孔恢复初始位置
+                $('.eye-right .pupil').css('transform', 'translate(-14px, -14px)'); // 右眼瞳孔恢复初始位置
+
+                // 嘴巴恢复初始状态
+                $mouth.css({
+                    'border-radius': '0 0 148px 148px', // 恢复微笑形状（底部圆角）
+                    'height': '70px', // 恢复原始高度
+                    'bottom': '50px', // 恢复原始位置
+                    'transform': 'translateX(-50%)' // 恢复原始位置
+                });
+
+                // 重置红晕透明度和阴影
+                $('.blush').css({
+                    'background-color': 'rgba(255, 99, 132, 0.3)', // 恢复原始颜色和透明度
+                    'box-shadow': 'inset 0 2px 5px rgba(0, 0, 0, 0.1)' // 恢复原始阴影
+                });
+
+                // 重置脸部渐变色为柔和的灰绿色
+                $('.face').css('background', 'linear-gradient(to bottom, #B8D8BE, #FFE17F)'); // 恢复原始渐变色
+            });
+
+            // 添加"好呀"按钮点击事件
+            $('.btn-keep').on('click', function () {
+                // 更改按钮文字
+                $(this).text('走起走起').css({
+                    'background-color': '#2ecc71',  // 更亮的绿色
+                    'transform': 'scale(1.1)',     // 稍微放大按钮
+                    'box-shadow': '0 0 15px rgba(46, 204, 113, 0.5)'  // 添加发光效果
+                });
+
+                // 添加跳转前的动画效果
+                const $button = $(this);
+
+                // 按钮跳动动画
+                let bounce = 0;
+                const bounceInterval = setInterval(function () {
+                    bounce++;
+                    if (bounce % 2 === 0) {
+                        $button.css('transform', 'scale(1.15)');
+                    } else {
+                        $button.css('transform', 'scale(1.05)');
+                    }
+
+                    if (bounce >= 4) {
+                        clearInterval(bounceInterval);
+                    }
+                }, 250);
+
+                // 2秒后跳转
+                setTimeout(function () {
+                    window.location.href = 'https://www.wow17.com';
+                }, 2000);
+            });
+
+            // 添加"下次一定"按钮点击事件
+            $('.btn-uninstall').on('click', function (e) {
+                // 定义多种文字选项
+                const texts = ["快来快来", "来交朋友", "过来看看", "点左边", "试一试", "来留留言"];
+                // 同时显示的文字数量
+                const numTextsToShow = 1;
+
+                // 显示多个文字
+                for (let i = 0; i < numTextsToShow; i++) {
+                    // 随机选择一个文字
+                    const randomIndex = Math.floor(Math.random() * texts.length);
+                    const text = texts[randomIndex];
+
+                    // 随机颜色
+                    const colors = ["#FF4444", "#4CAF50", "#3498db", "#9b59b6", "#e67e22", "#f1c40f"];
+                    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+
+                    // 创建显示文字的元素
+                    const $floatingText = $('<div class="floating-text"></div>').text(text);
+
+                    // 随机位置偏移（围绕鼠标点击位置）
+                    const offsetX = (Math.random() - 0.5) * 100; // -50到50之间的随机值
+                    const offsetY = (Math.random() - 0.5) * 60;  // -30到30之间的随机值
+
+                    // 设置文字位置和样式
+                    $floatingText.css({
+                        left: (e.clientX - 40 + offsetX) + 'px',
+                        top: (e.clientY - 10 + offsetY) + 'px',
+                        color: randomColor,
+                        // 随机动画持续时间（1.2秒到2秒）
+                        animationDuration: (1.2 + Math.random() * 0.8) + 's'
+                    });
+
+                    // 添加到body
+                    $('body').append($floatingText);
+
+                    // 动画结束后移除元素
+                    const animDuration = parseFloat($floatingText.css('animation-duration')) * 1000;
+                    setTimeout(function () {
+                        $floatingText.remove();
+                    }, animDuration);
+                }
+            });
+        });
+    </script>
+</head>
+
+<body>
+    <div class="container"><!-- 主容器 -->
+        <div class="rectangle"><!-- 主矩形容器 -->
+            <div class="subtitle">你好呀，这是基于日常需要弄的一些小工具，希望也能帮到你</div><!-- 副标题文字 -->
+            <div class="title">要来我的博客转转嘛？~</div><!-- 标题文字 -->
+            <div class="face"><!-- 表情脸 -->
+                <div class="eyes eye-left"><!-- 左眼 -->
+                    <div class="pupil"></div><!-- 左眼瞳孔 -->
+                </div>
+                <div class="eyes eye-right"><!-- 右眼 -->
+                    <div class="pupil"></div><!-- 右眼瞳孔 -->
+                </div>
+                <div class="blush blush-left"></div><!-- 左脸红晕 -->
+                <div class="blush blush-right"></div><!-- 右脸红晕 -->
+                <div class="mouth"><!-- 嘴巴 -->
+                    <div class="tooth"></div><!-- 牙齿 -->
+                    <div class="tongue"></div><!-- 舌头 -->
+                </div>
+            </div>
+            <div class="buttons"><!-- 按钮容器 -->
+                <button class="btn btn-keep">好呀好呀</button><!-- "保留"按钮 -->
+                <button class="btn btn-uninstall">下次一定</button><!-- "卸载"按钮 -->
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
