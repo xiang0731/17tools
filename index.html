@@ -126,6 +126,70 @@
                 document.getElementById('content-frame').src = 'items/' + fileName;
             });
         });
+
+        // 禁用右键菜单
+        document.addEventListener('contextmenu', function (e) {
+            e.preventDefault();
+            return false;
+        }, false);
+
+        // 禁用F12键和其他开发者工具快捷键
+        document.addEventListener('keydown', function (e) {
+            // F12键
+            if (e.keyCode === 123) {
+                e.preventDefault();
+                return false;
+            }
+
+            // Ctrl+Shift+I 组合键
+            if (e.ctrlKey && e.shiftKey && e.keyCode === 73) {
+                e.preventDefault();
+                return false;
+            }
+
+            // Ctrl+Shift+J 组合键
+            if (e.ctrlKey && e.shiftKey && e.keyCode === 74) {
+                e.preventDefault();
+                return false;
+            }
+
+            // Ctrl+Shift+C 组合键
+            if (e.ctrlKey && e.shiftKey && e.keyCode === 67) {
+                e.preventDefault();
+                return false;
+            }
+        }, false);
+
+        // 确保iframe中也禁用右键和F12
+        document.getElementById('content-frame').onload = function () {
+            try {
+                const frameDoc = this.contentDocument || this.contentWindow.document;
+
+                // 禁用iframe中的右键菜单
+                frameDoc.addEventListener('contextmenu', function (e) {
+                    e.preventDefault();
+                    return false;
+                }, false);
+
+                // 禁用iframe中的F12和其他开发者工具快捷键
+                frameDoc.addEventListener('keydown', function (e) {
+                    // F12键
+                    if (e.keyCode === 123) {
+                        e.preventDefault();
+                        return false;
+                    }
+
+                    // 其他开发者工具组合键
+                    if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) {
+                        e.preventDefault();
+                        return false;
+                    }
+                }, false);
+            } catch (e) {
+                // 如果跨域访问iframe内容失败，则静默处理
+                console.log("无法访问iframe内容，可能是跨域限制");
+            }
+        };
     </script>
 </body>
 
