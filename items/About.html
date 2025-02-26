@@ -386,8 +386,73 @@
         }
     </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script><!-- 引入jQuery库，用于简化DOM操作 -->
+    <!-- 添加防止开发者工具的额外检测 -->
+    <script>
+        // 检测开发者工具是否打开的额外防护
+        function checkDevTools() {
+            // 检测窗口大小变化
+            const widthThreshold = window.outerWidth - window.innerWidth > 160;
+            const heightThreshold = window.outerHeight - window.innerHeight > 160;
+
+            // 如果检测到可能打开了开发者工具
+            if (widthThreshold || heightThreshold) {
+                // 可以在这里添加响应措施
+                console.clear(); // 清除控制台
+                // 可选：添加提示消息
+                // document.body.innerHTML = '<div style="text-align:center;font-family:\'Microsoft YaHei\',sans-serif;margin-top:100px;"><h1>请不要使用开发者工具查看本页面</h1></div>';
+            }
+        }
+
+        // 定期检查
+        setInterval(checkDevTools, 1000);
+
+        // 添加调试器断点检测
+        (function preventDebugger() {
+            const start = new Date().getTime();
+            debugger;
+            const end = new Date().getTime();
+            if (end - start > 100) {
+                // 尝试调试时执行操作
+                window.location.reload();
+            }
+            setTimeout(preventDebugger, 100);
+        })();
+    </script>
     <script>
         $(document).ready(function () {
+            // 禁用右键菜单
+            $(document).on('contextmenu', function (e) {
+                e.preventDefault(); // 阻止默认右键菜单显示
+                return false; // 确保阻止默认行为
+            });
+
+            // 禁用F12键和其他开发者工具快捷键
+            $(document).on('keydown', function (e) {
+                // F12键的keyCode是123
+                if (e.keyCode === 123) {
+                    e.preventDefault();
+                    return false;
+                }
+
+                // 禁用Ctrl+Shift+I (打开开发者工具)
+                if (e.ctrlKey && e.shiftKey && e.keyCode === 73) {
+                    e.preventDefault();
+                    return false;
+                }
+
+                // 禁用Ctrl+Shift+J (打开开发者工具中的控制台)
+                if (e.ctrlKey && e.shiftKey && e.keyCode === 74) {
+                    e.preventDefault();
+                    return false;
+                }
+
+                // 禁用Ctrl+U (查看源代码)
+                if (e.ctrlKey && e.keyCode === 85) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+
             // 当文档加载完成后执行的代码
             const $rectangle = $('.rectangle'); // 获取矩形元素
             const $eyes = $('.eyes'); // 获取眼睛元素
