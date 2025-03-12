@@ -81,6 +81,52 @@
             width: 100%;
         }
 
+        #switch-view {
+            position: fixed;
+            right: 10px;
+            top: 10px;
+            z-index: 1000;
+            padding: 8px 15px;
+            cursor: pointer;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            font-size: 12px;
+            transition: all 0.3s ease;
+            opacity: 0.9;
+        }
+
+        #switch-view:hover {
+            opacity: 1;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        #switch-view:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 点击动画效果 */
+        #switch-view.clicked {
+            animation: pulse 0.3s ease;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(0.95);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
         /* 移动设备适配样式 */
         @media screen and (max-width: 768px) {
             body {
@@ -135,6 +181,29 @@
                 display: none;
                 /* 隐藏中间的分隔符 */
             }
+
+            #switch-view {
+                top: 60px;
+                /* 避免与顶部菜单按钮重叠 */
+                background-color: #4285f4;
+                color: white;
+                font-weight: bold;
+                padding: 10px 15px;
+                font-size: 14px;
+                border: none;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+                border-radius: 20px;
+                /* 更圆润的按钮 */
+                max-width: 140px;
+                /* 限制宽度 */
+                text-align: center;
+            }
+
+            /* 确保切换按钮不会与其他元素重叠 */
+            #toggle-btn {
+                z-index: 1001;
+                /* 确保切换按钮在视图切换按钮之上 */
+            }
         }
 
         /* 增加一个特别小屏幕的媒体查询 */
@@ -185,16 +254,36 @@
         </span>
     </div>
 
+    <!-- 添加视图切换按钮 -->
+    <button id="switch-view" aria-label="切换网站视图模式"></button>
+
     <!-- 添加不蒜子脚本 -->
     <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
 
     <script>
+        // 检查本地存储中是否有用户偏好设置
+        const userPreferDesktop = localStorage.getItem('preferDesktop') === 'true';
+
         // 移动设备检测
-        let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+        const realIsMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+        // 根据用户偏好设置决定是否使用移动布局
+        let isMobile = realIsMobile && !userPreferDesktop;
+
         const body = document.body;
         const sidebar = document.getElementById('sidebar');
         const btn = document.getElementById('toggle-btn');
         const footer = document.getElementById('footer');
+        const switchBtn = document.getElementById('switch-view');
+
+        // 更新切换视图按钮文本
+        function updateSwitchViewButton() {
+            if (realIsMobile) {
+                switchBtn.style.display = 'block';
+                switchBtn.innerText = isMobile ? '切换到桌面版' : '切换到移动版';
+            } else {
+                switchBtn.style.display = 'none';
+            }
+        }
 
         // 初始化界面
         function initializeLayout() {
@@ -210,10 +299,35 @@
                 footer.classList.remove('full-width');
                 btn.innerHTML = '<<';
             }
+            updateSwitchViewButton();
         }
 
         // 初始化界面
         initializeLayout();
+
+        // 添加视图切换按钮的点击事件
+        switchBtn.addEventListener('click', function () {
+            // 添加点击动画效果
+            switchBtn.classList.add('clicked');
+            setTimeout(() => switchBtn.classList.remove('clicked'), 300);
+
+            // 切换视图模式
+            isMobile = !isMobile;
+            // 保存用户偏好到本地存储
+            localStorage.setItem('preferDesktop', (!isMobile).toString());
+            // 更新界面
+            initializeLayout();
+
+            // 添加一个短暂延迟后强制刷新布局
+            setTimeout(function () {
+                window.dispatchEvent(new Event('resize'));
+                // 平滑滚动到页面顶部
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            }, 100);
+        });
 
         // 切换侧边栏
         btn.addEventListener('click', function () {
@@ -255,12 +369,18 @@
 
         // 窗口大小变化时重新检测设备类型
         window.addEventListener('resize', function () {
-            let wasIsMobile = isMobile;
-            isMobile = window.innerWidth < 768;
+            let wasRealIsMobile = realIsMobile;
+            const newRealIsMobile = window.innerWidth < 768;
 
-            // 只有在设备类型变化时才执行
-            if (wasIsMobile !== isMobile) {
-                console.log("设备类型变化", isMobile ? "移动设备" : "桌面设备");
+            // 如果实际设备类型发生变化
+            if (wasRealIsMobile !== newRealIsMobile) {
+                console.log("设备类型变化", newRealIsMobile ? "移动设备" : "桌面设备");
+                // 更新实际设备类型
+                realIsMobile = newRealIsMobile;
+                // 只有在没有用户偏好设置的情况下，才根据设备类型自动切换
+                if (localStorage.getItem('preferDesktop') === null) {
+                    isMobile = realIsMobile;
+                }
                 initializeLayout();
             }
         });
@@ -335,6 +455,15 @@
                 console.log("无法访问iframe内容，可能是跨域限制");
             }
         };
+
+        // 确保页面加载后正确应用初始布局
+        document.addEventListener('DOMContentLoaded', function () {
+            initializeLayout();
+            // 短暂延迟后触发一次resize事件以确保布局正确
+            setTimeout(function () {
+                window.dispatchEvent(new Event('resize'));
+            }, 100);
+        });
     </script>
 </body>
 

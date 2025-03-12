@@ -172,6 +172,7 @@
             <button class="function-button" data-function="K">K-添加后缀</button>
             <button class="function-button" data-function="L">L-提取特定前值</button>
             <button class="function-button" data-function="M">M-提取特定后值</button>
+            <button class="function-button" data-function="N">N-添加顺序前缀</button>
         </div>
 
         <textarea id="input" placeholder="请在此输入需要转换的文本..."></textarea>
@@ -258,6 +259,11 @@
                 input: "a-1234-1\nb-dfiaf-2",
                 auxiliary: "-",
                 output: "1\n2"
+            },
+            'N': {
+                input: "aa\nbb\ncc",
+                auxiliary: "1",
+                output: "1aa\n2bb\n3cc"
             }
         };
 
@@ -363,6 +369,77 @@
                         const index = line.lastIndexOf(suffix);
                         return index !== -1 ? line.substring(index + suffix.length) : line;
                     }).join('\n');
+                    break;
+                case 'N':
+                    let warningMessage = '';
+
+                    // 检查是否为纯数字
+                    if (/^\d+$/.test(suffix)) {
+                        // 纯数字逻辑保持不变
+                        result = lines.map((line, index) => {
+                            const prefix = (parseInt(suffix) + index).toString();
+                            return `${prefix}${line}`;
+                        }).join('\n');
+                    }
+                    // 处理单个字母的情况
+                    else if (/^[a-z]$/.test(suffix) || /^[A-Z]$/.test(suffix)) {
+                        result = lines.map((line, index) => {
+                            const startCharCode = suffix.charCodeAt(0);
+                            let newCharCode = startCharCode + index;
+
+                            // 检查是否超出字母范围
+                            if ((suffix >= 'a' && suffix <= 'z' && newCharCode > 'z'.charCodeAt(0)) ||
+                                (suffix >= 'A' && suffix <= 'Z' && newCharCode > 'Z'.charCodeAt(0))) {
+                                if (!warningMessage) {
+                                    warningMessage = "请注意：添加的前缀顺序已经超出范围，超出范围值已转换为空格\n\n";
+                                }
+                                return ` ${line}`;
+                            } else {
+                                return `${String.fromCharCode(newCharCode)}${line}`;
+                            }
+                        }).join('\n');
+
+                        // 如果有警告信息，添加到结果前面
+                        if (warningMessage) {
+                            result = warningMessage + result;
+                        }
+                    }
+                    // 处理多字符的情况
+                    else {
+                        // 检查最后一个字符是否为字母
+                        const lastChar = suffix.charAt(suffix.length - 1);
+                        const isLastCharLetter = /[a-zA-Z]/.test(lastChar);
+
+                        if (isLastCharLetter) {
+                            // 保留前面部分，只对最后一个字母进行递增
+                            const prefixPart = suffix.substring(0, suffix.length - 1);
+                            const letterPart = lastChar;
+
+                            result = lines.map((line, index) => {
+                                const startCharCode = letterPart.charCodeAt(0);
+                                let newCharCode = startCharCode + index;
+
+                                // 检查是否超出字母范围
+                                if ((letterPart >= 'a' && letterPart <= 'z' && newCharCode > 'z'.charCodeAt(0)) ||
+                                    (letterPart >= 'A' && letterPart <= 'Z' && newCharCode > 'Z'.charCodeAt(0))) {
+                                    if (!warningMessage) {
+                                        warningMessage = "请注意：添加的前缀顺序已经超出范围，超出范围值已转换为空格\n\n";
+                                    }
+                                    return `${prefixPart} ${line}`;
+                                } else {
+                                    return `${prefixPart}${String.fromCharCode(newCharCode)}${line}`;
+                                }
+                            }).join('\n');
+
+                            // 如果有警告信息，添加到结果前面
+                            if (warningMessage) {
+                                result = warningMessage + result;
+                            }
+                        } else {
+                            // 如果最后一个字符不是字母，则直接使用整个输入作为前缀
+                            result = lines.map(line => `${suffix}${line}`).join('\n');
+                        }
+                    }
                     break;
             }
             document.getElementById('output').value = result;
