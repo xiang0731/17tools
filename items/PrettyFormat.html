@@ -161,47 +161,53 @@
             outline: none;
         }
 
-        /* 代码输出区域 */
+        /* 代码输出区域 - 完全重写 */
         .code-output {
             flex: 1;
-            margin: 0;
-            background-color: white;
             overflow: auto;
+            background-color: white;
         }
 
-        .output-content {
-            padding: 15px;
-            line-height: 1.5;
-            font-size: 14px;
+        /* 使用表格布局确保行号和代码对齐 */
+        .output-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
             font-family: "SF Mono", "Menlo", "Monaco", monospace;
+            font-size: 14px;
+            line-height: 1.5;
         }
 
-        /* 编辑器同步滚动 */
-        textarea,
-        .line-numbers,
-        .code-output {
-            scrollbar-width: thin;
-            scrollbar-color: #cbd5e0 #f8f9fa;
+        .output-table td {
+            vertical-align: top;
+            padding: 0;
         }
 
-        textarea::-webkit-scrollbar,
-        .line-numbers::-webkit-scrollbar,
-        .code-output::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
+        .output-line-number {
+            width: 50px;
+            text-align: right;
+            padding-right: 10px !important;
+            color: #a0aec0;
+            background-color: #f8f9fa;
+            border-right: 1px solid #e2e8f0;
+            user-select: none;
         }
 
-        textarea::-webkit-scrollbar-track,
-        .line-numbers::-webkit-scrollbar-track,
-        .code-output::-webkit-scrollbar-track {
-            background: #f8f9fa;
+        .output-line-code {
+            padding-left: 15px !important;
+            white-space: pre;
         }
 
-        textarea::-webkit-scrollbar-thumb,
-        .line-numbers::-webkit-scrollbar-thumb,
-        .code-output::-webkit-scrollbar-thumb {
-            background-color: #cbd5e0;
-            border-radius: 4px;
+        /* 高亮样式调整 */
+        .hljs {
+            background: white;
+            padding: 0;
+        }
+
+        /* 自定义github风格高亮调整 */
+        pre,
+        code {
+            background: white !important;
         }
 
         /* 按钮样式 */
@@ -298,19 +304,6 @@
         .language-detected {
             display: inline-block;
         }
-
-        /* 高亮样式调整 */
-        .hljs {
-            background: white;
-            padding: 0;
-            overflow: visible;
-        }
-
-        /* 自定义github风格高亮调整 */
-        pre,
-        code {
-            background: white !important;
-        }
     </style>
 </head>
 
@@ -356,9 +349,12 @@
                     </div>
                 </div>
                 <div class="editor-wrapper">
-                    <div id="output-line-numbers" class="line-numbers"></div>
                     <div class="code-output">
-                        <pre class="output-content"><code id="output-code" class="hljs"></code></pre>
+                        <table class="output-table" id="output-table">
+                            <tbody>
+                                <!-- 代码和行号将在这里动态生成 -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -417,8 +413,7 @@
         // 获取DOM元素
         const inputElement = document.getElementById('input-code');
         const inputLineNumbers = document.getElementById('input-line-numbers');
-        const outputElement = document.getElementById('output-code');
-        const outputLineNumbers = document.getElementById('output-line-numbers');
+        const outputTable = document.getElementById('output-table');
         const codeOutput = document.querySelector('.code-output');
 
         // 设置输入事件监听器
@@ -426,7 +421,6 @@
         inputElement.addEventListener('input', debounce(handleInputChange, 300));
         inputElement.addEventListener('scroll', syncInputScroll);
         inputElement.addEventListener('input', updateInputLineNumbers);
-        codeOutput.addEventListener('scroll', syncOutputScroll);
 
         // 初始化
         updateInputLineNumbers();
@@ -455,11 +449,6 @@
             inputLineNumbers.scrollTop = inputElement.scrollTop;
         }
 
-        // 同步输出区域滚动
-        function syncOutputScroll() {
-            outputLineNumbers.scrollTop = codeOutput.scrollTop;
-        }
-
         // 更新输入区行号
         function updateInputLineNumbers() {
             const lineCount = inputElement.value.split('\n').length;
@@ -472,16 +461,43 @@
             inputLineNumbers.innerHTML = lineNumbers;
         }
 
-        // 更新输出区行号
-        function updateOutputLineNumbers(text) {
-            const lineCount = text.split('\n').length;
-            let lineNumbers = '';
+        // 更新输出表格
+        function updateOutputTable(formattedCode, language) {
+            const lines = formattedCode.split('\n');
+            const tbody = document.createElement('tbody');
 
-            for (let i = 1; i <= lineCount; i++) {
-                lineNumbers += `<span>${i}</span>`;
-            }
+            // 创建表格行
+            lines.forEach((line, index) => {
+                const tr = document.createElement('tr');
 
-            outputLineNumbers.innerHTML = lineNumbers;
+                // 行号单元格
+                const numberCell = document.createElement('td');
+                numberCell.className = 'output-line-number';
+                numberCell.textContent = index + 1;
+                tr.appendChild(numberCell);
+
+                // 代码单元格
+                const codeCell = document.createElement('td');
+                codeCell.className = 'output-line-code';
+
+                // 使用highlight.js格式化此行
+                const codeSpan = document.createElement('code');
+                codeSpan.textContent = line;
+                codeSpan.className = `language-${highlightLangMap[language] || 'plaintext'}`;
+                codeCell.appendChild(codeSpan);
+
+                tr.appendChild(codeCell);
+                tbody.appendChild(tr);
+            });
+
+            // 替换表格内容
+            outputTable.innerHTML = '';
+            outputTable.appendChild(tbody);
+
+            // 应用高亮到所有代码单元格
+            document.querySelectorAll('.output-line-code code').forEach(block => {
+                hljs.highlightElement(block);
+            });
         }
 
         function handleInputChange() {
@@ -577,8 +593,7 @@
             const inputCode = inputElement.value;
 
             if (!inputCode.trim()) {
-                outputElement.textContent = '';
-                outputLineNumbers.innerHTML = '';
+                outputTable.innerHTML = '';
                 return;
             }
 
@@ -601,19 +616,28 @@
                     endOfLine: 'lf'
                 });
 
-                outputElement.textContent = formattedCode;
+                // 使用新的表格布局更新输出
+                updateOutputTable(formattedCode, language);
 
-                // 更新行号
-                updateOutputLineNumbers(formattedCode);
-
-                // 应用语法高亮
-                const highlightLang = highlightLangMap[language] || 'plaintext';
-                outputElement.className = `hljs language-${highlightLang}`;
-                hljs.highlightElement(outputElement);
             } catch (error) {
-                outputElement.textContent = `格式化错误: ${error.message}`;
-                updateOutputLineNumbers(`格式化错误: ${error.message}`);
-                outputElement.className = 'hljs';
+                // 处理错误情况
+                const errorMessage = `格式化错误: ${error.message}`;
+                const tbody = document.createElement('tbody');
+                const tr = document.createElement('tr');
+
+                const numberCell = document.createElement('td');
+                numberCell.className = 'output-line-number';
+                numberCell.textContent = '1';
+                tr.appendChild(numberCell);
+
+                const codeCell = document.createElement('td');
+                codeCell.className = 'output-line-code';
+                codeCell.textContent = errorMessage;
+                tr.appendChild(codeCell);
+
+                tbody.appendChild(tr);
+                outputTable.innerHTML = '';
+                outputTable.appendChild(tbody);
             } finally {
                 isFormatting = false;
             }
@@ -624,8 +648,7 @@
             const language = document.getElementById('language').value;
 
             if (!inputCode.trim()) {
-                outputElement.textContent = '';
-                outputLineNumbers.innerHTML = '';
+                outputTable.innerHTML = '';
                 return;
             }
 
@@ -640,13 +663,22 @@
         }
 
         function copyCode() {
-            const outputCode = outputElement.textContent;
-            if (!outputCode) {
+            // 获取所有代码单元格内容
+            const codeCells = document.querySelectorAll('.output-line-code');
+            if (codeCells.length === 0) {
                 alert('没有可复制的内容');
                 return;
             }
 
-            navigator.clipboard.writeText(outputCode).then(() => {
+            // 合并所有行
+            const codeLines = Array.from(codeCells).map(cell => {
+                // 获取原始文本，而不是带有高亮HTML标记的内容
+                return cell.textContent || cell.innerText;
+            });
+
+            const fullCode = codeLines.join('\n');
+
+            navigator.clipboard.writeText(fullCode).then(() => {
                 const copyBtn = document.getElementById('copy-btn');
                 const originalText = copyBtn.textContent;
                 copyBtn.textContent = '已复制！';
@@ -659,7 +691,7 @@
 
                 // 备用复制方法
                 const textArea = document.createElement('textarea');
-                textArea.value = outputCode;
+                textArea.value = fullCode;
                 document.body.appendChild(textArea);
                 textArea.select();
                 document.execCommand('copy');
@@ -677,9 +709,8 @@
 
         function clearInput() {
             inputElement.value = '';
-            outputElement.textContent = '';
+            outputTable.innerHTML = '';
             inputLineNumbers.innerHTML = '<span>1</span>';
-            outputLineNumbers.innerHTML = '';
 
             // 显示清除成功提示
             const clearBtn = document.getElementById('clear-btn');
@@ -776,7 +807,21 @@
         }
 
         function downloadCode() {
-            const outputCode = outputElement.textContent;
+            // 获取所有代码单元格内容
+            const codeCells = document.querySelectorAll('.output-line-code');
+            if (codeCells.length === 0) {
+                alert('没有可下载的内容');
+                return;
+            }
+
+            // 合并所有行
+            const codeLines = Array.from(codeCells).map(cell => {
+                // 获取原始文本，而不是带有高亮HTML标记的内容
+                return cell.textContent || cell.innerText;
+            });
+
+            const outputCode = codeLines.join('\n');
+
             if (!outputCode) {
                 alert('没有可下载的内容');
                 return;
