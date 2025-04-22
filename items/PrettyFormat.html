@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>代码格式化工具</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/standalone.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-babel.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-html.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-postcss.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-typescript.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-json.js"></script>
+    <style>
+        /* 基础样式重置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+            background-color: white;
+            color: #2c3e50;
+            line-height: 1.6;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* 标题样式 */
+        h1 {
+            text-align: center;
+            color: #333;
+            margin: 0 0 20px 0;
+            padding: 0;
+            font-size: 28px;
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+
+        /* 主容器样式 */
+        .container {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        .editor-container {
+            display: flex;
+            flex: 1;
+            gap: 20px;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        @media (max-width: 768px) {
+            .editor-container {
+                flex-direction: column;
+            }
+
+            body {
+                padding: 15px;
+            }
+        }
+
+        .code-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .code-header {
+            background-color: #f5f5f7;
+            color: #2c3e50;
+            padding: 12px 15px;
+            border-radius: 8px 8px 0 0;
+            font-weight: 500;
+            font-size: 15px;
+            border-bottom: 1px solid #e6e6e6;
+            flex-shrink: 0;
+        }
+
+        .language-selector {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: #f9f9f9;
+            padding: 12px 15px;
+            border-bottom: 1px solid #e6e6e6;
+            flex-shrink: 0;
+        }
+
+        textarea,
+        pre {
+            flex: 1;
+            margin: 0;
+            padding: 15px;
+            border: 1px solid #e2e8f0;
+            border-radius: 0 0 8px 8px;
+            font-family: "SF Mono", "Menlo", "Monaco", monospace;
+            font-size: 14px;
+            resize: none;
+            overflow: auto;
+            background-color: white;
+            line-height: 1.5;
+            min-height: 0;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #4299e1;
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
+        }
+
+        pre {
+            white-space: pre-wrap;
+            background-color: #f8fafc;
+        }
+
+        /* 按钮样式 */
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        #format-btn {
+            background-color: #48bb78;
+            color: white;
+        }
+
+        #copy-btn,
+        #copy-input-btn {
+            background-color: #4299e1;
+            color: white;
+        }
+
+        #download-btn,
+        #download-input-btn {
+            background-color: #805ad5;
+            color: white;
+        }
+
+        #clear-btn {
+            background-color: #e53e3e;
+            color: white;
+        }
+
+        select {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #d2d2d7;
+            background-color: white;
+            font-size: 14px;
+            color: #2c3e50;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px top 50%;
+            background-size: 10px auto;
+            padding-right: 25px;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #4299e1;
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
+        }
+
+        .selected-language-indicator {
+            background-color: #e8f0fe;
+            color: #4299e1;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            margin-left: 10px;
+            display: none;
+            border: 1px solid #d1e3ff;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease;
+        }
+
+        .language-detected {
+            display: inline-block;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>代码格式化工具</h1>
+    <div class="container">
+        <div class="editor-container">
+            <div class="code-area">
+                <div class="code-header">输入代码</div>
+                <div class="language-selector">
+                    <div style="display: flex; align-items: center; flex: 1;">
+                        <label for="language" style="margin-right: 10px;">选择语言:</label>
+                        <select id="language">
+                            <option value="auto" selected>自动检测</option>
+                            <option value="babel">JavaScript</option>
+                            <option value="typescript">TypeScript</option>
+                            <option value="html">HTML</option>
+                            <option value="css">CSS</option>
+                            <option value="json">JSON</option>
+                        </select>
+                        <span id="detected-language" class="selected-language-indicator">已检测为: <span
+                                id="language-name">JavaScript</span></span>
+                    </div>
+                    <div class="action-buttons">
+                        <button id="clear-btn" class="action-button">清除数据</button>
+                        <button id="copy-input-btn" class="action-button">复制输入</button>
+                        <button id="download-input-btn" class="action-button">下载输入</button>
+                    </div>
+                </div>
+                <textarea id="input-code" placeholder="在此粘贴您的代码..."></textarea>
+            </div>
+
+            <div class="code-area">
+                <div class="code-header">格式化结果</div>
+                <div class="language-selector">
+                    <div class="action-buttons">
+                        <button id="format-btn" class="action-button">格式化代码</button>
+                        <button id="copy-btn" class="action-button">复制结果</button>
+                        <button id="download-btn" class="action-button">下载结果</button>
+                    </div>
+                </div>
+                <pre id="output-code"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 防抖动函数
+        function debounce(func, wait) {
+            let timeout;
+            return function (...args) {
+                const context = this;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(context, args), wait);
+            };
+        }
+
+        // 语言映射
+        const languageMap = {
+            'babel': 'JavaScript',
+            'typescript': 'TypeScript',
+            'html': 'HTML',
+            'css': 'CSS',
+            'json': 'JSON',
+            'auto': '自动检测'
+        };
+
+        // 文件扩展名映射
+        const fileExtMap = {
+            'babel': 'js',
+            'typescript': 'ts',
+            'html': 'html',
+            'css': 'css',
+            'json': 'json'
+        };
+
+        let lastDetectedLanguage = '';
+        let isFormatting = false;
+
+        document.getElementById('format-btn').addEventListener('click', formatCode);
+        document.getElementById('copy-btn').addEventListener('click', copyCode);
+        document.getElementById('download-btn').addEventListener('click', downloadCode);
+        document.getElementById('clear-btn').addEventListener('click', clearInput);
+        document.getElementById('copy-input-btn').addEventListener('click', copyInput);
+        document.getElementById('download-input-btn').addEventListener('click', downloadInput);
+
+        // 设置输入事件监听器
+        const inputElement = document.getElementById('input-code');
+        inputElement.addEventListener('paste', handleInputChange);
+        inputElement.addEventListener('input', debounce(handleInputChange, 300));
+
+        // 语言选择变化时也触发格式化
+        document.getElementById('language').addEventListener('change', () => {
+            const code = inputElement.value.trim();
+            if (code) {
+                formatCode();
+            }
+
+            // 隐藏检测标签，除非是自动检测
+            const detectedLanguageEl = document.getElementById('detected-language');
+            if (document.getElementById('language').value !== 'auto') {
+                detectedLanguageEl.classList.remove('language-detected');
+            }
+        });
+
+        // 页面加载完成后，设置焦点到输入框
+        window.addEventListener('load', () => {
+            inputElement.focus();
+        });
+
+        function handleInputChange() {
+            const code = inputElement.value.trim();
+            if (!code) return;
+
+            if (document.getElementById('language').value === 'auto') {
+                detectLanguage();
+            } else {
+                // 不是自动检测模式，直接格式化
+                formatCode();
+            }
+        }
+
+        function detectLanguage() {
+            const code = document.getElementById('input-code').value.trim();
+            if (!code) return;
+
+            const languageSelect = document.getElementById('language');
+            // 如果不是自动检测模式，不进行检测
+            if (languageSelect.value !== 'auto') return;
+
+            let detectedLanguage = 'babel'; // 默认为JavaScript
+
+            // 检测JSON - 最快速的检测
+            if ((code.startsWith('{') && code.endsWith('}')) ||
+                (code.startsWith('[') && code.endsWith(']'))) {
+                try {
+                    JSON.parse(code);
+                    detectedLanguage = 'json';
+                } catch (e) {
+                    // 不是有效的JSON，继续检测
+                }
+            }
+            // 检测HTML
+            else if (code.includes('<!DOCTYPE html>') ||
+                (code.includes('<html') && code.includes('</html>')) ||
+                (code.match(/<\w+>.*<\/\w+>/s) && code.includes('<'))) {
+                detectedLanguage = 'html';
+            }
+            // 检测CSS
+            else if (code.match(/[\w-]+\s*:\s*[^;]+;/) &&
+                code.includes('{') && code.includes('}') &&
+                !code.includes('function')) {
+                detectedLanguage = 'css';
+            }
+            // 检测TypeScript
+            else if (code.includes(':') &&
+                (code.includes('interface ') || code.includes('type ') ||
+                    code.match(/:\s*(string|number|boolean|any)\b/))) {
+                detectedLanguage = 'typescript';
+            }
+            // 默认为JavaScript
+            else if (code.includes('function') || code.includes('var ') ||
+                code.includes('let ') || code.includes('const ') ||
+                code.includes('=>') || code.match(/\w+\(\)/)) {
+                detectedLanguage = 'babel';
+            }
+
+            // 显示检测到的语言
+            updateDetectedLanguageUI(detectedLanguage);
+
+            // 如果检测出的语言与上次不同，或者尚未格式化过，才进行格式化
+            if (detectedLanguage !== lastDetectedLanguage || !isFormatting) {
+                lastDetectedLanguage = detectedLanguage;
+                formatCodeWithLanguage(detectedLanguage);
+            }
+        }
+
+        function updateDetectedLanguageUI(language) {
+            const detectedLanguageEl = document.getElementById('detected-language');
+            const languageNameEl = document.getElementById('language-name');
+
+            languageNameEl.textContent = languageMap[language] || language;
+
+            detectedLanguageEl.classList.remove('fade-in');
+            void detectedLanguageEl.offsetWidth; // 触发重绘
+            detectedLanguageEl.classList.add('fade-in', 'language-detected');
+
+            // 在下拉菜单中选择检测到的语言（自动检测时保持"自动检测"选项）
+            const languageSelect = document.getElementById('language');
+            if (languageSelect.value === 'auto') {
+                // 我们只会更新UI指示器，但不会改变下拉菜单的选择
+                // 这样保持"自动检测"选项选中状态
+            }
+        }
+
+        function formatCodeWithLanguage(language) {
+            if (!language || language === 'auto') return;
+
+            const inputCode = document.getElementById('input-code').value;
+            const outputElement = document.getElementById('output-code');
+
+            if (!inputCode.trim()) {
+                outputElement.textContent = '';
+                return;
+            }
+
+            isFormatting = true;
+
+            try {
+                // 使用 Prettier 格式化代码
+                const formattedCode = prettier.format(inputCode, {
+                    parser: language,
+                    plugins: prettierPlugins,
+                    printWidth: 80,
+                    tabWidth: 2,
+                    useTabs: false,
+                    semi: true,
+                    singleQuote: true,
+                    trailingComma: 'es5',
+                    bracketSpacing: true,
+                    jsxBracketSameLine: false,
+                    arrowParens: 'avoid',
+                    endOfLine: 'lf'
+                });
+
+                outputElement.textContent = formattedCode;
+            } catch (error) {
+                outputElement.textContent = `格式化错误: ${error.message}`;
+            } finally {
+                isFormatting = false;
+            }
+        }
+
+        function formatCode() {
+            const inputCode = document.getElementById('input-code').value;
+            const language = document.getElementById('language').value;
+
+            if (!inputCode.trim()) {
+                document.getElementById('output-code').textContent = '';
+                return;
+            }
+
+            // 如果是自动检测模式，调用检测函数并返回
+            if (language === 'auto') {
+                detectLanguage();
+                return;
+            }
+
+            // 如果是手动选择语言，直接格式化
+            formatCodeWithLanguage(language);
+        }
+
+        function copyCode() {
+            const outputCode = document.getElementById('output-code').textContent;
+            if (!outputCode) {
+                alert('没有可复制的内容');
+                return;
+            }
+
+            navigator.clipboard.writeText(outputCode).then(() => {
+                const copyBtn = document.getElementById('copy-btn');
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = '已复制！';
+
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                }, 1500);
+            }).catch(err => {
+                console.error('复制失败: ', err);
+
+                // 备用复制方法
+                const textArea = document.createElement('textarea');
+                textArea.value = outputCode;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+
+                const copyBtn = document.getElementById('copy-btn');
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = '已复制！';
+
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                }, 1500);
+            });
+        }
+
+        function clearInput() {
+            document.getElementById('input-code').value = '';
+            document.getElementById('output-code').textContent = '';
+
+            // 显示清除成功提示
+            const clearBtn = document.getElementById('clear-btn');
+            const originalText = clearBtn.textContent;
+            clearBtn.textContent = '已清除！';
+
+            setTimeout(() => {
+                clearBtn.textContent = originalText;
+            }, 1500);
+
+            // 将焦点设置回输入框
+            document.getElementById('input-code').focus();
+        }
+
+        function copyInput() {
+            const inputCode = document.getElementById('input-code').value;
+            if (!inputCode) {
+                alert('没有可复制的内容');
+                return;
+            }
+
+            navigator.clipboard.writeText(inputCode).then(() => {
+                const copyBtn = document.getElementById('copy-input-btn');
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = '已复制！';
+
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                }, 1500);
+            }).catch(err => {
+                console.error('复制失败: ', err);
+
+                // 备用复制方法
+                const textArea = document.createElement('textarea');
+                textArea.value = inputCode;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+
+                const copyBtn = document.getElementById('copy-input-btn');
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = '已复制！';
+
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                }, 1500);
+            });
+        }
+
+        function downloadInput() {
+            const inputCode = document.getElementById('input-code').value;
+            if (!inputCode) {
+                alert('没有可下载的内容');
+                return;
+            }
+
+            // 确定当前语言
+            let language = document.getElementById('language').value;
+            if (language === 'auto') {
+                language = lastDetectedLanguage || 'babel';
+            }
+
+            // 获取文件扩展名
+            const fileExtension = fileExtMap[language] || 'txt';
+
+            // 创建 Blob 对象
+            const blob = new Blob([inputCode], { type: 'text/plain' });
+
+            // 创建下载链接
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `original_code.${fileExtension}`;
+
+            // 模拟点击下载
+            document.body.appendChild(a);
+            a.click();
+
+            // 清理
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                // 显示下载成功提示
+                const downloadBtn = document.getElementById('download-input-btn');
+                const originalText = downloadBtn.textContent;
+                downloadBtn.textContent = '下载成功！';
+
+                setTimeout(() => {
+                    downloadBtn.textContent = originalText;
+                }, 1500);
+            }, 0);
+        }
+
+        function downloadCode() {
+            const outputCode = document.getElementById('output-code').textContent;
+            if (!outputCode) {
+                alert('没有可下载的内容');
+                return;
+            }
+
+            // 确定当前语言
+            let language = document.getElementById('language').value;
+            if (language === 'auto') {
+                language = lastDetectedLanguage || 'babel';
+            }
+
+            // 获取文件扩展名
+            const fileExtension = fileExtMap[language] || 'txt';
+
+            // 创建 Blob 对象
+            const blob = new Blob([outputCode], { type: 'text/plain' });
+
+            // 创建下载链接
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `formatted_code.${fileExtension}`;
+
+            // 模拟点击下载
+            document.body.appendChild(a);
+            a.click();
+
+            // 清理
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                // 显示下载成功提示
+                const downloadBtn = document.getElementById('download-btn');
+                const originalText = downloadBtn.textContent;
+                downloadBtn.textContent = '下载成功！';
+
+                setTimeout(() => {
+                    downloadBtn.textContent = originalText;
+                }, 1500);
+            }, 0);
+        }
+    </script>
+</body>
+
+</html>
