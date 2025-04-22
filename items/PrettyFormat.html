@@ -11,6 +11,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-postcss.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-typescript.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-json.js"></script>
+    <!-- 添加highlight.js库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/typescript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/json.min.js"></script>
     <style>
         /* 基础样式重置 */
         * {
@@ -103,31 +111,97 @@
             flex-shrink: 0;
         }
 
-        textarea,
-        pre {
+        /* 代码编辑器容器 */
+        .editor-wrapper {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+            position: relative;
+            border: 1px solid #e2e8f0;
+            border-radius: 0 0 8px 8px;
+            overflow: hidden;
+        }
+
+        /* 行号容器 */
+        .line-numbers {
+            flex-shrink: 0;
+            width: 50px;
+            background-color: #f8f9fa;
+            border-right: 1px solid #e2e8f0;
+            padding: 15px 0;
+            text-align: right;
+            font-family: "SF Mono", "Menlo", "Monaco", monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #a0aec0;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .line-numbers span {
+            display: block;
+            padding: 0 10px;
+            min-height: 21px;
+        }
+
+        textarea {
             flex: 1;
             margin: 0;
             padding: 15px;
-            border: 1px solid #e2e8f0;
-            border-radius: 0 0 8px 8px;
+            border: none;
             font-family: "SF Mono", "Menlo", "Monaco", monospace;
             font-size: 14px;
             resize: none;
             overflow: auto;
             background-color: white;
             line-height: 1.5;
-            min-height: 0;
         }
 
         textarea:focus {
             outline: none;
-            border-color: #4299e1;
-            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
         }
 
-        pre {
-            white-space: pre-wrap;
-            background-color: #f8fafc;
+        /* 代码输出区域 */
+        .code-output {
+            flex: 1;
+            margin: 0;
+            background-color: white;
+            overflow: auto;
+        }
+
+        .output-content {
+            padding: 15px;
+            line-height: 1.5;
+            font-size: 14px;
+            font-family: "SF Mono", "Menlo", "Monaco", monospace;
+        }
+
+        /* 编辑器同步滚动 */
+        textarea,
+        .line-numbers,
+        .code-output {
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e0 #f8f9fa;
+        }
+
+        textarea::-webkit-scrollbar,
+        .line-numbers::-webkit-scrollbar,
+        .code-output::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        textarea::-webkit-scrollbar-track,
+        .line-numbers::-webkit-scrollbar-track,
+        .code-output::-webkit-scrollbar-track {
+            background: #f8f9fa;
+        }
+
+        textarea::-webkit-scrollbar-thumb,
+        .line-numbers::-webkit-scrollbar-thumb,
+        .code-output::-webkit-scrollbar-thumb {
+            background-color: #cbd5e0;
+            border-radius: 4px;
         }
 
         /* 按钮样式 */
@@ -224,6 +298,19 @@
         .language-detected {
             display: inline-block;
         }
+
+        /* 高亮样式调整 */
+        .hljs {
+            background: white;
+            padding: 0;
+            overflow: visible;
+        }
+
+        /* 自定义github风格高亮调整 */
+        pre,
+        code {
+            background: white !important;
+        }
     </style>
 </head>
 
@@ -253,7 +340,10 @@
                         <button id="download-input-btn" class="action-button">下载输入</button>
                     </div>
                 </div>
-                <textarea id="input-code" placeholder="在此粘贴您的代码..."></textarea>
+                <div class="editor-wrapper">
+                    <div id="input-line-numbers" class="line-numbers"></div>
+                    <textarea id="input-code" placeholder="在此粘贴您的代码..."></textarea>
+                </div>
             </div>
 
             <div class="code-area">
@@ -265,7 +355,12 @@
                         <button id="download-btn" class="action-button">下载结果</button>
                     </div>
                 </div>
-                <pre id="output-code"></pre>
+                <div class="editor-wrapper">
+                    <div id="output-line-numbers" class="line-numbers"></div>
+                    <div class="code-output">
+                        <pre class="output-content"><code id="output-code" class="hljs"></code></pre>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -291,6 +386,15 @@
             'auto': '自动检测'
         };
 
+        // highlight.js语言映射
+        const highlightLangMap = {
+            'babel': 'javascript',
+            'typescript': 'typescript',
+            'html': 'xml',
+            'css': 'css',
+            'json': 'json'
+        };
+
         // 文件扩展名映射
         const fileExtMap = {
             'babel': 'js',
@@ -310,10 +414,22 @@
         document.getElementById('copy-input-btn').addEventListener('click', copyInput);
         document.getElementById('download-input-btn').addEventListener('click', downloadInput);
 
-        // 设置输入事件监听器
+        // 获取DOM元素
         const inputElement = document.getElementById('input-code');
+        const inputLineNumbers = document.getElementById('input-line-numbers');
+        const outputElement = document.getElementById('output-code');
+        const outputLineNumbers = document.getElementById('output-line-numbers');
+        const codeOutput = document.querySelector('.code-output');
+
+        // 设置输入事件监听器
         inputElement.addEventListener('paste', handleInputChange);
         inputElement.addEventListener('input', debounce(handleInputChange, 300));
+        inputElement.addEventListener('scroll', syncInputScroll);
+        inputElement.addEventListener('input', updateInputLineNumbers);
+        codeOutput.addEventListener('scroll', syncOutputScroll);
+
+        // 初始化
+        updateInputLineNumbers();
 
         // 语言选择变化时也触发格式化
         document.getElementById('language').addEventListener('change', () => {
@@ -334,9 +450,45 @@
             inputElement.focus();
         });
 
+        // 同步输入区域滚动
+        function syncInputScroll() {
+            inputLineNumbers.scrollTop = inputElement.scrollTop;
+        }
+
+        // 同步输出区域滚动
+        function syncOutputScroll() {
+            outputLineNumbers.scrollTop = codeOutput.scrollTop;
+        }
+
+        // 更新输入区行号
+        function updateInputLineNumbers() {
+            const lineCount = inputElement.value.split('\n').length;
+            let lineNumbers = '';
+
+            for (let i = 1; i <= lineCount; i++) {
+                lineNumbers += `<span>${i}</span>`;
+            }
+
+            inputLineNumbers.innerHTML = lineNumbers;
+        }
+
+        // 更新输出区行号
+        function updateOutputLineNumbers(text) {
+            const lineCount = text.split('\n').length;
+            let lineNumbers = '';
+
+            for (let i = 1; i <= lineCount; i++) {
+                lineNumbers += `<span>${i}</span>`;
+            }
+
+            outputLineNumbers.innerHTML = lineNumbers;
+        }
+
         function handleInputChange() {
             const code = inputElement.value.trim();
             if (!code) return;
+
+            updateInputLineNumbers();
 
             if (document.getElementById('language').value === 'auto') {
                 detectLanguage();
@@ -347,7 +499,7 @@
         }
 
         function detectLanguage() {
-            const code = document.getElementById('input-code').value.trim();
+            const code = inputElement.value.trim();
             if (!code) return;
 
             const languageSelect = document.getElementById('language');
@@ -422,11 +574,11 @@
         function formatCodeWithLanguage(language) {
             if (!language || language === 'auto') return;
 
-            const inputCode = document.getElementById('input-code').value;
-            const outputElement = document.getElementById('output-code');
+            const inputCode = inputElement.value;
 
             if (!inputCode.trim()) {
                 outputElement.textContent = '';
+                outputLineNumbers.innerHTML = '';
                 return;
             }
 
@@ -450,19 +602,30 @@
                 });
 
                 outputElement.textContent = formattedCode;
+
+                // 更新行号
+                updateOutputLineNumbers(formattedCode);
+
+                // 应用语法高亮
+                const highlightLang = highlightLangMap[language] || 'plaintext';
+                outputElement.className = `hljs language-${highlightLang}`;
+                hljs.highlightElement(outputElement);
             } catch (error) {
                 outputElement.textContent = `格式化错误: ${error.message}`;
+                updateOutputLineNumbers(`格式化错误: ${error.message}`);
+                outputElement.className = 'hljs';
             } finally {
                 isFormatting = false;
             }
         }
 
         function formatCode() {
-            const inputCode = document.getElementById('input-code').value;
+            const inputCode = inputElement.value;
             const language = document.getElementById('language').value;
 
             if (!inputCode.trim()) {
-                document.getElementById('output-code').textContent = '';
+                outputElement.textContent = '';
+                outputLineNumbers.innerHTML = '';
                 return;
             }
 
@@ -477,7 +640,7 @@
         }
 
         function copyCode() {
-            const outputCode = document.getElementById('output-code').textContent;
+            const outputCode = outputElement.textContent;
             if (!outputCode) {
                 alert('没有可复制的内容');
                 return;
@@ -513,8 +676,10 @@
         }
 
         function clearInput() {
-            document.getElementById('input-code').value = '';
-            document.getElementById('output-code').textContent = '';
+            inputElement.value = '';
+            outputElement.textContent = '';
+            inputLineNumbers.innerHTML = '<span>1</span>';
+            outputLineNumbers.innerHTML = '';
 
             // 显示清除成功提示
             const clearBtn = document.getElementById('clear-btn');
@@ -526,11 +691,11 @@
             }, 1500);
 
             // 将焦点设置回输入框
-            document.getElementById('input-code').focus();
+            inputElement.focus();
         }
 
         function copyInput() {
-            const inputCode = document.getElementById('input-code').value;
+            const inputCode = inputElement.value;
             if (!inputCode) {
                 alert('没有可复制的内容');
                 return;
@@ -566,7 +731,7 @@
         }
 
         function downloadInput() {
-            const inputCode = document.getElementById('input-code').value;
+            const inputCode = inputElement.value;
             if (!inputCode) {
                 alert('没有可下载的内容');
                 return;
@@ -611,7 +776,7 @@
         }
 
         function downloadCode() {
-            const outputCode = document.getElementById('output-code').textContent;
+            const outputCode = outputElement.textContent;
             if (!outputCode) {
                 alert('没有可下载的内容');
                 return;
