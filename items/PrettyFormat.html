@@ -11,6 +11,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-postcss.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-typescript.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-json.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-yaml.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-markdown.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-graphql.js"></script>
     <!-- 添加highlight.js库 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
@@ -19,6 +22,20 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/xml.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/css.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/json.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/yaml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/markdown.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/graphql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/php.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/java.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/ruby.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/go.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/swift.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/csharp.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/cpp.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/rust.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/shell.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/sql.min.js"></script>
     <style>
         /* 基础样式重置 */
         * {
@@ -319,10 +336,24 @@
                         <select id="language">
                             <option value="auto" selected>自动检测</option>
                             <option value="babel">JavaScript</option>
-                            <option value="typescript">TypeScript</option>
-                            <option value="html">HTML</option>
+                            <option value="cpp-highlight">C/C++</option>
+                            <option value="csharp-highlight">C#</option>
                             <option value="css">CSS</option>
+                            <option value="go-highlight">Go</option>
+                            <option value="graphql">GraphQL</option>
+                            <option value="html">HTML</option>
+                            <option value="java-highlight">Java</option>
                             <option value="json">JSON</option>
+                            <option value="markdown">Markdown</option>
+                            <option value="php-highlight">PHP</option>
+                            <option value="python-highlight">Python</option>
+                            <option value="ruby-highlight">Ruby</option>
+                            <option value="rust-highlight">Rust</option>
+                            <option value="shell-highlight">Shell/Bash</option>
+                            <option value="sql-highlight">SQL</option>
+                            <option value="swift-highlight">Swift</option>
+                            <option value="typescript">TypeScript</option>
+                            <option value="yaml">YAML</option>
                         </select>
                         <span id="detected-language" class="selected-language-indicator">已检测为: <span
                                 id="language-name">JavaScript</span></span>
@@ -379,6 +410,20 @@
             'html': 'HTML',
             'css': 'CSS',
             'json': 'JSON',
+            'yaml': 'YAML',
+            'markdown': 'Markdown',
+            'graphql': 'GraphQL',
+            'php-highlight': 'PHP',
+            'python-highlight': 'Python',
+            'java-highlight': 'Java',
+            'ruby-highlight': 'Ruby',
+            'go-highlight': 'Go',
+            'swift-highlight': 'Swift',
+            'csharp-highlight': 'C#',
+            'cpp-highlight': 'C/C++',
+            'rust-highlight': 'Rust',
+            'shell-highlight': 'Shell/Bash',
+            'sql-highlight': 'SQL',
             'auto': '自动检测'
         };
 
@@ -388,7 +433,21 @@
             'typescript': 'typescript',
             'html': 'xml',
             'css': 'css',
-            'json': 'json'
+            'json': 'json',
+            'yaml': 'yaml',
+            'markdown': 'markdown',
+            'graphql': 'graphql',
+            'php-highlight': 'php',
+            'python-highlight': 'python',
+            'java-highlight': 'java',
+            'ruby-highlight': 'ruby',
+            'go-highlight': 'go',
+            'swift-highlight': 'swift',
+            'csharp-highlight': 'csharp',
+            'cpp-highlight': 'cpp',
+            'rust-highlight': 'rust',
+            'shell-highlight': 'shell',
+            'sql-highlight': 'sql'
         };
 
         // 文件扩展名映射
@@ -397,7 +456,21 @@
             'typescript': 'ts',
             'html': 'html',
             'css': 'css',
-            'json': 'json'
+            'json': 'json',
+            'yaml': 'yaml',
+            'markdown': 'md',
+            'graphql': 'graphql',
+            'php-highlight': 'php',
+            'python-highlight': 'py',
+            'java-highlight': 'java',
+            'ruby-highlight': 'rb',
+            'go-highlight': 'go',
+            'swift-highlight': 'swift',
+            'csharp-highlight': 'cs',
+            'cpp-highlight': 'cpp',
+            'rust-highlight': 'rs',
+            'shell-highlight': 'sh',
+            'sql-highlight': 'sql'
         };
 
         let lastDetectedLanguage = '';
@@ -524,7 +597,7 @@
 
             let detectedLanguage = 'babel'; // 默认为JavaScript
 
-            // 检测JSON - 最快速的检测
+            // 检测JSON
             if ((code.startsWith('{') && code.endsWith('}')) ||
                 (code.startsWith('[') && code.endsWith(']'))) {
                 try {
@@ -534,11 +607,29 @@
                     // 不是有效的JSON，继续检测
                 }
             }
+            // 检测YAML
+            else if (code.includes(':') && !code.includes('{') && !code.includes(';') &&
+                (code.includes('- ') || /^\s*[\w-]+:\s*\w+/m.test(code))) {
+                detectedLanguage = 'yaml';
+            }
             // 检测HTML
             else if (code.includes('<!DOCTYPE html>') ||
                 (code.includes('<html') && code.includes('</html>')) ||
                 (code.match(/<\w+>.*<\/\w+>/s) && code.includes('<'))) {
                 detectedLanguage = 'html';
+            }
+            // 检测Markdown
+            else if (code.match(/^#{1,6}\s+.+$/m) ||
+                code.match(/^-{3,}$/m) ||
+                code.match(/^\*{3,}$/m) ||
+                code.match(/^\[.+\]\(.+\)$/m) ||
+                code.match(/^>.+$/m)) {
+                detectedLanguage = 'markdown';
+            }
+            // 检测GraphQL
+            else if (code.includes('query') && code.includes('{') &&
+                (code.includes('type ') || code.includes('interface ') || code.includes('enum '))) {
+                detectedLanguage = 'graphql';
             }
             // 检测CSS
             else if (code.match(/[\w-]+\s*:\s*[^;]+;/) &&
@@ -552,10 +643,64 @@
                     code.match(/:\s*(string|number|boolean|any)\b/))) {
                 detectedLanguage = 'typescript';
             }
+            // 检测Python
+            else if (code.includes('def ') || code.includes('import ') &&
+                (code.includes('print(') || code.includes('if __name__ == "__main__":'))) {
+                detectedLanguage = 'python-highlight';
+            }
+            // 检测Java
+            else if ((code.includes('public class ') || code.includes('private class ')) &&
+                (code.includes('public static void main') || code.match(/\w+\s+\w+\s*\([^)]*\)\s*{/))) {
+                detectedLanguage = 'java-highlight';
+            }
+            // 检测PHP
+            else if (code.includes('<?php') || code.includes('<?=') ||
+                code.includes('namespace ') && code.includes('function ') && code.includes('$')) {
+                detectedLanguage = 'php-highlight';
+            }
+            // 检测Ruby
+            else if (code.includes('def ') && code.includes('end') ||
+                code.includes('class ') && code.includes('end') ||
+                code.includes('require ') && code.match(/\w+\s*\.\s*\w+/)) {
+                detectedLanguage = 'ruby-highlight';
+            }
+            // 检测Go
+            else if (code.includes('package ') &&
+                (code.includes('func ') || code.includes('import (')) &&
+                code.includes('struct ')) {
+                detectedLanguage = 'go-highlight';
+            }
+            // 检测C#
+            else if ((code.includes('namespace ') || code.includes('using System;')) &&
+                (code.includes('class ') || code.includes('static void Main'))) {
+                detectedLanguage = 'csharp-highlight';
+            }
+            // 检测C/C++
+            else if ((code.includes('#include <') || code.includes('int main(')) &&
+                (code.includes('return 0;') || code.includes('std::'))) {
+                detectedLanguage = 'cpp-highlight';
+            }
+            // 检测Shell/Bash
+            else if (code.startsWith('#!/bin/') ||
+                code.includes('echo ') && code.includes('if [ ') ||
+                code.match(/export\s+\w+=/)) {
+                detectedLanguage = 'shell-highlight';
+            }
+            // 检测SQL
+            else if ((code.includes('SELECT ') || code.includes('select ')) &&
+                (code.includes('FROM ') || code.includes('from ')) &&
+                (code.includes('WHERE ') || code.includes('where ') || code.includes(';'))) {
+                detectedLanguage = 'sql-highlight';
+            }
+            // 检测Rust
+            else if (code.includes('fn ') && code.includes('let mut ') ||
+                code.includes('impl ') || code.includes('struct ') && code.includes('pub ')) {
+                detectedLanguage = 'rust-highlight';
+            }
             // 默认为JavaScript
             else if (code.includes('function') || code.includes('var ') ||
                 code.includes('let ') || code.includes('const ') ||
-                code.includes('=>') || code.match(/\w+\(\)/)) {
+                code.includes('=>') || code.match(/\w+\(\)/) || code.includes(';')) {
                 detectedLanguage = 'babel';
             }
 
@@ -600,6 +745,13 @@
             isFormatting = true;
 
             try {
+                // 对于高亮-only的语言，不进行格式化，只展示高亮
+                if (language.endsWith('-highlight')) {
+                    // 创建高亮显示但不格式化
+                    updateOutputTable(inputCode, language);
+                    return;
+                }
+
                 // 使用 Prettier 格式化代码
                 const formattedCode = prettier.format(inputCode, {
                     parser: language,
@@ -620,24 +772,29 @@
                 updateOutputTable(formattedCode, language);
 
             } catch (error) {
-                // 处理错误情况
-                const errorMessage = `格式化错误: ${error.message}`;
-                const tbody = document.createElement('tbody');
-                const tr = document.createElement('tr');
+                // 尝试仅作为纯文本高亮显示
+                try {
+                    updateOutputTable(inputCode, language);
+                } catch (highlightError) {
+                    // 处理错误情况
+                    const errorMessage = `格式化错误: ${error.message}`;
+                    const tbody = document.createElement('tbody');
+                    const tr = document.createElement('tr');
 
-                const numberCell = document.createElement('td');
-                numberCell.className = 'output-line-number';
-                numberCell.textContent = '1';
-                tr.appendChild(numberCell);
+                    const numberCell = document.createElement('td');
+                    numberCell.className = 'output-line-number';
+                    numberCell.textContent = '1';
+                    tr.appendChild(numberCell);
 
-                const codeCell = document.createElement('td');
-                codeCell.className = 'output-line-code';
-                codeCell.textContent = errorMessage;
-                tr.appendChild(codeCell);
+                    const codeCell = document.createElement('td');
+                    codeCell.className = 'output-line-code';
+                    codeCell.textContent = errorMessage;
+                    tr.appendChild(codeCell);
 
-                tbody.appendChild(tr);
-                outputTable.innerHTML = '';
-                outputTable.appendChild(tbody);
+                    tbody.appendChild(tr);
+                    outputTable.innerHTML = '';
+                    outputTable.appendChild(tbody);
+                }
             } finally {
                 isFormatting = false;
             }
