@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>更新历史</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #ffffff;
+            color: #1d1d1f;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        h1 {
+            font-size: 40px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 20px;
+            color: #86868b;
+            font-weight: 400;
+        }
+
+        .timeline {
+            position: relative;
+            margin: 60px 0;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 2px;
+            background: #86868b;
+            opacity: 0.3;
+        }
+
+        .version-entry {
+            position: relative;
+            margin-bottom: 60px;
+            padding-left: 30px;
+        }
+
+        .version-dot {
+            position: absolute;
+            left: -4px;
+            top: 8px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #0066cc;
+        }
+
+        .version-header {
+            display: flex;
+            align-items: baseline;
+            margin-bottom: 15px;
+        }
+
+        .version-number {
+            font-size: 24px;
+            font-weight: 600;
+            margin-right: 15px;
+        }
+
+        .version-date {
+            font-size: 16px;
+            color: #86868b;
+        }
+
+        .update-list {
+            background: rgba(245, 245, 247, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .update-list:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .feature-category {
+            font-weight: 600;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            color: #1d1d1f;
+        }
+
+        .feature-category:first-child {
+            margin-top: 0;
+        }
+
+        ul {
+            padding-left: 20px;
+            margin: 0;
+        }
+
+        li {
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        li:last-child {
+            margin-bottom: 0;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-right: 8px;
+            background-color: rgba(232, 232, 237, 0.8);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+
+        .tag.new {
+            background-color: rgba(0, 102, 204, 0.1);
+            color: #0066cc;
+        }
+
+        .tag.improved {
+            background-color: rgba(56, 142, 60, 0.1);
+            color: #388e3c;
+        }
+
+        .tag.fixed {
+            background-color: rgba(211, 47, 47, 0.1);
+            color: #d32f2f;
+        }
+
+        /* 新增tag样式 */
+        .tag.deprecated {
+            background-color: rgba(117, 117, 117, 0.1);
+            color: #757575;
+            text-decoration: line-through;
+        }
+
+        .tag.security {
+            background-color: rgba(183, 28, 28, 0.1);
+            color: #b71c1c;
+            font-weight: 600;
+        }
+
+        .tag.performance {
+            background-color: rgba(239, 108, 0, 0.1);
+            color: #ef6c00;
+        }
+
+        .tag.design {
+            background-color: rgba(156, 39, 176, 0.1);
+            color: #9c27b0;
+        }
+
+        .tag.experimental {
+            background-color: rgba(0, 150, 136, 0.1);
+            color: #009688;
+            border: 1px dashed rgba(0, 150, 136, 0.5);
+        }
+
+        .tag.api {
+            background-color: rgba(33, 150, 243, 0.1);
+            color: #2196f3;
+        }
+
+        .tag.documentation {
+            background-color: rgba(121, 85, 72, 0.1);
+            color: #795548;
+        }
+
+        .tag.accessibility {
+            background-color: rgba(63, 81, 181, 0.1);
+            color: #3f51b5;
+        }
+
+        .tag.i18n {
+            background-color: rgba(139, 195, 74, 0.1);
+            color: #8bc34a;
+        }
+
+        .tag.breaking {
+            background-color: rgba(216, 27, 96, 0.1);
+            color: #d81b60;
+            border-left: 2px solid #d81b60;
+            font-weight: 600;
+        }
+
+        .tag.dependency {
+            background-color: rgba(255, 193, 7, 0.1);
+            color: #ffc107;
+        }
+
+        .tag.refactor {
+            background-color: rgba(103, 58, 183, 0.1);
+            color: #673ab7;
+        }
+
+        .tag.ui {
+            background-color: rgba(233, 30, 99, 0.1);
+            color: #e91e63;
+        }
+
+        .tag.ux {
+            background-color: rgba(0, 188, 212, 0.1);
+            color: #00bcd4;
+        }
+
+        .tag.critical {
+            background-color: rgba(244, 67, 54, 0.1);
+            color: #f44336;
+            font-weight: 700;
+            border: 1px solid rgba(244, 67, 54, 0.3);
+        }
+
+        .tag.maintenance {
+            background-color: rgba(158, 158, 158, 0.1);
+            color: #9e9e9e;
+        }
+
+        .tag.major {
+            background-color: rgba(66, 66, 66, 0.1);
+            color: #424242;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        /* 版本标签样式 */
+        .tag.beta {
+            background-color: rgba(255, 152, 0, 0.1);
+            color: #ff9800;
+            border-radius: 12px;
+        }
+
+        .tag.alpha {
+            background-color: rgba(233, 30, 99, 0.1);
+            color: #e91e63;
+            border-radius: 12px;
+        }
+
+        .tag.rc {
+            background-color: rgba(76, 175, 80, 0.1);
+            color: #4caf50;
+            border-radius: 12px;
+        }
+
+        /* 动画效果 */
+        .tag.animated {
+            transition: all 0.3s ease;
+        }
+
+        .tag.animated:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 30px 15px;
+            }
+
+            h1 {
+                font-size: 32px;
+            }
+
+            .subtitle {
+                font-size: 18px;
+            }
+
+            .version-number {
+                font-size: 20px;
+            }
+
+            .version-date {
+                font-size: 14px;
+            }
+
+            .update-list {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>更新历史</h1>
+            <div class="subtitle">查看17Tools的所有功能更新与改进</div>
+        </header>
+
+        <div class="timeline">
+            <!-- 版本 1.5.0 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 1.5.0</div>
+                    <div class="version-date">2025年4月27日</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">新功能</div>
+                    <ul>
+                        <li><span class="tag new">新增</span>添加代码格式化工具，支持代码高亮和行号显示</li>
+                        <li><span class="tag new">新增</span>添加提问题选项，方便用户反馈</li>
+                        <li><span class="tag new">新增</span>更新历史页面，方便用户了解产品迭代历程</li>
+                    </ul>
+
+                    <div class="feature-category">改进</div>
+                    <ul>
+                        <li><span class="tag improved">优化</span>添加更多语言支持，并调整列表顺序排列</li>
+                    </ul>
+
+                    <div class="feature-category">问题修复</div>
+                    <ul>
+                        <li><span class="tag fixed">修复</span>修复代码行数不对齐的问题</li>
+                        <li><span class="tag fixed">修复</span>去除灰色背景以达到颜色一致</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 版本 1.4.0 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 1.4.0</div>
+                    <div class="version-date">2025年3月18日</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">新功能</div>
+                    <ul>
+                        <li><span class="tag new">新增</span>添加世界时间工具，支持查看不同时区的当前时间</li>
+                        <li><span class="tag new">新增</span>添加顺序前缀功能，方便用户整理文本</li>
+                    </ul>
+
+                    <div class="feature-category">问题修复</div>
+                    <ul>
+                        <li><span class="tag fixed">修复</span>修复计算器在移动端无法滚动的问题</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 版本 1.3.0 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 1.3.0</div>
+                    <div class="version-date">2025年2月27日</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">新功能</div>
+                    <ul>
+                        <li><span class="tag new">新增</span>添加"关于"页面，提供项目信息</li>
+                        <li><span class="tag new">新增</span>添加提取值功能，帮助用户从文本中提取信息</li>
+                    </ul>
+
+                    <div class="feature-category">改进</div>
+                    <ul>
+                        <li><span class="tag improved">优化</span>添加移动端支持，提升在小屏幕设备上的使用体验</li>
+                        <li><span class="tag improved">优化</span>细节优化、UI调整</li>
+                        <li><span class="tag improved">优化</span>优化主页footer显示</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 版本 1.2.0 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 1.2.0</div>
+                    <div class="version-date">2025年2月20日</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">新功能</div>
+                    <ul>
+                        <li><span class="tag new">新增</span>添加前后缀处理功能</li>
+                    </ul>
+
+                    <div class="feature-category">改进</div>
+                    <ul>
+                        <li><span class="tag improved">优化</span>更新UI界面，提升用户体验</li>
+                        <li><span class="tag improved">优化</span>补充功能指引</li>
+                    </ul>
+
+                    <div class="feature-category">问题修复</div>
+                    <ul>
+                        <li><span class="tag fixed">修复</span>修复"合并为一行"功能中多添加逗号的问题</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 版本 1.1.0 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 1.1.0</div>
+                    <div class="version-date">2025年2月20日</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">新功能</div>
+                    <ul>
+                        <li><span class="tag new">新增</span>添加Transformer工具，支持多种文本转换操作</li>
+                        <li><span class="tag new">新增</span>添加不蒜子网页统计功能</li>
+                    </ul>
+
+                    <div class="feature-category">改进</div>
+                    <ul>
+                        <li><span class="tag improved">优化</span>添加示例文本，提高使用体验</li>
+                        <li><span class="tag improved">优化</span>历史结果表达式优化</li>
+                        <li><span class="tag improved">优化</span>UI优化和改善</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 版本 1.0.0 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 1.0.0</div>
+                    <div class="version-date">2025年2月12日</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">17Tools正式发布！</div>
+                    <ul>
+                        <li><span class="tag new">新增</span>创建基础UI框架和首页</li>
+                        <li><span class="tag new">新增</span>添加计算器工具，支持基础的数学计算</li>
+                        <li><span class="tag new">新增</span>添加文本替换工具(Replacer)，支持多种替换方式</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
