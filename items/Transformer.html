@@ -192,6 +192,114 @@
     <script>
         let selectedFunction = '';
 
+        // 递增字母序列的函数
+        function incrementLetterSequence(sequence, increment) {
+            if (increment === 0) return sequence;
+
+            let chars = sequence.split('');
+            let carry = increment;
+
+            // 从最后一个字符开始处理进位
+            for (let i = chars.length - 1; i >= 0 && carry > 0; i--) {
+                let charCode = chars[i].charCodeAt(0);
+                let isLower = chars[i] >= 'a' && chars[i] <= 'z';
+                let minCode = isLower ? 'a'.charCodeAt(0) : 'A'.charCodeAt(0);
+                let maxCode = isLower ? 'z'.charCodeAt(0) : 'Z'.charCodeAt(0);
+
+                charCode += carry;
+
+                if (charCode > maxCode) {
+                    // 超出范围，需要进位
+                    let overflow = charCode - maxCode;
+                    chars[i] = String.fromCharCode(minCode + (overflow - 1) % 26);
+                    carry = Math.floor((overflow - 1) / 26) + 1;
+                } else {
+                    chars[i] = String.fromCharCode(charCode);
+                    carry = 0;
+                }
+            }
+
+            // 如果还有进位，说明超出了序列长度
+            if (carry > 0) {
+                return null; // 表示超出范围
+            }
+
+            return chars.join('');
+        }
+
+        // 递增复杂序列的函数（数字+字母组合）
+        function incrementComplexSequence(sequence, increment) {
+            if (increment === 0) return sequence;
+
+            // 从右向左扫描，找到最后一个可递增的连续段
+            let segments = [];
+            let currentSegment = '';
+            let currentType = null; // 'number' | 'lower' | 'upper'
+
+            for (let i = 0; i < sequence.length; i++) {
+                let char = sequence[i];
+                let type = null;
+
+                if (char >= '0' && char <= '9') {
+                    type = 'number';
+                } else if (char >= 'a' && char <= 'z') {
+                    type = 'lower';
+                } else if (char >= 'A' && char <= 'Z') {
+                    type = 'upper';
+                }
+
+                if (type === currentType) {
+                    currentSegment += char;
+                } else {
+                    if (currentSegment) {
+                        segments.push({ type: currentType, value: currentSegment });
+                    }
+                    currentSegment = char;
+                    currentType = type;
+                }
+            }
+
+            // 添加最后一段
+            if (currentSegment) {
+                segments.push({ type: currentType, value: currentSegment });
+            }
+
+            // 从最后一个段开始处理递增
+            let carry = increment;
+
+            for (let i = segments.length - 1; i >= 0 && carry > 0; i--) {
+                let segment = segments[i];
+
+                if (segment.type === 'number') {
+                    // 处理数字段 - 使用 BigInt 处理超大数字
+                    try {
+                        let bigNumber = BigInt(segment.value) + BigInt(carry);
+                        segment.value = bigNumber.toString();
+                        carry = 0; // 数字不会溢出，直接结束
+                    } catch (error) {
+                        // 如果转换失败，返回null表示超出范围
+                        return null;
+                    }
+                } else if (segment.type === 'lower' || segment.type === 'upper') {
+                    // 处理字母段
+                    let newSequence = incrementLetterSequence(segment.value, carry);
+                    if (newSequence === null) {
+                        return null; // 字母超出范围
+                    }
+                    segment.value = newSequence;
+                    carry = 0; // 成功处理，结束
+                }
+            }
+
+            // 如果还有进位且没有更多段可以处理，返回null
+            if (carry > 0) {
+                return null;
+            }
+
+            // 重新组装序列
+            return segments.map(segment => segment.value).join('');
+        }
+
         // 添加示例数据对象
         const examples = {
             'A': {
@@ -261,9 +369,9 @@
                 output: "1\n2"
             },
             'N': {
-                input: "aa\nbb\ncc",
-                auxiliary: "1",
-                output: "1aa\n2bb\n3cc"
+                input: "苹果\n香蕉\n橙子",
+                auxiliary: "1a.",
+                output: "1a.苹果\n1b.香蕉\n1c.橙子"
             }
         };
 
@@ -373,72 +481,32 @@
                 case 'N':
                     let warningMessage = '';
 
-                    // 检查是否为纯数字
-                    if (/^\d+$/.test(suffix)) {
-                        // 纯数字逻辑保持不变
-                        result = lines.map((line, index) => {
-                            const prefix = (parseInt(suffix) + index).toString();
-                            return `${prefix}${line}`;
-                        }).join('\n');
-                    }
-                    // 处理单个字母的情况
-                    else if (/^[a-z]$/.test(suffix) || /^[A-Z]$/.test(suffix)) {
-                        result = lines.map((line, index) => {
-                            const startCharCode = suffix.charCodeAt(0);
-                            let newCharCode = startCharCode + index;
+                    // 找到第一个非字母数字字符的位置，作为分割点
+                    const separatorMatch = suffix.match(/^([a-zA-Z0-9]+)(.*)$/);
 
-                            // 检查是否超出字母范围
-                            if ((suffix >= 'a' && suffix <= 'z' && newCharCode > 'z'.charCodeAt(0)) ||
-                                (suffix >= 'A' && suffix <= 'Z' && newCharCode > 'Z'.charCodeAt(0))) {
+                    if (separatorMatch) {
+                        const incrementablePart = separatorMatch[1]; // 可递增部分
+                        const punctuationPart = separatorMatch[2];   // 标点部分
+
+                        // 递增可递增部分
+                        result = lines.map((line, index) => {
+                            let newIncrementable = incrementComplexSequence(incrementablePart, index);
+                            if (newIncrementable === null) {
                                 if (!warningMessage) {
-                                    warningMessage = "请注意：添加的前缀顺序已经超出范围，超出范围值已转换为空格\n\n";
+                                    warningMessage = "错误：序列超出范围，无法继续递增！\n\n";
                                 }
-                                return ` ${line}`;
-                            } else {
-                                return `${String.fromCharCode(newCharCode)}${line}`;
+                                return `[超出范围]${punctuationPart}${line}`;
                             }
+                            return `${newIncrementable}${punctuationPart}${line}`;
                         }).join('\n');
 
-                        // 如果有警告信息，添加到结果前面
                         if (warningMessage) {
                             result = warningMessage + result;
                         }
                     }
-                    // 处理多字符的情况
                     else {
-                        // 检查最后一个字符是否为字母
-                        const lastChar = suffix.charAt(suffix.length - 1);
-                        const isLastCharLetter = /[a-zA-Z]/.test(lastChar);
-
-                        if (isLastCharLetter) {
-                            // 保留前面部分，只对最后一个字母进行递增
-                            const prefixPart = suffix.substring(0, suffix.length - 1);
-                            const letterPart = lastChar;
-
-                            result = lines.map((line, index) => {
-                                const startCharCode = letterPart.charCodeAt(0);
-                                let newCharCode = startCharCode + index;
-
-                                // 检查是否超出字母范围
-                                if ((letterPart >= 'a' && letterPart <= 'z' && newCharCode > 'z'.charCodeAt(0)) ||
-                                    (letterPart >= 'A' && letterPart <= 'Z' && newCharCode > 'Z'.charCodeAt(0))) {
-                                    if (!warningMessage) {
-                                        warningMessage = "请注意：添加的前缀顺序已经超出范围，超出范围值已转换为空格\n\n";
-                                    }
-                                    return `${prefixPart} ${line}`;
-                                } else {
-                                    return `${prefixPart}${String.fromCharCode(newCharCode)}${line}`;
-                                }
-                            }).join('\n');
-
-                            // 如果有警告信息，添加到结果前面
-                            if (warningMessage) {
-                                result = warningMessage + result;
-                            }
-                        } else {
-                            // 如果最后一个字符不是字母，则直接使用整个输入作为前缀
-                            result = lines.map(line => `${suffix}${line}`).join('\n');
-                        }
+                        // 没有可递增部分，直接使用整个输入作为前缀
+                        result = lines.map(line => `${suffix}${line}`).join('\n');
                     }
                     break;
             }
