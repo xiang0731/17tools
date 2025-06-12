@@ -5,473 +5,747 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>17Tools</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body {
+        :root {
+            /* 浅色模式变量 */
+            --primary-color: #6366f1;
+            --primary-hover: #5b5ce6;
+            --secondary-color: #f8fafc;
+            --accent-color: #10b981;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --background-primary: #ffffff;
+            --background-secondary: #f8fafc;
+            --background-tertiary: #e5e7eb;
+            --border-color: #e5e7eb;
+            --shadow-light: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-large: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --sidebar-width: 280px;
+        }
+
+        [data-theme="dark"] {
+            /* 深色模式变量 */
+            --primary-color: #818cf8;
+            --primary-hover: #6366f1;
+            --secondary-color: #1f2937;
+            --accent-color: #34d399;
+            --text-primary: #f9fafb;
+            --text-secondary: #d1d5db;
+            --background-primary: #111827;
+            --background-secondary: #1f2937;
+            --background-tertiary: #374151;
+            --border-color: #374151;
+            --shadow-light: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+            --shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+            --shadow-large: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+        }
+
+        * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            display: flex;
-            flex-direction: row;
+        }
+
+        body {
+            font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--background-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
             overflow-x: hidden;
-            overflow-y: hidden;
-            /* 防止在小屏幕上出现双滚动条 */
+            line-height: 1.6;
         }
 
-        #sidebar {
-            width: 250px;
-            height: 100vh;
-            background-color: #f1f1f1;
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* 顶部工具栏 */
+        .top-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background-color: var(--background-primary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 1000;
             transition: all 0.3s ease;
-            overflow-y: auto;
-            padding-top: 50px;
-            z-index: 10;
+            box-shadow: var(--shadow-light);
+            backdrop-filter: blur(10px);
         }
 
-        #sidebar.collapsed {
+        .top-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo i {
+            font-size: 28px;
+        }
+
+        .toggle-sidebar {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 20px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .toggle-sidebar:hover {
+            background-color: var(--background-secondary);
+            color: var(--text-primary);
+        }
+
+        .top-bar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .theme-toggle {
+            background: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+        }
+
+        .theme-toggle:hover {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .view-toggle {
+            background: var(--accent-color);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .view-toggle:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        /* 侧边栏 */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--background-secondary);
+            border-right: 1px solid var(--border-color);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            padding-top: 60px;
+            height: 100vh;
+            overflow-y: auto;
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 100;
+        }
+
+        .sidebar.collapsed {
             width: 0;
             padding: 0;
             overflow: hidden;
         }
 
-        #content {
-            flex-grow: 1;
-            height: 100vh;
+        .sidebar-content {
+            padding: 20px 0;
+        }
+
+        .nav-section {
+            margin-bottom: 24px;
+        }
+
+        .nav-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0 20px 8px;
+            margin-bottom: 8px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+            gap: 12px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .nav-item:hover {
+            background-color: var(--background-tertiary);
+            color: var(--text-primary);
+            border-left-color: var(--primary-color);
+        }
+
+        .nav-item.active {
+            background-color: rgba(99, 102, 241, 0.1);
+            color: var(--primary-color);
+            border-left-color: var(--primary-color);
+        }
+
+        .nav-item i {
+            width: 20px;
+            text-align: center;
+            font-size: 16px;
+        }
+
+        /* 主内容区 */
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            padding-top: 60px;
+            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            min-height: 100vh;
+            background-color: var(--background-primary);
+        }
+
+        .main-content.expanded {
+            margin-left: 0;
+        }
+
+        .content-wrapper {
+            height: calc(100vh - 120px);
             padding: 20px;
-            box-sizing: border-box;
-            overflow-y: auto;
-            /* 确保内容区可以滚动 */
         }
 
-        #toggle-btn {
-            position: fixed;
-            left: 10px;
-            top: 10px;
-            z-index: 1000;
-            /* 提高按钮的z-index确保它始终可见和可点击 */
-            padding: 8px 15px;
-            cursor: pointer;
-            background-color: #fff;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        .content-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 12px;
+            background-color: var(--background-primary);
+            box-shadow: var(--shadow-light);
+            overflow: hidden;
         }
 
-        .file-item {
-            padding: 10px;
-            cursor: pointer;
-        }
-
-        .file-item:hover {
-            background-color: #ddd;
-        }
-
-        #footer {
+        /* 底部状态栏 */
+        .footer {
             position: fixed;
             bottom: 0;
+            left: var(--sidebar-width);
             right: 0;
-            background-color: #f1f1f1;
-            padding: 10px;
-            text-align: center;
-            font-size: 14px;
-            transition: 0.3s;
-            width: calc(100% - 250px);
-            z-index: 5;
-        }
-
-        #footer.full-width {
-            width: 100%;
-        }
-
-        #switch-view {
-            position: fixed;
-            right: 10px;
-            top: 10px;
-            z-index: 1000;
-            padding: 8px 15px;
-            cursor: pointer;
-            background-color: #fff;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            height: 40px;
+            background-color: var(--background-secondary);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
             font-size: 12px;
-            transition: all 0.3s ease;
-            opacity: 0.9;
+            color: var(--text-secondary);
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 50;
         }
 
-        #switch-view:hover {
-            opacity: 1;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        .footer.expanded {
+            left: 0;
         }
 
-        #switch-view:active {
-            transform: translateY(0);
-            box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+        .footer a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.2s ease;
         }
 
-        /* 点击动画效果 */
-        #switch-view.clicked {
-            animation: pulse 0.3s ease;
+        .footer a:hover {
+            color: var(--primary-color);
         }
 
-        @keyframes pulse {
-            0% {
-                transform: scale(1);
-            }
-
-            50% {
-                transform: scale(0.95);
-            }
-
-            100% {
-                transform: scale(1);
-            }
+        .footer-separator {
+            width: 1px;
+            height: 12px;
+            background-color: var(--border-color);
         }
 
-        /* 移动设备适配样式 */
-        @media screen and (max-width: 768px) {
-            body {
-                flex-direction: column;
-            }
-
-            #sidebar {
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .sidebar {
                 width: 100%;
-                height: 0;
-                max-height: 80vh;
-                padding-top: 50px;
-                position: fixed;
-                top: 0;
+                transform: translateX(-100%);
+                backdrop-filter: blur(10px);
+                background-color: rgba(248, 250, 252, 0.95);
+            }
+
+            [data-theme="dark"] .sidebar {
+                background-color: rgba(31, 41, 55, 0.95);
+            }
+
+            .sidebar.mobile-visible {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .footer {
                 left: 0;
-                transition: all 0.3s ease;
-                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-                background-color: rgba(241, 241, 241, 0.98);
-            }
-
-            #sidebar.mobile-visible {
+                padding: 0 10px;
+                flex-wrap: wrap;
                 height: auto;
-                max-height: 80vh;
-                overflow-y: auto;
-            }
-
-            #content {
-                margin-top: 50px;
-                height: calc(100vh - 50px);
-                width: 100%;
-                padding: 10px;
-            }
-
-            #toggle-btn {
-                left: 10px;
-                top: 10px;
-                font-weight: bold;
-            }
-
-            #footer {
-                width: 100%;
-                font-size: 12px;
-                padding: 8px;
-            }
-
-            /* 在移动设备上隐藏某些元素 */
-            #footer span {
-                display: block;
-                margin: 3px 0;
-            }
-
-            #footer span:nth-child(2) {
-                display: none;
-                /* 隐藏中间的分隔符 */
-            }
-
-            #switch-view {
-                top: 60px;
-                /* 避免与顶部菜单按钮重叠 */
-                background-color: #4285f4;
-                color: white;
-                font-weight: bold;
-                padding: 10px 15px;
-                font-size: 14px;
-                border: none;
-                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-                border-radius: 20px;
-                /* 更圆润的按钮 */
-                max-width: 140px;
-                /* 限制宽度 */
+                min-height: 40px;
+                justify-content: center;
                 text-align: center;
             }
 
-            /* 确保切换按钮不会与其他元素重叠 */
-            #toggle-btn {
-                z-index: 1001;
-                /* 确保切换按钮在视图切换按钮之上 */
+            .footer-separator {
+                display: none;
+            }
+
+            .top-bar {
+                padding: 0 16px;
+            }
+
+            .logo {
+                font-size: 20px;
+            }
+
+            .content-wrapper {
+                padding: 16px;
+                height: calc(100vh - 100px);
             }
         }
 
-        /* 增加一个特别小屏幕的媒体查询 */
-        @media screen and (max-width: 480px) {
-            #sidebar.mobile-visible {
-                max-height: 70vh;
+        @media (max-width: 480px) {
+            .top-bar {
+                padding: 0 12px;
             }
 
-            .file-item {
-                padding: 15px 10px;
-                /* 增加点击区域大小 */
+            .nav-item {
+                padding: 16px 20px;
                 font-size: 16px;
-                /* 增大字体 */
             }
+
+            .content-wrapper {
+                padding: 12px;
+            }
+        }
+
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--background-secondary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+
+        /* 加载动画 */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        /* 动画效果 */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .nav-item {
+            animation: slideIn 0.3s ease forwards;
+        }
+
+        .nav-item:nth-child(2) {
+            animation-delay: 0.1s;
+        }
+
+        .nav-item:nth-child(3) {
+            animation-delay: 0.2s;
+        }
+
+        .nav-item:nth-child(4) {
+            animation-delay: 0.3s;
+        }
+
+        .nav-item:nth-child(5) {
+            animation-delay: 0.4s;
+        }
+
+        .nav-item:nth-child(6) {
+            animation-delay: 0.5s;
+        }
+
+        .nav-item:nth-child(7) {
+            animation-delay: 0.6s;
+        }
+
+        .nav-item:nth-child(8) {
+            animation-delay: 0.7s;
+        }
+
+        .nav-item:nth-child(9) {
+            animation-delay: 0.8s;
         }
     </style>
 </head>
 
 <body>
-    <button id="toggle-btn">&lt;&lt;</button>
-    <div id="sidebar">
-        <!-- 在这里直接列出你的文件 -->
-        <div class="file-item" data-file="Welcome.html">Main 主页</div>
-        <div class="file-item" data-file="Calculator.html">Calculator 极速计算</div>
-        <div class="file-item" data-file="DateCalculator.html">DateCalculator 日期计算</div>
-        <div class="file-item" data-file="PrettyFormat.html">PrettyFormat 代码格式化</div>
-        <div class="file-item" data-file="Replacer.html">Replacer 文本替换</div>
-        <div class="file-item" data-file="Transformer.html">Transformer 文本转换</div>
-        <div class="file-item" data-file="WorldTime.html">WorldTime 世界时间</div>
-        <div class="file-item" data-file="History.html">History 更新历史</div>
-        <div class="file-item" data-file="About.html">About 关于</div>
-    </div>
+    <div class="app-container">
+        <!-- 顶部工具栏 -->
+        <div class="top-bar">
+            <div class="top-bar-left">
+                <button class="toggle-sidebar" id="toggle-btn">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="logo">
+                    <i class="fas fa-tools"></i>
+                    17Tools
+                </div>
+            </div>
+            <div class="top-bar-right">
+                <button class="theme-toggle" id="theme-toggle">
+                    <i class="fas fa-moon"></i>
+                    <span>深色模式</span>
+                </button>
+                <button class="view-toggle" id="switch-view" style="display: none;">
+                    切换到桌面版
+                </button>
+            </div>
+        </div>
 
-    <!-- 默认打开Welcome页面 -->
-    <div id="content">
-        <iframe id="content-frame" style="width: 100%; height: calc(100% - 40px); border: none;"
-            src="items/Welcome.html"></iframe>
-    </div>
+        <!-- 侧边栏 -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-content">
+                <div class="nav-section">
+                    <div class="nav-section-title">主要工具</div>
+                    <div class="nav-item active" data-file="Welcome.html">
+                        <i class="fas fa-home"></i>
+                        <span>主页</span>
+                    </div>
+                    <div class="nav-item" data-file="Calculator.html">
+                        <i class="fas fa-calculator"></i>
+                        <span>极速计算</span>
+                    </div>
+                    <div class="nav-item" data-file="DateCalculator.html">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>日期计算</span>
+                    </div>
+                    <div class="nav-item" data-file="PrettyFormat.html">
+                        <i class="fas fa-code"></i>
+                        <span>代码格式化</span>
+                    </div>
+                </div>
 
-    <!-- Footer: 访问量统计显示 -->
-    <div id="footer">
-        <span id="busuanzi_container_site_pv">
-            本站总访问量<span id="busuanzi_value_site_pv"></span>次
-        </span>
-        &nbsp;|&nbsp;
-        <span id="busuanzi_container_site_uv">
-            访客数<span id="busuanzi_value_site_uv"></span>人次
-        </span>
-        &nbsp;|&nbsp;
-        <span>
-            <a href="https://github.com/xiang0731/17tools/issues/new" target="_blank"
-                style="text-decoration: none; color: #666;">提问题/建议</a>
-        </span>
-        &nbsp;|&nbsp;
-        <span>
-            <a href="https://www.wow17.com" target="_blank" style="text-decoration: none; color: #666;">了解更多→WOW17</a>
-        </span>
-    </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">文本工具</div>
+                    <div class="nav-item" data-file="Replacer.html">
+                        <i class="fas fa-exchange-alt"></i>
+                        <span>文本替换</span>
+                    </div>
+                    <div class="nav-item" data-file="Transformer.html">
+                        <i class="fas fa-magic"></i>
+                        <span>文本转换</span>
+                    </div>
+                </div>
 
-    <!-- 添加视图切换按钮 -->
-    <button id="switch-view" aria-label="切换网站视图模式"></button>
+                <div class="nav-section">
+                    <div class="nav-section-title">其他工具</div>
+                    <div class="nav-item" data-file="WorldTime.html">
+                        <i class="fas fa-globe"></i>
+                        <span>世界时间</span>
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">信息</div>
+                    <div class="nav-item" data-file="History.html">
+                        <i class="fas fa-history"></i>
+                        <span>更新历史</span>
+                    </div>
+                    <div class="nav-item" data-file="About.html">
+                        <i class="fas fa-info-circle"></i>
+                        <span>关于</span>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 主内容区 -->
+        <main class="main-content" id="main-content">
+            <div class="content-wrapper">
+                <iframe class="content-frame" id="content-frame" src="items/Welcome.html">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        加载中...
+                    </div>
+                </iframe>
+            </div>
+        </main>
+
+        <!-- 底部状态栏 -->
+        <div class="footer" id="footer">
+            <span id="busuanzi_container_site_pv">
+                本站总访问量<span id="busuanzi_value_site_pv"></span>次
+            </span>
+            <div class="footer-separator"></div>
+            <span id="busuanzi_container_site_uv">
+                访客数<span id="busuanzi_value_site_uv"></span>人次
+            </span>
+            <div class="footer-separator"></div>
+            <a href="https://github.com/xiang0731/17tools/issues/new" target="_blank">提问题/建议</a>
+            <div class="footer-separator"></div>
+            <a href="https://www.wow17.com" target="_blank">了解更多→WOW17</a>
+        </div>
+    </div>
 
     <!-- 添加不蒜子脚本 -->
     <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
 
     <script>
-        // 检查本地存储中是否有用户偏好设置
-        const userPreferDesktop = localStorage.getItem('preferDesktop') === 'true';
+        // 主题管理
+        class ThemeManager {
+            constructor() {
+                this.currentTheme = localStorage.getItem('theme') || 'light';
+                this.init();
+            }
 
-        // 移动设备检测
-        const realIsMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
-        // 根据用户偏好设置决定是否使用移动布局
-        let isMobile = realIsMobile && !userPreferDesktop;
+            init() {
+                this.applyTheme(this.currentTheme);
+                this.updateThemeButton();
+            }
 
-        const body = document.body;
-        const sidebar = document.getElementById('sidebar');
-        const btn = document.getElementById('toggle-btn');
-        const footer = document.getElementById('footer');
-        const switchBtn = document.getElementById('switch-view');
+            toggle() {
+                this.currentTheme = this.currentTheme === 'light' ? 'dark' : 'light';
+                this.applyTheme(this.currentTheme);
+                this.updateThemeButton();
+                localStorage.setItem('theme', this.currentTheme);
+            }
 
-        // 更新切换视图按钮文本
-        function updateSwitchViewButton() {
-            if (realIsMobile) {
-                switchBtn.style.display = 'block';
-                switchBtn.innerText = isMobile ? '切换到桌面版' : '切换到移动版';
-            } else {
-                switchBtn.style.display = 'none';
+            applyTheme(theme) {
+                document.documentElement.setAttribute('data-theme', theme);
+            }
+
+            updateThemeButton() {
+                const button = document.getElementById('theme-toggle');
+                const icon = button.querySelector('i');
+                const text = button.querySelector('span');
+
+                if (this.currentTheme === 'dark') {
+                    icon.className = 'fas fa-sun';
+                    text.textContent = '浅色模式';
+                } else {
+                    icon.className = 'fas fa-moon';
+                    text.textContent = '深色模式';
+                }
             }
         }
 
-        // 初始化界面
-        function initializeLayout() {
-            if (isMobile) {
-                // 移动设备：使用不同的侧边栏逻辑
-                sidebar.classList.remove('collapsed');
-                sidebar.classList.remove('mobile-visible');
-                footer.classList.add('full-width');
-                btn.innerHTML = 'vv'; // 下箭头表示可以展开
-            } else {
-                // 桌面设备：默认展开侧边栏
-                sidebar.classList.remove('mobile-visible');
-                footer.classList.remove('full-width');
-                btn.innerHTML = '<<';
+        // 应用管理
+        class AppManager {
+            constructor() {
+                this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+                this.userPreferDesktop = localStorage.getItem('preferDesktop') === 'true';
+                this.currentMobileMode = this.isMobile && !this.userPreferDesktop;
+                this.init();
             }
-            updateSwitchViewButton();
-        }
 
-        // 初始化界面
-        initializeLayout();
+            init() {
+                this.bindEvents();
+                this.updateLayout();
+                this.updateViewToggleButton();
+            }
 
-        // 添加视图切换按钮的点击事件
-        switchBtn.addEventListener('click', function () {
-            // 添加点击动画效果
-            switchBtn.classList.add('clicked');
-            setTimeout(() => switchBtn.classList.remove('clicked'), 300);
-
-            // 切换视图模式
-            isMobile = !isMobile;
-            // 保存用户偏好到本地存储
-            localStorage.setItem('preferDesktop', (!isMobile).toString());
-            // 更新界面
-            initializeLayout();
-
-            // 添加一个短暂延迟后强制刷新布局
-            setTimeout(function () {
-                window.dispatchEvent(new Event('resize'));
-                // 平滑滚动到页面顶部
-                window.scrollTo({
-                    top: 0,
-                    behavior: 'smooth'
+            bindEvents() {
+                // 切换侧边栏
+                document.getElementById('toggle-btn').addEventListener('click', () => {
+                    this.toggleSidebar();
                 });
-            }, 100);
-        });
 
-        // 切换侧边栏
-        btn.addEventListener('click', function () {
-            if (isMobile) {
-                // 移动设备逻辑
-                if (sidebar.classList.contains('mobile-visible')) {
-                    sidebar.classList.remove('mobile-visible');
-                    btn.innerHTML = 'vv'; // 下箭头表示可以展开
-                } else {
-                    sidebar.classList.add('mobile-visible');
-                    btn.innerHTML = '^^'; // 上箭头表示可以收起
-                }
-            } else {
-                // 桌面设备逻辑
-                sidebar.classList.toggle('collapsed');
-                footer.classList.toggle('full-width');
+                // 主题切换
+                document.getElementById('theme-toggle').addEventListener('click', () => {
+                    themeManager.toggle();
+                });
 
-                if (sidebar.classList.contains('collapsed')) {
-                    btn.innerHTML = '>>';
+                // 视图切换
+                document.getElementById('switch-view').addEventListener('click', () => {
+                    this.toggleView();
+                });
+
+                // 导航项点击
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        this.navigateToPage(e.target.closest('.nav-item'));
+                    });
+                });
+
+                // 窗口大小变化
+                window.addEventListener('resize', () => {
+                    this.handleResize();
+                });
+            }
+
+            toggleSidebar() {
+                const sidebar = document.getElementById('sidebar');
+                const mainContent = document.getElementById('main-content');
+                const footer = document.getElementById('footer');
+
+                if (this.currentMobileMode) {
+                    sidebar.classList.toggle('mobile-visible');
                 } else {
-                    btn.innerHTML = '<<';
+                    const isCollapsed = sidebar.classList.contains('collapsed');
+                    sidebar.classList.toggle('collapsed');
+                    mainContent.classList.toggle('expanded', !isCollapsed);
+                    footer.classList.toggle('expanded', !isCollapsed);
                 }
             }
-        });
 
-        // 为所有文件项添加点击事件
-        document.querySelectorAll('.file-item').forEach(item => {
-            item.addEventListener('click', () => {
-                const fileName = item.getAttribute('data-file');
+            toggleView() {
+                this.currentMobileMode = !this.currentMobileMode;
+                localStorage.setItem('preferDesktop', (!this.currentMobileMode).toString());
+                this.updateLayout();
+                this.updateViewToggleButton();
+            }
+
+            updateLayout() {
+                const sidebar = document.getElementById('sidebar');
+                const mainContent = document.getElementById('main-content');
+                const footer = document.getElementById('footer');
+
+                if (this.currentMobileMode) {
+                    sidebar.classList.remove('collapsed');
+                    sidebar.classList.remove('mobile-visible');
+                    mainContent.classList.remove('expanded');
+                    footer.classList.remove('expanded');
+                } else {
+                    sidebar.classList.remove('mobile-visible');
+                }
+            }
+
+            updateViewToggleButton() {
+                const button = document.getElementById('switch-view');
+                if (this.isMobile) {
+                    button.style.display = 'block';
+                    button.textContent = this.currentMobileMode ? '切换到桌面版' : '切换到移动版';
+                } else {
+                    button.style.display = 'none';
+                }
+            }
+
+            navigateToPage(navItem) {
+                // 移除所有活动状态
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+
+                // 添加活动状态到当前项
+                navItem.classList.add('active');
+
+                // 加载页面
+                const fileName = navItem.getAttribute('data-file');
                 document.getElementById('content-frame').src = 'items/' + fileName;
 
-                // 在移动设备上，点击后自动收起侧边栏
-                if (isMobile) {
-                    sidebar.classList.remove('mobile-visible');
-                    btn.innerHTML = 'vv';
+                // 在移动模式下，点击后收起侧边栏
+                if (this.currentMobileMode) {
+                    document.getElementById('sidebar').classList.remove('mobile-visible');
                 }
-            });
-        });
-
-        // 窗口大小变化时重新检测设备类型
-        window.addEventListener('resize', function () {
-            let wasRealIsMobile = realIsMobile;
-            const newRealIsMobile = window.innerWidth < 768;
-
-            // 如果实际设备类型发生变化
-            if (wasRealIsMobile !== newRealIsMobile) {
-                console.log("设备类型变化", newRealIsMobile ? "移动设备" : "桌面设备");
-                // 更新实际设备类型
-                realIsMobile = newRealIsMobile;
-                // 只有在没有用户偏好设置的情况下，才根据设备类型自动切换
-                if (localStorage.getItem('preferDesktop') === null) {
-                    isMobile = realIsMobile;
-                }
-                initializeLayout();
             }
-        });
 
-        // 触摸事件支持，提高移动设备上的操作体验
-        if ('ontouchstart' in window) {
-            btn.addEventListener('touchstart', function (e) {
-                // 不阻止默认行为，否则可能导致点击事件无法触发
-            });
+            handleResize() {
+                const newIsMobile = window.innerWidth < 768;
+                if (newIsMobile !== this.isMobile) {
+                    this.isMobile = newIsMobile;
+                    if (localStorage.getItem('preferDesktop') === null) {
+                        this.currentMobileMode = this.isMobile;
+                    }
+                    this.updateLayout();
+                    this.updateViewToggleButton();
+                }
+            }
         }
 
-        // 禁用右键菜单
-        document.addEventListener('contextmenu', function (e) {
-            e.preventDefault();
-            return false;
-        }, false);
+        // 初始化应用
+        const themeManager = new ThemeManager();
+        const appManager = new AppManager();
 
-        // 禁用F12键和其他开发者工具快捷键
-        document.addEventListener('keydown', function (e) {
-            // F12键
-            if (e.keyCode === 123) {
-                e.preventDefault();
-                return false;
-            }
-
-            // Ctrl+Shift+I 组合键
-            if (e.ctrlKey && e.shiftKey && e.keyCode === 73) {
-                e.preventDefault();
-                return false;
-            }
-
-            // Ctrl+Shift+J 组合键
-            if (e.ctrlKey && e.shiftKey && e.keyCode === 74) {
-                e.preventDefault();
-                return false;
-            }
-
-            // Ctrl+Shift+C 组合键
-            if (e.ctrlKey && e.shiftKey && e.keyCode === 67) {
-                e.preventDefault();
-                return false;
-            }
-        }, false);
-
-        // 确保iframe中也禁用右键和F12
-        document.getElementById('content-frame').onload = function () {
-            try {
-                const frameDoc = this.contentDocument || this.contentWindow.document;
-
-                // 禁用iframe中的右键菜单
-                frameDoc.addEventListener('contextmenu', function (e) {
-                    e.preventDefault();
-                    return false;
-                }, false);
-
-                // 禁用iframe中的F12和其他开发者工具快捷键
-                frameDoc.addEventListener('keydown', function (e) {
-                    // F12键
-                    if (e.keyCode === 123) {
-                        e.preventDefault();
-                        return false;
-                    }
-
-                    // 其他开发者工具组合键
-                    if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) {
-                        e.preventDefault();
-                        return false;
-                    }
-                }, false);
-            } catch (e) {
-                // 如果跨域访问iframe内容失败，则静默处理
-                console.log("无法访问iframe内容，可能是跨域限制");
-            }
-        };
-
-        // 确保页面加载后正确应用初始布局
-        document.addEventListener('DOMContentLoaded', function () {
-            initializeLayout();
-            // 短暂延迟后触发一次resize事件以确保布局正确
-            setTimeout(function () {
+        // 页面加载完成后的处理
+        document.addEventListener('DOMContentLoaded', () => {
+            // 短暂延迟后触发resize事件确保布局正确
+            setTimeout(() => {
                 window.dispatchEvent(new Event('resize'));
             }, 100);
+        });
+
+        // iframe加载完成后应用主题
+        document.getElementById('content-frame').addEventListener('load', function () {
+            try {
+                const frameDoc = this.contentDocument || this.contentWindow.document;
+                frameDoc.documentElement.setAttribute('data-theme', themeManager.currentTheme);
+            } catch (e) {
+                console.log('无法访问iframe内容，可能是跨域限制');
+            }
+        });
+
+        // 禁用右键菜单和开发者工具（保持原有功能）
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('keydown', function (e) {
+            if (e.keyCode === 123 ||
+                (e.ctrlKey && e.shiftKey && [73, 74, 67].includes(e.keyCode))) {
+                e.preventDefault();
+                return false;
+            }
         });
     </script>
 </body>

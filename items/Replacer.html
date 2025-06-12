@@ -1,318 +1,724 @@
+<!DOCTYPE html>
+<html lang="zh">
+
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>文本替换工具</title>
+    <link rel="stylesheet" href="../css/theme.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* 重置页面默认样式，确保页面占满整个视口 */
-        html,
         body {
-            margin: 0;
-            padding: 0;
-            height: 100vh;
-            /* 100%视口高度 */
-            width: 100vw;
-            /* 100%视口宽度 */
-            /* overflow: hidden;
-            防止出现滚动条 */
+            min-height: 100vh;
+            padding: var(--spacing-lg);
+            background-color: var(--background-primary);
+            color: var(--text-primary);
         }
 
-        /* 主容器样式 */
-        .calculator {
-            width: 100%;
-            height: 100%;
-            padding: 20px;
-            box-sizing: border-box;
-            /* 边框盒模型，使padding包含在宽高中 */
-            display: flex;
-            /* 使用弹性布局 */
-            flex-direction: column;
-            /* 垂直排列 */
-            font-family: Arial, sans-serif;
-            overflow: hidden;
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: grid;
+            gap: var(--spacing-lg);
         }
 
         /* 标题样式 */
         h1 {
             text-align: center;
-            color: #333;
-            margin: 0 0 20px 0;
-            padding: 0;
+            color: var(--text-primary);
+            margin: 0 0 var(--spacing-xl) 0;
             font-size: 28px;
-            flex-shrink: 0;
-            /* 防止标题被压缩 */
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
         }
 
-        /* 输入框样式 */
-        textarea {
-            flex: 1;
-            /* 占据主要空间 */
-            width: 100%;
-            padding: 15px;
-            margin-bottom: 20px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 16px;
-            box-sizing: border-box;
-            resize: none;
-            /* 禁止手动调整大小 */
-            font-family: monospace;
-            /* 等宽字体 */
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-
-        /* 结果显示区域样式 */
-        .result-container {
-            flex-shrink: 0;
-            /* 防止被压缩 */
-            padding: 15px;
-            background: #f5f5f5;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-
-        /* 保存按钮样式 */
-        .save-button {
-            flex-shrink: 0;
-            padding: 10px 20px;
-            background-color: #2196F3;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            margin-bottom: 20px;
-        }
-
-        /* 历史记录容器样式 */
-        .history-container {
-            flex: 0.5;
-            /* 占据剩余空间的一半 */
-            padding: 15px;
-            background: #f5f5f5;
-            border-radius: 8px;
-            overflow-y: auto;
-            /* 允许垂直滚动 */
-            min-height: 150px;
-        }
-
-        /* 历史记录项样式 */
-        .history-item {
-            padding: 8px;
-            border-bottom: 1px solid #ddd;
-        }
-
-        /* 最后一个历史记录项不显示底边框 */
-        .history-item:last-child {
-            border-bottom: none;
-        }
-
-        /* 更新主容器样式 */
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
+        /* 输入容器样式 */
+        .input-section {
             display: grid;
-            gap: 20px;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-lg);
         }
 
-        /* 输入容器样式优化 */
         .input-container {
-            background: #fff;
-            border-radius: 12px;
-            padding: 15px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            background: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            box-shadow: var(--shadow-sm);
         }
 
-        /* 文本框样式优化 */
+        .input-header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-md);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* 文本框样式 */
         textarea {
             width: 100%;
-            min-height: 80px;
-            padding: 12px;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
+            min-height: 200px;
+            padding: var(--spacing-md);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
             font-size: 14px;
-            line-height: 1.5;
-            transition: border-color 0.3s;
+            line-height: 1.6;
+            font-family: var(--font-mono);
+            background-color: var(--background-primary);
+            color: var(--text-primary);
+            transition: all var(--transition-fast);
+            resize: vertical;
         }
 
         textarea:focus {
             outline: none;
-            border-color: #2196F3;
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--primary-light);
         }
 
-        /* 按钮容器样式 */
+        textarea::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        /* 查找替换控制面板 */
+        .control-panel {
+            background: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .control-header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-lg);
+            font-weight: 600;
+            font-size: 18px;
+            color: var(--text-primary);
+        }
+
+        .search-replace-inputs {
+            display: grid;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-xs);
+        }
+
+        .input-label {
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+        }
+
+        input[type="text"] {
+            padding: var(--spacing-sm) var(--spacing-md);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            background-color: var(--background-primary);
+            color: var(--text-primary);
+            transition: all var(--transition-fast);
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        /* 按钮样式 */
         .button-container {
             display: flex;
-            gap: 10px;
-            margin-top: 10px;
+            gap: var(--spacing-md);
+            flex-wrap: wrap;
         }
 
-        /* 按钮样式统一 */
-        button {
-            padding: 8px 16px;
+        .btn-replace {
+            background: var(--primary-color);
+            color: var(--text-inverse);
             border: none;
-            border-radius: 6px;
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-radius: var(--radius-md);
             font-size: 14px;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all var(--transition-fast);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
         }
 
-        /* 主要按钮样式 */
-        #replaceButton {
-            background-color: #2196F3;
-            color: white;
+        .btn-replace:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
         }
 
-        #replaceButton:hover {
-            background-color: #1976D2;
+        .btn-secondary {
+            background: var(--background-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
         }
 
-        /* 次要按钮样式 */
-        .button-container button:not(#replaceButton) {
-            background-color: #f5f5f5;
-            color: #333;
+        .btn-secondary:hover {
+            background: var(--background-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
         }
 
-        .button-container button:not(#replaceButton):hover {
-            background-color: #e0e0e0;
+        /* 结果显示区域 */
+        .result-section {
+            grid-column: 1 / -1;
+            background: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            box-shadow: var(--shadow-sm);
         }
 
-        /* 历史记录样式优化 */
+        .result-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .result-title {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 18px;
+        }
+
+        .result-stats {
+            display: flex;
+            gap: var(--spacing-md);
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        /* 历史记录样式 */
         .history-container {
-            background: #fff;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            background: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .history-header {
+            padding: var(--spacing-lg);
+            border-bottom: 1px solid var(--border-color);
+            background: var(--background-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .history-title {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .history-count {
+            background: var(--primary-light);
+            color: var(--primary-color);
+            padding: 2px var(--spacing-sm);
+            border-radius: var(--radius-full);
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .history-content {
+            max-height: 300px;
+            overflow-y: auto;
+            padding: var(--spacing-md);
+        }
+
+        .history-empty {
+            text-align: center;
+            color: var(--text-tertiary);
+            padding: var(--spacing-xl);
+            font-style: italic;
         }
 
         .history-item {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 10px;
+            background: var(--background-primary);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+            transition: all var(--transition-fast);
+        }
+
+        .history-item:hover {
+            background: var(--background-hover);
+            transform: translateX(4px);
+        }
+
+        .history-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .history-meta {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            margin-bottom: var(--spacing-xs);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .history-operation {
             font-size: 14px;
-            line-height: 1.6;
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-xs);
+            font-family: var(--font-mono);
         }
 
-        .restore-button {
-            margin-top: 10px;
-            background-color: #4CAF50;
-            color: white;
+        .history-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-sm);
         }
 
-        .restore-button:hover {
-            background-color: #388E3C;
+        .btn-restore {
+            background: var(--success-color);
+            color: var(--text-inverse);
+            border: none;
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .btn-restore:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            body {
+                padding: var(--spacing-md);
+            }
+
+            .input-section {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .button-container {
+                flex-direction: column;
+            }
+
+            .result-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--spacing-sm);
+            }
+
+            .result-stats {
+                flex-wrap: wrap;
+            }
+        }
+
+        /* 动画效果 */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .history-item {
+            animation: fadeIn 0.3s ease;
+        }
+
+        /* 成功提示动画 */
+        .success-flash {
+            animation: successFlash 0.5s ease;
+        }
+
+        @keyframes successFlash {
+            0% {
+                background-color: var(--background-secondary);
+            }
+
+            50% {
+                background-color: var(--success-color);
+            }
+
+            100% {
+                background-color: var(--background-secondary);
+            }
         }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <h1>文本替换工具</h1>
+        <h1>
+            <i class="fas fa-exchange-alt"></i>
+            文本替换工具
+        </h1>
 
-        <div class="input-container">
-            <textarea id="originalText" placeholder="请输入原始文本..."></textarea>
-            <div class="button-container">
-                <button id="pasteOriginal">粘贴</button>
-                <button id="copyOriginal">复制</button>
+        <!-- 输入区域 -->
+        <div class="input-section">
+            <div class="input-container">
+                <div class="input-header">
+                    <i class="fas fa-file-text"></i>
+                    原始文本
+                </div>
+                <textarea id="originalText" placeholder="请在此输入需要处理的原始文本..."></textarea>
+                <div class="button-container">
+                    <button class="btn-secondary" onclick="copyToClipboard('originalText')">
+                        <i class="fas fa-copy"></i>
+                        复制
+                    </button>
+                    <button class="btn-secondary" onclick="pasteFromClipboard('originalText')">
+                        <i class="fas fa-paste"></i>
+                        粘贴
+                    </button>
+                    <button class="btn-secondary" onclick="clearText('originalText')">
+                        <i class="fas fa-trash"></i>
+                        清空
+                    </button>
+                </div>
+            </div>
+
+            <div class="control-panel">
+                <div class="control-header">
+                    <i class="fas fa-cogs"></i>
+                    替换设置
+                </div>
+                <div class="search-replace-inputs">
+                    <div class="input-group">
+                        <label class="input-label" for="searchText">
+                            <i class="fas fa-search"></i>
+                            查找文本
+                        </label>
+                        <input type="text" id="searchText" placeholder="输入要查找的文本...">
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label" for="replaceText">
+                            <i class="fas fa-edit"></i>
+                            替换为
+                        </label>
+                        <input type="text" id="replaceText" placeholder="输入替换后的文本...">
+                    </div>
+                </div>
+                <div class="button-container">
+                    <button class="btn-replace" onclick="performReplace()">
+                        <i class="fas fa-exchange-alt"></i>
+                        执行替换
+                    </button>
+                    <button class="btn-secondary" onclick="clearReplaceInputs()">
+                        <i class="fas fa-eraser"></i>
+                        清空输入
+                    </button>
+                </div>
             </div>
         </div>
 
-        <div class="input-container">
-            <textarea id="textToReplace" placeholder="请输入需要被替换的文本..."></textarea>
+        <!-- 结果显示区域 -->
+        <div class="result-section">
+            <div class="result-header">
+                <div class="result-title">
+                    <i class="fas fa-check-circle"></i>
+                    处理结果
+                </div>
+                <div class="result-stats">
+                    <div class="stat-item">
+                        <i class="fas fa-search"></i>
+                        找到: <span class="stat-value" id="foundCount">0</span> 处
+                    </div>
+                    <div class="stat-item">
+                        <i class="fas fa-exchange-alt"></i>
+                        替换: <span class="stat-value" id="replaceCount">0</span> 处
+                    </div>
+                </div>
+            </div>
+            <textarea id="resultText" placeholder="替换结果将在此显示..." readonly></textarea>
             <div class="button-container">
-                <button id="pasteToReplace">粘贴</button>
-                <button id="copyToReplace">复制</button>
+                <button class="btn-secondary" onclick="copyToClipboard('resultText')">
+                    <i class="fas fa-copy"></i>
+                    复制结果
+                </button>
+                <button class="btn-secondary" onclick="saveToHistory()">
+                    <i class="fas fa-save"></i>
+                    保存到历史
+                </button>
             </div>
         </div>
 
-        <div class="input-container">
-            <textarea id="replacementText" placeholder="请输入替换后的文本..."></textarea>
-            <div class="button-container">
-                <button id="pasteReplacement">粘贴</button>
-                <button id="copyReplacement">复制</button>
-            </div>
-        </div>
-
-        <div class="input-container">
-            <textarea id="outputText" placeholder="替换结果将显示在这里..." readonly></textarea>
-            <div class="button-container">
-                <button id="replaceButton">替换</button>
-                <button id="copyOutput">复制结果</button>
-                <button id="clearButton">清空所有</button>
-            </div>
-        </div>
-
+        <!-- 历史记录 -->
         <div class="history-container">
-            <h3>历史记录</h3>
-            <div id="historyList"></div>
+            <div class="history-header">
+                <h3 class="history-title">
+                    <i class="fas fa-history"></i>
+                    操作历史
+                    <span class="history-count" id="historyCount">0</span>
+                </h3>
+                <button class="btn-secondary" onclick="clearHistory()">
+                    <i class="fas fa-trash"></i>
+                    清空历史
+                </button>
+            </div>
+            <div class="history-content">
+                <div id="historyList">
+                    <div class="history-empty">
+                        <i class="fas fa-clock"></i><br>
+                        暂无操作历史
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+
+    <script src="../js/theme.js"></script>
+    <script>
+        let historyData = [];
+
+        // 执行替换操作
+        function performReplace() {
+            const originalText = document.getElementById('originalText').value;
+            const searchText = document.getElementById('searchText').value;
+            const replaceText = document.getElementById('replaceText').value;
+
+            if (!originalText.trim()) {
+                alert('请先输入原始文本！');
+                return;
+            }
+
+            if (!searchText.trim()) {
+                alert('请输入要查找的文本！');
+                return;
+            }
+
+            // 执行替换
+            const regex = new RegExp(escapeRegExp(searchText), 'g');
+            const matches = originalText.match(regex) || [];
+            const resultText = originalText.replace(regex, replaceText);
+
+            // 更新结果
+            document.getElementById('resultText').value = resultText;
+            document.getElementById('foundCount').textContent = matches.length;
+            document.getElementById('replaceCount').textContent = matches.length;
+
+            // 添加成功提示动画
+            const resultSection = document.querySelector('.result-section');
+            resultSection.classList.add('success-flash');
+            setTimeout(() => {
+                resultSection.classList.remove('success-flash');
+            }, 500);
+        }
+
+        // 转义正则表达式特殊字符
+        function escapeRegExp(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        // 复制到剪贴板
+        async function copyToClipboard(textareaId) {
+            const textarea = document.getElementById(textareaId);
+            if (!textarea.value.trim()) {
+                alert('没有内容可以复制！');
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(textarea.value);
+                showSuccessMessage('复制成功！');
+            } catch (err) {
+                // 降级处理
+                textarea.select();
+                document.execCommand('copy');
+                showSuccessMessage('复制成功！');
+            }
+        }
+
+        // 从剪贴板粘贴
+        async function pasteFromClipboard(textareaId) {
+            try {
+                const text = await navigator.clipboard.readText();
+                document.getElementById(textareaId).value = text;
+                showSuccessMessage('粘贴成功！');
+            } catch (err) {
+                alert('无法访问剪贴板，请手动粘贴！');
+            }
+        }
+
+        // 清空文本
+        function clearText(textareaId) {
+            document.getElementById(textareaId).value = '';
+        }
+
+        // 清空替换输入
+        function clearReplaceInputs() {
+            document.getElementById('searchText').value = '';
+            document.getElementById('replaceText').value = '';
+        }
+
+        // 保存到历史记录
+        function saveToHistory() {
+            const originalText = document.getElementById('originalText').value;
+            const searchText = document.getElementById('searchText').value;
+            const replaceText = document.getElementById('replaceText').value;
+            const resultText = document.getElementById('resultText').value;
+
+            if (!originalText.trim() || !searchText.trim() || !resultText.trim()) {
+                alert('请先执行一次有效的替换操作！');
+                return;
+            }
+
+            const historyItem = {
+                id: Date.now(),
+                timestamp: new Date().toLocaleString(),
+                originalText: originalText,
+                searchText: searchText,
+                replaceText: replaceText,
+                resultText: resultText,
+                replaceCount: document.getElementById('replaceCount').textContent
+            };
+
+            historyData.unshift(historyItem);
+            updateHistoryDisplay();
+            showSuccessMessage('已保存到历史记录！');
+        }
+
+        // 更新历史记录显示
+        function updateHistoryDisplay() {
+            const historyList = document.getElementById('historyList');
+            const historyCount = document.getElementById('historyCount');
+
+            historyCount.textContent = historyData.length;
+
+            if (historyData.length === 0) {
+                historyList.innerHTML = `
+                    <div class="history-empty">
+                        <i class="fas fa-clock"></i><br>
+                        暂无操作历史
+                    </div>
+                `;
+                return;
+            }
+
+            historyList.innerHTML = historyData.map(item => `
+                <div class="history-item">
+                    <div class="history-meta">
+                        <i class="fas fa-clock"></i>
+                        ${item.timestamp}
+                        <span style="margin-left: auto;">
+                            <i class="fas fa-exchange-alt"></i>
+                            替换了 ${item.replaceCount} 处
+                        </span>
+                    </div>
+                    <div class="history-operation">
+                        "${item.searchText}" → "${item.replaceText}"
+                    </div>
+                    <div class="history-actions">
+                        <button class="btn-restore" onclick="restoreFromHistory(${item.id})">
+                            <i class="fas fa-undo"></i>
+                            恢复
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 从历史记录恢复
+        function restoreFromHistory(id) {
+            const item = historyData.find(h => h.id === id);
+            if (!item) return;
+
+            document.getElementById('originalText').value = item.originalText;
+            document.getElementById('searchText').value = item.searchText;
+            document.getElementById('replaceText').value = item.replaceText;
+            document.getElementById('resultText').value = item.resultText;
+            document.getElementById('foundCount').textContent = item.replaceCount;
+            document.getElementById('replaceCount').textContent = item.replaceCount;
+
+            showSuccessMessage('已恢复历史记录！');
+        }
+
+        // 清空历史记录
+        function clearHistory() {
+            if (historyData.length === 0) return;
+
+            if (confirm('确定要清空所有历史记录吗？')) {
+                historyData = [];
+                updateHistoryDisplay();
+                showSuccessMessage('历史记录已清空！');
+            }
+        }
+
+        // 显示成功消息
+        function showSuccessMessage(message) {
+            // 可以扩展为更好的消息提示系统
+            console.log(message);
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function () {
+            // 绑定回车键执行替换
+            document.getElementById('replaceText').addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    performReplace();
+                }
+            });
+        });
+    </script>
 </body>
 
-<script>
-    document.getElementById('replaceButton').addEventListener('click', () => {
-        const originalText = document.getElementById('originalText').value;
-        const textToReplace = document.getElementById('textToReplace').value;
-        const replacementText = document.getElementById('replacementText').value;
-
-        const outputText = originalText.split(textToReplace).join(replacementText);
-        document.getElementById('outputText').value = outputText;
-
-        updateHistory(originalText, textToReplace, replacementText, outputText);
-    });
-
-    document.getElementById('clearButton').addEventListener('click', () => {
-        document.getElementById('originalText').value = '';
-        document.getElementById('textToReplace').value = '';
-        document.getElementById('replacementText').value = '';
-        document.getElementById('outputText').value = '';
-    });
-
-    async function copyToClipboard(elementId) {
-        const text = document.getElementById(elementId).value;
-        await navigator.clipboard.writeText(text);
-        alert('已复制到剪贴板');
-    }
-
-    document.getElementById('copyOriginal').addEventListener('click', () => copyToClipboard('originalText'));
-    document.getElementById('copyToReplace').addEventListener('click', () => copyToClipboard('textToReplace'));
-    document.getElementById('copyReplacement').addEventListener('click', () => copyToClipboard('replacementText'));
-    document.getElementById('copyOutput').addEventListener('click', () => copyToClipboard('outputText'));
-
-    document.getElementById('pasteOriginal').addEventListener('click', () => pasteClipboard('originalText'));
-    document.getElementById('pasteToReplace').addEventListener('click', () => pasteClipboard('textToReplace'));
-    document.getElementById('pasteReplacement').addEventListener('click', () => pasteClipboard('replacementText'));
-
-    async function pasteClipboard(elementId) {
-        try {
-            const text = await navigator.clipboard.readText();
-            document.getElementById(elementId).value = text;
-        } catch (err) {
-            console.error('无法粘贴文本: ', err);
-            alert('无法粘贴文本，请检查您的剪贴板或浏览器权限设置。');
-        }
-    }
-
-    function updateHistory(originalText, textToReplace, replacementText, outputText) {
-        const historyList = document.getElementById('historyList');
-        const newItem = document.createElement('div');
-        newItem.className = 'history-item';
-
-        const timestamp = new Date().toLocaleString();
-        newItem.innerHTML = `<strong>替换时间:</strong> ${timestamp}<br>
-                                    <strong>原始文本:</strong> ${originalText}<br>
-                                    <strong>被替换文本:</strong> ${textToReplace}<br>
-                                    <strong>替换文本:</strong> ${replacementText}<br>
-                                    <strong>替换后的文本:</strong> ${outputText}<br>
-                                    <button class="restore-button">还原</button>`;
-
-        historyList.prepend(newItem);
-
-        newItem.querySelector('.restore-button').addEventListener('click', () => {
-            document.getElementById('originalText').value = originalText;
-            document.getElementById('textToReplace').value = textToReplace;
-            document.getElementById('replacementText').value = replacementText;
-            document.getElementById('outputText').value = outputText;
-        });
-    }
-</script>
+</html>

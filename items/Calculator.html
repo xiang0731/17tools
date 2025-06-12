@@ -4,6 +4,8 @@
 <head>
     <title>简单计算器</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="../css/theme.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         /* 重置页面默认样式，确保页面占满整个视口 */
         html,
@@ -23,118 +25,390 @@
             width: 100%;
             min-height: 100vh;
             /* 改为最小高度 */
-            padding: 20px;
+            padding: var(--spacing-lg);
             box-sizing: border-box;
             /* 边框盒模型，使padding包含在宽高中 */
             display: flex;
             /* 使用弹性布局 */
             flex-direction: column;
             /* 垂直排列 */
-            font-family: Arial, sans-serif;
+            font-family: var(--font-family);
             overflow-y: auto;
             /* 允许垂直滚动，修改自overflow: hidden */
+            background-color: var(--background-primary);
+            color: var(--text-primary);
         }
 
         /* 标题样式 */
         h1 {
             text-align: center;
-            color: #333;
-            margin: 0 0 20px 0;
+            color: var(--text-primary);
+            margin: 0 0 var(--spacing-lg) 0;
             padding: 0;
             font-size: 28px;
+            font-weight: 700;
             flex-shrink: 0;
             /* 防止标题被压缩 */
         }
 
         /* 输入框样式 */
+        .input-container {
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .input-label {
+            display: block;
+            margin-bottom: var(--spacing-sm);
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
         textarea {
-            flex: none;
             width: 100%;
             height: 250px;
-            /* 调整为与历史记录框相同的高度 */
-            padding: 15px;
-            margin-bottom: 20px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
+            padding: var(--spacing-md);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
             font-size: 16px;
             box-sizing: border-box;
             resize: none;
-            /* 禁止手动调整大小 */
-            font-family: monospace;
-            /* 等宽字体 */
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            font-family: var(--font-mono);
+            background-color: var(--background-primary);
+            color: var(--text-primary);
+            transition: all var(--transition-fast);
+            box-shadow: var(--shadow-sm);
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        textarea::placeholder {
+            color: var(--text-tertiary);
         }
 
         /* 结果显示区域样式 */
         .result-container {
             flex-shrink: 0;
-            /* 防止被压缩 */
-            padding: 15px;
-            background: #f5f5f5;
-            border-radius: 8px;
-            margin-bottom: 20px;
+            padding: var(--spacing-lg);
+            background: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            margin-bottom: var(--spacing-lg);
+            box-shadow: var(--shadow-sm);
         }
 
-        /* 保存按钮样式 */
+        .result-label {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .result-value {
+            color: var(--primary-color);
+            font-family: var(--font-mono);
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        /* 按钮样式 */
+        .button-group {
+            display: flex;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+            flex-wrap: wrap;
+        }
+
         .save-button {
-            flex-shrink: 0;
-            padding: 10px 20px;
-            background-color: #2196F3;
-            color: white;
+            flex: 1;
+            min-width: 120px;
+            padding: var(--spacing-md) var(--spacing-lg);
+            background: var(--primary-color);
+            color: var(--text-inverse);
             border: none;
-            border-radius: 4px;
+            border-radius: var(--radius-md);
             cursor: pointer;
             font-size: 16px;
-            margin-bottom: 20px;
+            font-weight: 500;
+            transition: all var(--transition-fast);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+        }
+
+        .save-button:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .clear-button {
+            flex: 1;
+            min-width: 120px;
+            padding: var(--spacing-md) var(--spacing-lg);
+            background: var(--background-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all var(--transition-fast);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+        }
+
+        .clear-button:hover {
+            background: var(--background-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
         }
 
         /* 历史记录容器样式 */
         .history-container {
-            flex: 0.5;
-            /* 占据剩余空间的一半 */
-            padding: 15px;
-            background: #f5f5f5;
-            border-radius: 8px;
+            flex: 1;
+            background: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            min-height: 200px;
+        }
+
+        .history-header {
+            padding: var(--spacing-lg);
+            border-bottom: 1px solid var(--border-color);
+            background: var(--background-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .history-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .history-count {
+            background: var(--primary-light);
+            color: var(--primary-color);
+            padding: 2px var(--spacing-sm);
+            border-radius: var(--radius-full);
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .history-content {
+            padding: var(--spacing-md);
             overflow-y: auto;
-            /* 允许垂直滚动 */
-            min-height: 150px;
+            max-height: 300px;
+        }
+
+        .history-empty {
+            text-align: center;
+            color: var(--text-tertiary);
+            padding: var(--spacing-xl);
+            font-style: italic;
         }
 
         /* 历史记录项样式 */
         .history-item {
-            padding: 8px;
-            border-bottom: 1px solid #ddd;
+            padding: var(--spacing-md);
+            border-bottom: 1px solid var(--border-light);
+            transition: all var(--transition-fast);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--spacing-sm);
+            background: var(--background-primary);
         }
 
-        /* 最后一个历史记录项不显示底边框 */
+        .history-item:hover {
+            background: var(--background-hover);
+            transform: translateX(4px);
+        }
+
         .history-item:last-child {
             border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .history-time {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .history-expression {
+            font-family: var(--font-mono);
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-xs);
+            word-break: break-all;
+        }
+
+        .history-result {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--primary-color);
+            font-family: var(--font-mono);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .calculator {
+                padding: var(--spacing-md);
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            textarea {
+                height: 200px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .result-label {
+                font-size: 16px;
+            }
+
+            .result-value {
+                font-size: 20px;
+            }
+        }
+
+        /* 动画效果 */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .history-item {
+            animation: fadeIn 0.3s ease;
+        }
+
+        /* 加载状态 */
+        .calculating {
+            color: var(--warning-color);
+        }
+
+        .calculating::after {
+            content: "...";
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+
+            0%,
+            20% {
+                color: transparent;
+                text-shadow: .25em 0 0 transparent, .5em 0 0 transparent;
+            }
+
+            40% {
+                color: var(--warning-color);
+                text-shadow: .25em 0 0 transparent, .5em 0 0 transparent;
+            }
+
+            60% {
+                text-shadow: .25em 0 0 var(--warning-color), .5em 0 0 transparent;
+            }
+
+            80%,
+            100% {
+                text-shadow: .25em 0 0 var(--warning-color), .5em 0 0 var(--warning-color);
+            }
         }
     </style>
 </head>
 
 <body>
     <div class="calculator">
-        <h1>在线计算器</h1>
-        <textarea id="numbers" placeholder="输入算术表达式，每行或空格分隔 (例如:
+        <h1><i class="fas fa-calculator"></i> 在线计算器</h1>
+
+        <div class="input-container">
+            <label class="input-label" for="numbers">
+                <i class="fas fa-edit"></i> 输入算术表达式
+            </label>
+            <textarea id="numbers" placeholder="输入算术表达式，每行或空格分隔，例如:
 1+2 3*4
-10/2 5-1)" oninput="calculateSum()"></textarea>
-        <div class="result-container">
-            <p>总和: <span id="result">0</span></p>
+10/2 5-1
+支持 +、-、*、/、()、幂运算(**)" oninput="calculateSum()"></textarea>
         </div>
-        <button class="save-button" onclick="saveToHistory()">保存结果</button>
+
+        <div class="result-container">
+            <div class="result-label">
+                <i class="fas fa-equals"></i>
+                总和: <span class="result-value" id="result">0</span>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button class="save-button" onclick="saveToHistory()">
+                <i class="fas fa-save"></i>
+                保存结果
+            </button>
+            <button class="clear-button" onclick="clearHistory()">
+                <i class="fas fa-trash"></i>
+                清空历史
+            </button>
+        </div>
+
         <div class="history-container">
-            <h3>历史记录</h3>
-            <div id="history"></div>
+            <div class="history-header">
+                <h3 class="history-title">
+                    <i class="fas fa-history"></i>
+                    历史记录
+                    <span class="history-count" id="historyCount">0</span>
+                </h3>
+            </div>
+            <div class="history-content">
+                <div id="history">
+                    <div class="history-empty">
+                        <i class="fas fa-clock"></i><br>
+                        暂无历史记录
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
+    <script src="../js/theme.js"></script>
     <script>
+        let historyCount = 0;
+
         // 安全地计算单个表达式
         function evaluateExpression(expr) {
             try {
+                // 清理表达式，移除危险字符
+                const cleanExpr = expr.replace(/[^0-9+\-*/().\s]/g, '');
+                if (!cleanExpr.trim()) return 0;
+
                 // 使用Function构造器执行表达式，添加严格模式
-                return Function('"use strict";return (' + expr + ')')();
+                return Function('"use strict";return (' + cleanExpr + ')')();
             } catch (e) {
                 return 0;  // 表达式无效时返回0
             }
@@ -143,43 +417,111 @@
         // 计算所有表达式的总和
         function calculateSum() {
             const input = document.getElementById('numbers').value;
-            const expressions = input
-                .split(/[\n\s]+/)  // 按换行或空格分割
-                .filter(expr => expr.trim() !== '')  // 过滤空字符串
-                .reduce((acc, curr) => acc + evaluateExpression(curr), 0);  // 计算总和
-            document.getElementById('result').textContent = expressions.toFixed(2);  // 显示两位小数
+            const resultElement = document.getElementById('result');
+
+            // 添加计算中状态
+            resultElement.classList.add('calculating');
+
+            setTimeout(() => {
+                try {
+                    const expressions = input
+                        .split(/[\n\s]+/)  // 按换行或空格分割
+                        .filter(expr => expr.trim() !== '')  // 过滤空字符串
+                        .reduce((acc, curr) => acc + evaluateExpression(curr), 0);  // 计算总和
+
+                    resultElement.textContent = expressions.toFixed(2);  // 显示两位小数
+                } catch (e) {
+                    resultElement.textContent = '计算错误';
+                }
+
+                resultElement.classList.remove('calculating');
+            }, 100);
         }
 
         // 保存当前结果到历史记录
         function saveToHistory() {
             const result = document.getElementById('result').textContent;
             const input = document.getElementById('numbers').value;
+
+            if (!input.trim() || result === '0' || result === '计算错误') {
+                return;
+            }
+
             const timestamp = new Date().toLocaleString();
 
             // 格式化表达式
-            const formattedExpr = input
+            const expressions = input
                 .split(/[\n\s]+/)
-                .filter(expr => expr.trim() !== '')
-                .map(expr => {
-                    // 如果是负数或者计算结果为负数的表达式，用括号括起来
-                    const value = evaluateExpression(expr);
-                    return value < 0 ? `(${expr})` : expr;
-                })
-                .join('+');
+                .filter(expr => expr.trim() !== '');
+
+            const formattedExpr = expressions.join(' + ');
 
             // 创建历史记录项
             const historyItem = document.createElement('div');
             historyItem.className = 'history-item';
             historyItem.innerHTML = `
-                <div>时间: ${timestamp}</div>
-                <div>表达式: ${formattedExpr}</div>
-                <div>结果: ${result}</div>
+                <div class="history-time">
+                    <i class="fas fa-clock"></i> ${timestamp}
+                </div>
+                <div class="history-expression">
+                    <i class="fas fa-code"></i> ${formattedExpr}
+                </div>
+                <div class="history-result">
+                    <i class="fas fa-equals"></i> ${result}
+                </div>
             `;
 
             // 将新记录插入到历史记录的顶部
             const historyContainer = document.getElementById('history');
+
+            // 移除空状态提示
+            const emptyMsg = historyContainer.querySelector('.history-empty');
+            if (emptyMsg) {
+                emptyMsg.remove();
+            }
+
             historyContainer.insertBefore(historyItem, historyContainer.firstChild);
+
+            // 更新计数
+            historyCount++;
+            updateHistoryCount();
+
+            // 添加成功提示
+            const saveBtn = document.querySelector('.save-button');
+            const originalText = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<i class="fas fa-check"></i> 已保存';
+            setTimeout(() => {
+                saveBtn.innerHTML = originalText;
+            }, 1000);
         }
+
+        // 清空历史记录
+        function clearHistory() {
+            if (historyCount === 0) return;
+
+            if (confirm('确定要清空所有历史记录吗？')) {
+                const historyContainer = document.getElementById('history');
+                historyContainer.innerHTML = `
+                    <div class="history-empty">
+                        <i class="fas fa-clock"></i><br>
+                        暂无历史记录
+                    </div>
+                `;
+                historyCount = 0;
+                updateHistoryCount();
+            }
+        }
+
+        // 更新历史记录计数
+        function updateHistoryCount() {
+            document.getElementById('historyCount').textContent = historyCount;
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function () {
+            // 自动聚焦到输入框
+            document.getElementById('numbers').focus();
+        });
     </script>
 </body>
 

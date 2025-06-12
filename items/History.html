@@ -5,69 +5,113 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>更新历史</title>
+    <link rel="stylesheet" href="../css/theme.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+            font-family: var(--font-family);
+            min-height: 100vh;
+            padding: var(--spacing-lg);
+            background-color: var(--background-primary);
+            color: var(--text-primary);
             margin: 0;
-            padding: 0;
-            background-color: #ffffff;
-            color: #1d1d1f;
-            line-height: 1.5;
+            overflow-x: hidden;
         }
 
         .container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
-            padding: 40px 20px;
+            background: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
         }
 
         header {
-            text-align: center;
-            margin-bottom: 50px;
+            margin-bottom: var(--spacing-xl);
         }
 
         h1 {
-            font-size: 40px;
-            font-weight: 600;
-            margin-bottom: 10px;
+            text-align: center;
+            color: var(--text-primary);
+            margin: 0 0 var(--spacing-xl) 0;
+            font-size: 28px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
         }
 
         .subtitle {
+            text-align: center;
             font-size: 20px;
-            color: #86868b;
+            color: var(--text-secondary);
             font-weight: 400;
+            margin-bottom: var(--spacing-lg);
         }
 
         .timeline {
             position: relative;
             margin: 60px 0;
+            padding-left: 15px;
+        }
+
+        .timeline::after {
+            content: '';
+            position: absolute;
+            left: 15px;
+            bottom: -10px;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--text-tertiary);
+            z-index: 1;
         }
 
         .timeline::before {
             content: '';
             position: absolute;
-            left: 0;
+            left: 16px;
             top: 0;
             height: 100%;
             width: 2px;
-            background: #86868b;
-            opacity: 0.3;
+            background: var(--border-color);
+            z-index: 1;
         }
 
         .version-entry {
             position: relative;
             margin-bottom: 60px;
-            padding-left: 30px;
+            padding-left: 35px;
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .version-dot {
             position: absolute;
-            left: -4px;
+            left: 13px;
             top: 8px;
-            width: 10px;
-            height: 10px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            background: #0066cc;
+            background: var(--primary-color);
+            z-index: 2;
+            border: 2px solid var(--background-primary);
+            box-shadow: 0 0 0 1px var(--border-color);
         }
 
         .version-header {
@@ -84,30 +128,30 @@
 
         .version-date {
             font-size: 16px;
-            color: #86868b;
+            color: var(--text-secondary);
         }
 
         .update-list {
-            background: rgba(245, 245, 247, 0.8);
+            background: var(--background-secondary);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
-            border-radius: 12px;
+            border-radius: var(--radius-lg);
             padding: 25px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            border: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: var(--shadow-sm);
+            transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+            border: 1px solid var(--border-color);
         }
 
         .update-list:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+            box-shadow: var(--shadow-md);
         }
 
         .feature-category {
             font-weight: 600;
             margin-top: 20px;
             margin-bottom: 10px;
-            color: #1d1d1f;
+            color: var(--text-primary);
         }
 
         .feature-category:first-child {
@@ -130,14 +174,21 @@
 
         .tag {
             display: inline-block;
-            padding: 2px 8px;
-            border-radius: 4px;
+            padding: 4px 10px;
+            border-radius: var(--radius-full);
             font-size: 12px;
             font-weight: 500;
             margin-right: 8px;
-            background-color: rgba(232, 232, 237, 0.8);
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
+            margin-bottom: 4px;
+            background-color: var(--background-tertiary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            transition: all var(--transition-fast);
+        }
+
+        .tag:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
         }
 
         .tag.new {
@@ -280,16 +331,20 @@
         }
 
         @media (max-width: 768px) {
+            body {
+                padding: var(--spacing-md);
+            }
+
             .container {
-                padding: 30px 15px;
+                padding: var(--spacing-lg);
             }
 
             h1 {
-                font-size: 32px;
+                font-size: 24px;
             }
 
             .subtitle {
-                font-size: 18px;
+                font-size: 16px;
             }
 
             .version-number {
@@ -301,7 +356,29 @@
             }
 
             .update-list {
-                padding: 20px;
+                padding: var(--spacing-lg);
+            }
+
+            .timeline {
+                padding-left: 12px;
+            }
+
+            .timeline::before {
+                left: 13px;
+            }
+
+            .timeline::after {
+                left: 12px;
+            }
+
+            .version-dot {
+                left: 10px;
+                width: 6px;
+                height: 6px;
+            }
+
+            .version-entry {
+                padding-left: 30px;
             }
         }
     </style>
@@ -310,7 +387,10 @@
 <body>
     <div class="container">
         <header>
-            <h1>更新历史</h1>
+            <h1>
+                <i class="fas fa-history"></i>
+                更新历史
+            </h1>
             <div class="subtitle">查看17Tools的所有功能更新与改进</div>
         </header>
 
@@ -483,6 +563,8 @@
             </div>
         </div>
     </div>
+
+    <script src="../js/theme.js"></script>
 </body>
 
 </html>
