@@ -558,13 +558,43 @@
         // 主题管理
         class ThemeManager {
             constructor() {
-                this.currentTheme = localStorage.getItem('theme') || 'light';
+                this.currentTheme = this.getInitialTheme();
                 this.init();
             }
 
             init() {
                 this.applyTheme(this.currentTheme);
                 this.updateThemeButton();
+            }
+
+            /**
+             * 获取初始主题设置
+             * 首次访问：根据时间自动选择主题（6am-5:59pm为浅色，其他时间为深色）
+             * 后续访问：使用之前保存的设置
+             */
+            getInitialTheme() {
+                const savedTheme = localStorage.getItem('theme');
+                const hasVisited = localStorage.getItem('hasVisited');
+
+                // 如果是首次访问，根据当前时间设置默认主题
+                if (!hasVisited) {
+                    const now = new Date();
+                    const currentHour = now.getHours();
+
+                    // 6am-5:59pm (6-17) 为浅色模式，其他时间为深色模式
+                    const defaultTheme = (currentHour >= 6 && currentHour < 18) ? 'light' : 'dark';
+
+                    // 标记已访问并保存首次访问时的主题设置
+                    localStorage.setItem('hasVisited', 'true');
+                    localStorage.setItem('theme', defaultTheme);
+
+                    console.log(`首次访问 - 当前时间: ${now.toLocaleTimeString()}, 默认主题: ${defaultTheme === 'light' ? '浅色' : '深色'}模式`);
+
+                    return defaultTheme;
+                }
+
+                // 如果不是首次访问，使用保存的主题设置
+                return savedTheme || 'light';
             }
 
             toggle() {
