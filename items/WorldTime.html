@@ -5,24 +5,68 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>全球时间对比</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
-                    },
-                    colors: {
-                        'apple-gray': '#f5f5f7',
-                        'apple-dark': '#1d1d1f',
-                    }
-                }
-            }
-        }
-    </script>
+    <link rel="stylesheet" href="../css/theme.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* 苹果风格的时钟样式 */
+        body {
+            min-height: 100vh;
+            padding: var(--spacing-lg);
+            background-color: var(--background-primary);
+            color: var(--text-primary);
+            font-family: var(--font-family);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* 标题样式 */
+        h1 {
+            text-align: center;
+            color: var(--text-primary);
+            margin: 0 0 var(--spacing-xl) 0;
+            font-size: 32px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+        }
+
+        h1::before {
+            content: "\f0ac";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            color: var(--primary-color);
+        }
+
+        /* 时钟网格布局 */
+        .clocks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: var(--spacing-xl);
+            margin: var(--spacing-xl) 0;
+        }
+
+        /* 时钟卡片 */
+        .clock-card {
+            background: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            box-shadow: var(--shadow-md);
+            text-align: center;
+            transition: all var(--transition-fast);
+        }
+
+        .clock-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* 时钟容器 */
         .clock-container {
             position: relative;
             width: 220px;
@@ -30,6 +74,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            margin: 0 auto var(--spacing-lg);
         }
 
         .clock {
@@ -37,8 +82,9 @@
             width: 200px;
             height: 200px;
             border-radius: 50%;
-            background-color: white;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            background-color: var(--background-primary);
+            border: 2px solid var(--border-color);
+            box-shadow: var(--shadow-md);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -58,7 +104,7 @@
             position: absolute;
             width: 3px;
             height: 12px;
-            background-color: rgba(29, 29, 31, 0.6);
+            background-color: var(--text-secondary);
             top: 0;
             left: 50%;
             transform-origin: 50% 85px;
@@ -70,7 +116,7 @@
             position: absolute;
             width: 1px;
             height: 6px;
-            background-color: rgba(29, 29, 31, 0.3);
+            background-color: var(--text-tertiary);
             top: 0;
             left: 50%;
             transform-origin: 50% 85px;
@@ -82,7 +128,7 @@
             position: absolute;
             width: 6px;
             height: 60px;
-            background-color: #1d1d1f;
+            background-color: var(--text-primary);
             border-radius: 6px;
             bottom: 50%;
             left: 50%;
@@ -96,7 +142,7 @@
             position: absolute;
             width: 4px;
             height: 80px;
-            background-color: #1d1d1f;
+            background-color: var(--text-primary);
             border-radius: 4px;
             bottom: 50%;
             left: 50%;
@@ -110,7 +156,7 @@
             position: absolute;
             width: 2px;
             height: 90px;
-            background-color: #ff3b30;
+            background-color: var(--primary-color);
             border-radius: 2px;
             bottom: 50%;
             left: 50%;
@@ -125,9 +171,17 @@
             position: absolute;
             width: 12px;
             height: 12px;
-            background-color: #ff3b30;
+            background-color: var(--primary-color);
             border-radius: 50%;
             z-index: 13;
+        }
+
+        /* 时钟标题 */
+        .clock-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: var(--spacing-md);
         }
 
         /* 数字时间样式 */
@@ -135,49 +189,116 @@
             font-feature-settings: "tnum";
             font-variant-numeric: tabular-nums;
             letter-spacing: 0.5px;
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .digital-date {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-md);
         }
 
         /* 时区选择器样式 */
         .timezone-selector {
-            margin-top: 16px;
             width: 100%;
-            max-width: 250px;
+            max-width: 280px;
+            margin: 0 auto;
         }
 
         .timezone-selector select {
             width: 100%;
-            padding: 8px 12px;
-            border-radius: 8px;
-            border: 1px solid #e0e0e0;
-            background-color: white;
+            padding: var(--spacing-md);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            background-color: var(--background-primary);
+            color: var(--text-primary);
             font-size: 14px;
-            color: #1d1d1f;
             appearance: none;
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231d1d1f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
             background-repeat: no-repeat;
-            background-position: right 8px center;
+            background-position: right 12px center;
             background-size: 16px;
+            transition: all var(--transition-fast);
         }
 
         .timezone-selector select:focus {
             outline: none;
-            border-color: #0071e3;
-            box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.2);
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        /* 时区信息 */
+        .timezone-info {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            margin-top: var(--spacing-sm);
         }
 
         /* 时差显示 */
         .time-difference {
-            margin-top: 16px;
-            padding: 8px 16px;
-            background-color: rgba(0, 113, 227, 0.1);
-            border-radius: 8px;
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg);
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            border-radius: var(--radius-lg);
+            text-align: center;
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+
+        .time-difference h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: var(--spacing-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+        }
+
+        .time-difference-value {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .time-difference-desc {
             font-size: 14px;
-            color: #0071e3;
-            display: inline-block;
+            opacity: 0.9;
+        }
+
+        /* 页脚信息 */
+        .footer-info {
+            text-align: center;
+            margin-top: var(--spacing-xl);
+            padding-top: var(--spacing-lg);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .footer-info p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .footer-info .brand {
+            color: var(--text-tertiary);
+            font-size: 12px;
         }
 
         /* 响应式调整 */
         @media (max-width: 768px) {
+            body {
+                padding: var(--spacing-md);
+            }
+
+            .clocks-grid {
+                grid-template-columns: 1fr;
+                gap: var(--spacing-lg);
+            }
+
             .clock {
                 width: 180px;
                 height: 180px;
@@ -207,99 +328,158 @@
             .second-hand {
                 height: 80px;
             }
-        }
 
-        /* 平滑动画效果 */
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
+            .digital-time {
+                font-size: 20px;
             }
 
-            to {
-                opacity: 1;
+            h1 {
+                font-size: 28px;
             }
         }
 
-        .clock,
-        .digital-time {
-            animation: fadeIn 0.8s ease-out;
+        @media (max-width: 480px) {
+            .clock-container {
+                width: 160px;
+                height: 160px;
+            }
+
+            .clock {
+                width: 140px;
+                height: 140px;
+            }
+
+            .clock-face {
+                width: 120px;
+                height: 120px;
+            }
+
+            .hour-line {
+                transform-origin: 50% 60px;
+            }
+
+            .minute-marker {
+                transform-origin: 50% 60px;
+            }
+
+            .hour-hand {
+                height: 40px;
+            }
+
+            .minute-hand {
+                height: 55px;
+            }
+
+            .second-hand {
+                height: 65px;
+            }
         }
     </style>
 </head>
 
-<body class="bg-white min-h-screen flex flex-col items-center justify-center p-4">
-    <div class="max-w-4xl w-full mx-auto bg-white rounded-3xl shadow-lg p-8 my-8">
-        <h1 class="text-4xl font-light text-center text-apple-dark mb-8">全球时间对比</h1>
+<body>
+    <div class="container">
+        <h1>全球时间对比</h1>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
-            <!-- 第一个时钟 -->
-            <div class="flex flex-col items-center">
-                <h2 class="text-2xl font-light mb-4" id="left-clock-title">中国时间</h2>
+        <div class="clocks-grid">
+            <!-- 左侧时钟 -->
+            <div class="clock-card">
+                <h2 class="clock-title" id="left-clock-title">中国 (北京)</h2>
+
                 <div class="clock-container">
                     <div class="clock left-clock">
+                        <div class="clock-face" id="left-clock-face">
+                            <!-- 小时刻度 -->
+                            <div class="hour-line" style="transform: rotate(0deg);"></div>
+                            <div class="hour-line" style="transform: rotate(30deg);"></div>
+                            <div class="hour-line" style="transform: rotate(60deg);"></div>
+                            <div class="hour-line" style="transform: rotate(90deg);"></div>
+                            <div class="hour-line" style="transform: rotate(120deg);"></div>
+                            <div class="hour-line" style="transform: rotate(150deg);"></div>
+                            <div class="hour-line" style="transform: rotate(180deg);"></div>
+                            <div class="hour-line" style="transform: rotate(210deg);"></div>
+                            <div class="hour-line" style="transform: rotate(240deg);"></div>
+                            <div class="hour-line" style="transform: rotate(270deg);"></div>
+                            <div class="hour-line" style="transform: rotate(300deg);"></div>
+                            <div class="hour-line" style="transform: rotate(330deg);"></div>
+                        </div>
+
                         <div class="hour-hand"></div>
                         <div class="minute-hand"></div>
                         <div class="second-hand"></div>
                         <div class="center-dot"></div>
-                        <div class="clock-face" id="left-clock-face">
-                            <!-- 时钟刻度将通过JS生成 -->
-                        </div>
                     </div>
                 </div>
-                <div class="digital-time text-2xl font-light mt-6" id="left-time">00:00:00</div>
-                <div class="text-sm text-gray-500 mt-2" id="left-date">2023年1月1日 星期一</div>
-                <div class="text-sm font-medium text-gray-600 mt-2" id="left-timezone-info">UTC+8</div>
 
-                <div class="timezone-selector mt-4">
-                    <select id="left-timezone-select" class="timezone-select">
-                        <!-- 时区选项将通过JS动态生成 -->
+                <div class="digital-time" id="left-time">--:--:--</div>
+                <div class="digital-date" id="left-date">----年--月--日</div>
+                <div class="timezone-info" id="left-timezone-info">UTC+8</div>
+
+                <div class="timezone-selector">
+                    <select id="left-timezone-select">
+                        <!-- 时区选项将通过JavaScript动态生成 -->
                     </select>
                 </div>
             </div>
 
-            <!-- 第二个时钟 -->
-            <div class="flex flex-col items-center">
-                <h2 class="text-2xl font-light mb-4" id="right-clock-title">美国时间 (纽约)</h2>
+            <!-- 右侧时钟 -->
+            <div class="clock-card">
+                <h2 class="clock-title" id="right-clock-title">美国 (纽约)</h2>
+
                 <div class="clock-container">
                     <div class="clock right-clock">
+                        <div class="clock-face" id="right-clock-face">
+                            <!-- 小时刻度 -->
+                            <div class="hour-line" style="transform: rotate(0deg);"></div>
+                            <div class="hour-line" style="transform: rotate(30deg);"></div>
+                            <div class="hour-line" style="transform: rotate(60deg);"></div>
+                            <div class="hour-line" style="transform: rotate(90deg);"></div>
+                            <div class="hour-line" style="transform: rotate(120deg);"></div>
+                            <div class="hour-line" style="transform: rotate(150deg);"></div>
+                            <div class="hour-line" style="transform: rotate(180deg);"></div>
+                            <div class="hour-line" style="transform: rotate(210deg);"></div>
+                            <div class="hour-line" style="transform: rotate(240deg);"></div>
+                            <div class="hour-line" style="transform: rotate(270deg);"></div>
+                            <div class="hour-line" style="transform: rotate(300deg);"></div>
+                            <div class="hour-line" style="transform: rotate(330deg);"></div>
+                        </div>
+
                         <div class="hour-hand"></div>
                         <div class="minute-hand"></div>
                         <div class="second-hand"></div>
                         <div class="center-dot"></div>
-                        <div class="clock-face" id="right-clock-face">
-                            <!-- 时钟刻度将通过JS生成 -->
-                        </div>
                     </div>
                 </div>
-                <div class="digital-time text-2xl font-light mt-6" id="right-time">00:00:00</div>
-                <div class="text-sm text-gray-500 mt-2" id="right-date">Monday, January 1, 2023</div>
-                <div class="text-sm font-medium text-gray-600 mt-2" id="right-timezone-info">UTC-5</div>
 
-                <div class="timezone-selector mt-4">
-                    <select id="right-timezone-select" class="timezone-select">
-                        <!-- 时区选项将通过JS动态生成 -->
+                <div class="digital-time" id="right-time">--:--:--</div>
+                <div class="digital-date" id="right-date">----年--月--日</div>
+                <div class="timezone-info" id="right-timezone-info">UTC-4</div>
+
+                <div class="timezone-selector">
+                    <select id="right-timezone-select">
+                        <!-- 时区选项将通过JavaScript动态生成 -->
                     </select>
                 </div>
             </div>
         </div>
 
         <!-- 时差显示 -->
-        <div class="flex justify-center mt-8">
-            <div class="time-difference" id="time-difference">
-                时差：+13小时 (右侧比左侧晚13小时)
-            </div>
+        <div class="time-difference" id="time-difference">
+            <h3>
+                <i class="fas fa-clock"></i>
+                时差对比
+            </h3>
+            <div class="time-difference-value" id="time-difference-value">12小时</div>
+            <div class="time-difference-desc">北京时间比纽约时间快12小时</div>
         </div>
 
-        <div class="text-center mt-12">
-            <p class="text-gray-500 text-sm">现已支持全球 60+ 时区，查看世界各地的实时时间</p>
-        </div>
-
-        <div class="text-center text-gray-400 text-sm mt-8">
-            <p>wow17.com</p>
+        <div class="footer-info">
+            <p>现已支持全球 60+ 时区，查看世界各地的实时时间</p>
+            <p class="brand">wow17.com</p>
         </div>
     </div>
 
-    <script src="../js/theme-injector.js"></script>
+    <script src="../js/theme.js"></script>
     <script>
         // 时钟功能实现
         document.addEventListener('DOMContentLoaded', function () {
