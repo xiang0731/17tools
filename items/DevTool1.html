@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新功能预览 - 17Tools</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            /* 浅色模式变量 */
+            --primary-color: #6366f1;
+            --primary-hover: #5b5ce6;
+            --secondary-color: #f8fafc;
+            --accent-color: #10b981;
+            --warning-color: #f59e0b;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --background-primary: #ffffff;
+            --background-secondary: #f8fafc;
+            --background-tertiary: #e5e7eb;
+            --border-color: #e5e7eb;
+            --shadow-light: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        [data-theme="dark"] {
+            /* 深色模式变量 */
+            --primary-color: #818cf8;
+            --primary-hover: #6366f1;
+            --secondary-color: #1f2937;
+            --accent-color: #34d399;
+            --warning-color: #fbbf24;
+            --text-primary: #f9fafb;
+            --text-secondary: #d1d5db;
+            --background-primary: #111827;
+            --background-secondary: #1f2937;
+            --background-tertiary: #374151;
+            --border-color: #374151;
+            --shadow-light: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+            --shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--background-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .header .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1em;
+            margin-bottom: 20px;
+        }
+
+        .warning-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background-color: rgba(245, 158, 11, 0.1);
+            color: var(--warning-color);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 500;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 40px 0;
+        }
+
+        .feature-card {
+            background-color: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .feature-card .icon {
+            font-size: 2.5em;
+            color: var(--primary-color);
+            margin-bottom: 16px;
+        }
+
+        .feature-card h3 {
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            font-size: 1.3em;
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        .feature-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85em;
+            font-weight: 500;
+            padding: 4px 12px;
+            border-radius: 16px;
+        }
+
+        .status-planning {
+            background-color: rgba(99, 102, 241, 0.1);
+            color: var(--primary-color);
+        }
+
+        .status-development {
+            background-color: rgba(245, 158, 11, 0.1);
+            color: var(--warning-color);
+        }
+
+        .status-testing {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--accent-color);
+        }
+
+        .info-section {
+            background-color: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 40px 0;
+        }
+
+        .info-section h2 {
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .info-section ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .info-section li {
+            padding: 8px 0;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .info-section li::before {
+            content: "✨";
+            font-size: 1.2em;
+        }
+
+        .footer-note {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            background-color: rgba(99, 102, 241, 0.05);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 10px;
+            }
+
+            .header h1 {
+                font-size: 2em;
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <i class="fas fa-flask"></i>
+                新功能预览
+            </h1>
+            <p class="subtitle">即将推出的创新工具和功能</p>
+            <div class="warning-badge">
+                <i class="fas fa-exclamation-triangle"></i>
+                开发中 - 功能可能不稳定
+            </div>
+        </div>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="icon">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <h3>AI 智能助手</h3>
+                <p>集成先进的AI技术，为你提供智能化的工具使用建议和自动化功能。</p>
+                <div class="feature-status status-planning">
+                    <i class="fas fa-lightbulb"></i>
+                    规划中
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="icon">
+                    <i class="fas fa-cloud"></i>
+                </div>
+                <h3>云端同步</h3>
+                <p>实现工具配置和数据的云端同步，让你在不同设备间无缝切换。</p>
+                <div class="feature-status status-development">
+                    <i class="fas fa-code"></i>
+                    开发中
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="icon">
+                    <i class="fas fa-palette"></i>
+                </div>
+                <h3>主题定制</h3>
+                <p>更多样化的主题选择和个性化定制选项，打造专属的工具界面。</p>
+                <div class="feature-status status-testing">
+                    <i class="fas fa-vial"></i>
+                    测试中
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h3>使用统计</h3>
+                <p>详细的工具使用统计和分析，帮助你了解工作效率和使用习惯。</p>
+                <div class="feature-status status-planning">
+                    <i class="fas fa-lightbulb"></i>
+                    规划中
+                </div>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h2>
+                <i class="fas fa-info-circle"></i>
+                开发进度
+            </h2>
+            <ul>
+                <li>基础架构优化 - 已完成</li>
+                <li>新功能原型设计 - 进行中</li>
+                <li>用户界面改进 - 进行中</li>
+                <li>性能优化 - 计划中</li>
+                <li>多语言支持 - 计划中</li>
+            </ul>
+        </div>
+
+        <div class="info-section">
+            <h2>
+                <i class="fas fa-calendar-alt"></i>
+                预计发布时间
+            </h2>
+            <ul>
+                <li>主题定制功能 - 2024年第一季度</li>
+                <li>云端同步功能 - 2024年第二季度</li>
+                <li>AI智能助手 - 2024年第三季度</li>
+                <li>使用统计功能 - 2024年第四季度</li>
+            </ul>
+        </div>
+
+        <div class="footer-note">
+            💡 有任何建议或想法？欢迎通过Github Issues告诉我们！<br>
+            这些功能正在积极开发中，部分功能可能会根据用户反馈进行调整。
+        </div>
+    </div>
+</body>
+
+</html>

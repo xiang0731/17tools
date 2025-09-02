@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时间主题测试工具</title>
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --background-primary: #ffffff;
+            --background-secondary: #f8fafc;
+            --border-color: #e5e7eb;
+        }
+
+        [data-theme="dark"] {
+            --primary-color: #818cf8;
+            --text-primary: #f9fafb;
+            --text-secondary: #d1d5db;
+            --background-primary: #111827;
+            --background-secondary: #1f2937;
+            --border-color: #374151;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--background-primary);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+        }
+
+        .card {
+            background-color: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .card h3 {
+            margin-bottom: 15px;
+            color: var(--text-primary);
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            background-color: var(--background-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .time-info {
+            font-family: 'Courier New', monospace;
+            background-color: var(--background-primary);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .rule-explanation {
+            background-color: var(--background-primary);
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .highlight {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">🌓 时间主题测试工具</h1>
+            <p class="subtitle">测试基于时间的自动主题切换功能</p>
+        </div>
+
+        <div class="card">
+            <h3>📋 功能说明</h3>
+            <div class="rule-explanation">
+                <h4>主题切换规则：</h4>
+                <ul style="margin: 10px 0; padding-left: 20px;">
+                    <li><span class="highlight">首次访问</span>：根据当前时间自动选择主题</li>
+                    <li>早上 <span class="highlight">6:00 - 17:59</span> → 浅色模式 ☀️</li>
+                    <li>晚上 <span class="highlight">18:00 - 05:59</span> → 深色模式 🌙</li>
+                    <li><span class="highlight">后续访问</span>：保持首次访问时的设置</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>🔍 当前状态</h3>
+            <div class="status">
+                <div class="status-indicator"></div>
+                <span>当前主题：<span id="current-theme">未知</span></span>
+            </div>
+            <div class="time-info">
+                <div>当前时间：<span id="current-time"></span></div>
+                <div>访问状态：<span id="visit-status"></span></div>
+                <div>主题来源：<span id="theme-source"></span></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>🧪 测试功能</h3>
+            <div class="buttons">
+                <button class="btn" onclick="clearStorage()">清除存储数据</button>
+                <button class="btn" onclick="simulateFirstVisit()">模拟首次访问</button>
+                <button class="btn btn-secondary" onclick="toggleTheme()">手动切换主题</button>
+                <button class="btn btn-secondary" onclick="refreshPage()">刷新页面</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>📊 时间段测试</h3>
+            <p style="margin-bottom: 15px;">点击按钮模拟不同时间的首次访问：</p>
+            <div class="buttons">
+                <button class="btn btn-secondary" onclick="simulateTimeAccess(9)">上午9点访问</button>
+                <button class="btn btn-secondary" onclick="simulateTimeAccess(14)">下午2点访问</button>
+                <button class="btn btn-secondary" onclick="simulateTimeAccess(20)">晚上8点访问</button>
+                <button class="btn btn-secondary" onclick="simulateTimeAccess(2)">凌晨2点访问</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 复制主题管理器逻辑
+        class ThemeManager {
+            constructor() {
+                this.currentTheme = this.getInitialTheme();
+                this.init();
+            }
+
+            init() {
+                this.applyTheme(this.currentTheme);
+                this.updateStatus();
+            }
+
+            getInitialTheme() {
+                const savedTheme = localStorage.getItem('theme');
+                const hasVisited = localStorage.getItem('hasVisited');
+
+                if (!hasVisited) {
+                    const now = new Date();
+                    const currentHour = now.getHours();
+                    const defaultTheme = (currentHour >= 6 && currentHour < 18) ? 'light' : 'dark';
+
+                    localStorage.setItem('hasVisited', 'true');
+                    localStorage.setItem('theme', defaultTheme);
+                    localStorage.setItem('firstVisitTime', now.toISOString());
+
+                    console.log(`首次访问 - 当前时间: ${now.toLocaleTimeString()}, 默认主题: ${defaultTheme === 'light' ? '浅色' : '深色'}模式`);
+
+                    return defaultTheme;
+                }
+
+                return savedTheme || 'light';
+            }
+
+            applyTheme(theme) {
+                this.currentTheme = theme;
+                document.documentElement.setAttribute('data-theme', theme);
+                localStorage.setItem('theme', theme);
+                this.updateStatus();
+            }
+
+            toggle() {
+                const newTheme = this.currentTheme === 'light' ? 'dark' : 'light';
+                this.applyTheme(newTheme);
+            }
+
+            updateStatus() {
+                const now = new Date();
+                const hasVisited = localStorage.getItem('hasVisited');
+                const firstVisitTime = localStorage.getItem('firstVisitTime');
+
+                document.getElementById('current-theme').textContent =
+                    this.currentTheme === 'light' ? '浅色模式 ☀️' : '深色模式 🌙';
+
+                document.getElementById('current-time').textContent = now.toLocaleString();
+
+                document.getElementById('visit-status').textContent =
+                    hasVisited ? '已访问过' : '首次访问';
+
+                let themeSource = '';
+                if (hasVisited && firstVisitTime) {
+                    const firstVisit = new Date(firstVisitTime);
+                    themeSource = `首次访问时间设置 (${firstVisit.toLocaleString()})`;
+                } else {
+                    const currentHour = now.getHours();
+                    const expectedTheme = (currentHour >= 6 && currentHour < 18) ? 'light' : 'dark';
+                    themeSource = `当前时间自动选择 (${currentHour}:00)`;
+                }
+
+                document.getElementById('theme-source').textContent = themeSource;
+            }
+        }
+
+        // 初始化主题管理器
+        const themeManager = new ThemeManager();
+
+        // 测试函数
+        function clearStorage() {
+            localStorage.removeItem('theme');
+            localStorage.removeItem('hasVisited');
+            localStorage.removeItem('firstVisitTime');
+            alert('存储数据已清除！刷新页面将重新进行首次访问判断。');
+            themeManager.updateStatus();
+        }
+
+        function simulateFirstVisit() {
+            clearStorage();
+            location.reload();
+        }
+
+        function toggleTheme() {
+            themeManager.toggle();
+        }
+
+        function refreshPage() {
+            location.reload();
+        }
+
+        function simulateTimeAccess(hour) {
+            // 清除存储
+            localStorage.removeItem('theme');
+            localStorage.removeItem('hasVisited');
+            localStorage.removeItem('firstVisitTime');
+
+            // 创建模拟时间
+            const mockDate = new Date();
+            mockDate.setHours(hour, 0, 0, 0);
+
+            // 手动执行首次访问逻辑
+            const defaultTheme = (hour >= 6 && hour < 18) ? 'light' : 'dark';
+
+            localStorage.setItem('hasVisited', 'true');
+            localStorage.setItem('theme', defaultTheme);
+            localStorage.setItem('firstVisitTime', mockDate.toISOString());
+
+            // 应用主题
+            themeManager.currentTheme = defaultTheme;
+            themeManager.applyTheme(defaultTheme);
+
+            alert(`模拟${hour}:00首次访问 → ${defaultTheme === 'light' ? '浅色' : '深色'}模式`);
+        }
+
+        // 定时更新当前时间
+        setInterval(() => {
+            themeManager.updateStatus();
+        }, 1000);
+    </script>
+</body>
+
+</html>

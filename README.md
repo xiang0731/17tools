@@ -85,6 +85,19 @@
 - 动画效果展示
 - 包含项目相关说明
 
+### 8. 防息屏工具 (Keeper)
+- 保持屏幕常亮功能
+- 支持多种防息屏策略
+- 实时状态显示
+- 智能检测设备类型
+- 提供手动和自动模式
+
+### 9. 研发中工具
+- **新功能预览** - 展示即将发布的新特性
+- **实验性工具** - 探索创新功能和概念
+- 密码保护访问，确保功能稳定性
+- 会话记忆，提升使用体验
+
 ## 技术实现
 - 纯HTML/CSS/JavaScript实现
 - 响应式布局设计
@@ -92,6 +105,9 @@
 - 模块化的工具组件设计
 - 使用外部库如Prettier和highlight.js实现代码格式化
 - 使用TailwindCSS实现部分工具的样式
+- 智能主题系统：基于时间自动切换深色/浅色模式
+- 密码保护机制：SessionStorage会话管理
+- 防息屏技术：多种策略保持屏幕活跃状态
 
 ## 使用方法
 1. 直接打开index.html文件
@@ -106,9 +122,15 @@
 ├── items/ # 工具集
 │ ├── Welcome.html # 欢迎页
 │ ├── Calculator.html # 极速计算器
+│ ├── DateCalculator.html # 日期计算器
 │ ├── PrettyFormat.html # 代码格式化工具
 │ ├── Replacer.html # 文本替换工具
 │ ├── Transformer.html # 文本转换工具
 │ ├── WorldTime.html # 世界时间工具
-│ ├── About.html # 关于页面
+│ ├── Keeper.html # 防息屏工具
+│ ├── History.html # 更新历史
+│ └── About.html # 关于页面
+├── js/
+│ ├── auth.js # 认证管理
+│ └── theme.js # 主题管理
 └── README.md # 说明文档

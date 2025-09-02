@@ -1,0 +1,1661 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>防息屏工具 - 17Tools</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --primary-hover: #5b5ce6;
+            --secondary-color: #f8fafc;
+            --accent-color: #10b981;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --background-primary: #ffffff;
+            --background-secondary: #f8fafc;
+            --background-tertiary: #e5e7eb;
+            --border-color: #e5e7eb;
+            --shadow-light: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --error-color: #ef4444;
+        }
+
+        [data-theme="dark"] {
+            --primary-color: #818cf8;
+            --primary-hover: #6366f1;
+            --secondary-color: #1f2937;
+            --accent-color: #34d399;
+            --text-primary: #f9fafb;
+            --text-secondary: #d1d5db;
+            --background-primary: #111827;
+            --background-secondary: #1f2937;
+            --background-tertiary: #374151;
+            --border-color: #374151;
+            --shadow-light: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+            --shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+        }
+
+        /* 深色模式滚动条样式 */
+        [data-theme="dark"] ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+
+        [data-theme="dark"] ::-webkit-scrollbar-thumb {
+            background: #4b5563;
+        }
+
+        [data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+
+        [data-theme="dark"] ::-webkit-scrollbar-corner {
+            background: #1f2937;
+        }
+
+        /* Firefox 滚动条样式 */
+        [data-theme="dark"] * {
+            scrollbar-color: #4b5563 #1f2937;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-color) var(--background-secondary);
+        }
+
+        body {
+            font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--background-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        /* 浅色模式滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--background-secondary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+            transition: background 0.3s ease;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+
+        ::-webkit-scrollbar-corner {
+            background: var(--background-secondary);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-top: 24px;
+            align-items: start;
+        }
+
+        .left-column {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            height: fit-content;
+        }
+
+        .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            height: fit-content;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .header h1 i {
+            font-size: 2.2rem;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .status-card {
+            background: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 28px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-medium);
+            text-align: center;
+            transition: all 0.3s ease;
+            height: 350px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .status-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            opacity: 0.6;
+        }
+
+        .status-top-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .status-indicator {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.8rem;
+            transition: all 0.3s ease;
+            animation: pulse 2s infinite;
+            flex-shrink: 0;
+        }
+
+        .status-indicator.active {
+            background: linear-gradient(135deg, var(--success-color), #059669);
+            color: white;
+            box-shadow: 0 0 30px rgba(16, 185, 129, 0.4);
+        }
+
+        .status-indicator.inactive {
+            background: var(--background-tertiary);
+            color: var(--text-secondary);
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .status-text {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            flex-shrink: 0;
+        }
+
+        .status-text.active {
+            color: var(--success-color);
+        }
+
+        .status-text.inactive {
+            color: var(--text-secondary);
+        }
+
+        .status-description {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.4;
+            max-width: 280px;
+            margin: 0 auto;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 10px 0;
+            min-height: 40px;
+        }
+
+
+
+        .control-panel {
+            background: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 28px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-medium);
+            height: 520px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-color), var(--primary-color));
+            opacity: 0.6;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+            margin-top: auto;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 140px;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--error-color), #dc2626);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 18px;
+            margin-top: 24px;
+            flex: 1;
+            align-content: start;
+            padding-bottom: 10px;
+        }
+
+        .setting-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 18px;
+            background: var(--background-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            min-height: 60px;
+        }
+
+        .setting-item:hover {
+            box-shadow: var(--shadow-light);
+        }
+
+        .setting-label {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .setting-label i {
+            color: var(--primary-color);
+            width: 20px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: var(--border-color);
+            border-radius: 13px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .toggle-switch.active {
+            background: var(--success-color);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(24px);
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .input-group input {
+            width: 80px;
+            padding: 6px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--background-primary);
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .stats-panel {
+            background: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: var(--shadow-medium);
+        }
+
+        .stats-panel {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stats-panel:first-child {
+            height: 350px;
+            margin-bottom: 24px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stats-panel:first-child::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #10b981, #059669);
+            opacity: 0.7;
+        }
+
+        .stats-panel:last-child {
+            height: 520px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stats-panel:last-child::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #f59e0b, #d97706);
+            opacity: 0.7;
+        }
+
+        .stats-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: center;
+            color: var(--text-primary);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 16px;
+            flex: 1;
+            align-content: start;
+            margin-bottom: 10px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 16px 14px;
+            background: var(--background-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            min-height: 70px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .stat-item:hover {
+            box-shadow: var(--shadow-light);
+            transform: translateY(-1px);
+        }
+
+        .diagnostic-log-container {
+            margin-top: 18px;
+            padding: 16px;
+            background: var(--background-primary);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .diagnostic-log-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+
+        .diagnostic-log-title i {
+            color: var(--primary-color);
+            margin-right: 6px;
+        }
+
+        .diagnostic-log-content {
+            flex: 1;
+            overflow-y: auto;
+            font-size: 11px;
+            line-height: 1.4;
+            background: var(--background-secondary);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            min-height: 140px;
+        }
+
+        /* 诊断日志滚动条特殊样式 */
+        .diagnostic-log-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .diagnostic-log-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .diagnostic-log-content::-webkit-scrollbar-thumb {
+            background: var(--text-secondary);
+            border-radius: 3px;
+            opacity: 0.6;
+        }
+
+        .diagnostic-log-content::-webkit-scrollbar-thumb:hover {
+            background: var(--text-primary);
+            opacity: 0.8;
+        }
+
+        .stat-value {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 6px;
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.3;
+        }
+
+        .warning-banner {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border: 1px solid #f59e0b;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        [data-theme="dark"] .warning-banner {
+            background: linear-gradient(135deg, #451a03, #78350f);
+            border-color: #92400e;
+        }
+
+        .warning-banner i {
+            color: #f59e0b;
+            font-size: 1.2rem;
+        }
+
+        .warning-text {
+            color: #92400e;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        [data-theme="dark"] .warning-text {
+            color: #fbbf24;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 16px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .header p {
+                font-size: 1rem;
+            }
+
+            .main-layout {
+                grid-template-columns: 1fr;
+                gap: 20px;
+                margin-top: 20px;
+            }
+
+            .left-column,
+            .right-column {
+                gap: 20px;
+            }
+
+            .status-card,
+            .control-panel,
+            .stats-panel {
+                padding: 24px;
+                height: auto !important;
+            }
+
+            .status-card {
+                min-height: auto;
+                padding: 24px;
+                height: auto !important;
+            }
+
+
+
+            .status-top-section {
+                flex-shrink: 0;
+            }
+
+            .status-indicator {
+                width: 70px;
+                height: 70px;
+                font-size: 2.2rem;
+                margin-bottom: 14px;
+            }
+
+            .status-text {
+                font-size: 1.2rem;
+            }
+
+            .control-panel {
+                min-height: auto;
+                height: auto !important;
+            }
+
+            .control-buttons {
+                flex-direction: column;
+                align-items: center;
+                gap: 12px;
+            }
+
+            .btn {
+                width: 100%;
+                max-width: 280px;
+                padding: 12px 24px;
+            }
+
+            .settings-grid {
+                grid-template-columns: 1fr;
+                gap: 14px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+
+            .stat-item {
+                padding: 14px 12px;
+                min-height: 60px;
+            }
+
+            .stat-value {
+                font-size: 1.4rem;
+            }
+
+            .stat-label {
+                font-size: 0.8rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 12px;
+            }
+
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .main-layout {
+                gap: 16px;
+            }
+
+            .left-column,
+            .right-column {
+                gap: 16px;
+            }
+
+            .status-card,
+            .control-panel,
+            .stats-panel {
+                padding: 20px;
+            }
+
+            .status-card,
+            .control-panel,
+            .stats-panel {
+                min-height: auto;
+                height: auto !important;
+            }
+
+
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .settings-grid {
+                gap: 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <i class="fas fa-shield-alt"></i>
+                防息屏工具
+            </h1>
+            <p>保持电脑活跃状态，防止自动息屏和状态变为离开</p>
+        </div>
+
+        <div class="warning-banner">
+            <i class="fas fa-exclamation-triangle"></i>
+            <div class="warning-text">
+                <strong>使用提醒：</strong>此工具通过模拟用户活动来防止电脑休眠，请在使用完毕后及时关闭以节省电量。长期使用可能影响设备寿命。
+            </div>
+        </div>
+
+        <div class="main-layout">
+            <!-- 左列：运行统计和系统诊断 -->
+            <div class="left-column">
+                <div class="stats-panel">
+                    <div class="stats-title">
+                        <i class="fas fa-chart-line"></i>
+                        运行统计
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-value" id="runTimeValue">00:00:00</div>
+                            <div class="stat-label">运行时间</div>
+                        </div>
+
+                        <div class="stat-item">
+                            <div class="stat-value" id="actionCountValue">0</div>
+                            <div class="stat-label">模拟动作次数</div>
+                        </div>
+
+                        <div class="stat-item">
+                            <div class="stat-value" id="lastActionValue">未启动</div>
+                            <div class="stat-label">最后动作</div>
+                        </div>
+
+                        <div class="stat-item">
+                            <div class="stat-value" id="nextActionValue">--</div>
+                            <div class="stat-label">下次动作倒计时</div>
+                        </div>
+
+                        <div class="stat-item">
+                            <div class="stat-value" id="timerRemainingValue">--</div>
+                            <div class="stat-label">定时关闭倒计时</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-panel">
+                    <div class="stats-title">
+                        <i class="fas fa-stethoscope"></i>
+                        系统诊断
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-value" id="pageStatusValue">前台</div>
+                            <div class="stat-label">页面状态</div>
+                        </div>
+
+                        <div class="stat-item">
+                            <div class="stat-value" id="wakeLockValue">未知</div>
+                            <div class="stat-label">唤醒锁状态</div>
+                        </div>
+
+                        <div class="stat-item">
+                            <div class="stat-value" id="browserValue">检测中</div>
+                            <div class="stat-label">浏览器类型</div>
+                        </div>
+
+                        <div class="stat-item">
+                            <div class="stat-value" id="throttleStatusValue">检测中</div>
+                            <div class="stat-label">节流检测</div>
+                        </div>
+
+                        <div class="stat-item">
+                            <div class="stat-value" id="osValue">检测中</div>
+                            <div class="stat-label">操作系统</div>
+                        </div>
+                    </div>
+
+                    <div class="diagnostic-log-container">
+                        <div class="diagnostic-log-title">
+                            <i class="fas fa-info-circle"></i>
+                            实时诊断日志
+                        </div>
+                        <div id="diagnosticLog" class="diagnostic-log-content">
+                            <div style="color: var(--text-secondary); font-style: italic;">等待启动...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右列：控制面板和设置 -->
+            <div class="right-column">
+                <div class="status-card">
+                    <div class="status-top-section">
+                        <div class="status-indicator inactive" id="statusIndicator">
+                            <i class="fas fa-moon"></i>
+                        </div>
+                        <div class="status-text inactive" id="statusText">防息屏已关闭</div>
+                    </div>
+                    <div class="status-description" id="statusDescription">
+                        点击启动按钮开始防止电脑息屏
+                    </div>
+
+
+
+                    <div class="control-buttons">
+                        <button class="btn btn-primary" id="startBtn">
+                            <i class="fas fa-play"></i>
+                            启动防息屏
+                        </button>
+                        <button class="btn btn-danger" id="stopBtn" style="display: none;">
+                            <i class="fas fa-stop"></i>
+                            停止防息屏
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-panel">
+                    <div class="stats-title">
+                        <i class="fas fa-cog"></i>
+                        工具设置
+                    </div>
+
+                    <div class="settings-grid">
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <i class="fas fa-mouse-pointer"></i>
+                                模拟鼠标移动
+                            </div>
+                            <div class="toggle-switch active" id="mouseToggle"></div>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <i class="fas fa-keyboard"></i>
+                                模拟键盘活动
+                            </div>
+                            <div class="toggle-switch active" id="keyboardToggle"></div>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <i class="fas fa-clock"></i>
+                                活动间隔
+                            </div>
+                            <div class="input-group">
+                                <input type="number" id="intervalInput" value="30" min="5" max="300">
+                                <span>秒</span>
+                            </div>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <i class="fas fa-volume-up"></i>
+                                声音提醒
+                            </div>
+                            <div class="toggle-switch" id="soundToggle"></div>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <i class="fas fa-layer-group"></i>
+                                后台增强模式
+                            </div>
+                            <div class="toggle-switch active" id="backgroundToggle"></div>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <i class="fas fa-clock"></i>
+                                定时关闭
+                            </div>
+                            <div class="input-group">
+                                <input type="number" id="timerInput" value="0" min="0" max="480" placeholder="0=不限制">
+                                <span>分钟</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+                class AntiIdleTool {
+                    constructor() {
+                        this.isActive = false;
+                        this.interval = null;
+                        this.startTime = null;
+                        this.actionCount = 0;
+                        this.settings = {
+                            mouseMove: true,
+                            keyboardActivity: true,
+                            intervalSeconds: 30,
+                            soundEnabled: false,
+                            backgroundMode: true, // 新增：后台模式开关
+                            timerMinutes: 0 // 新增：定时关闭分钟数，0表示不限制
+                        };
+                        this.countdownInterval = null;
+                        this.remainingSeconds = 0;
+                        this.isBackground = false;
+                        this.backgroundInterval = null;
+                        this.shutdownTimer = null; // 定时关闭定时器
+                        this.shutdownTimeRemaining = 0; // 剩余关闭时间（秒）
+                        this.diagnostics = {
+                            browser: this.detectBrowser(),
+                            os: this.detectOS(),
+                            wakeLockSupported: 'wakeLock' in navigator,
+                            throttleTest: { start: Date.now(), count: 0 }
+                        };
+
+                        this.init();
+                    }
+
+                    init() {
+                        this.bindEvents();
+                        this.loadSettings();
+                        this.updateUI();
+                        this.startCountdownTimer();
+                        this.initDiagnostics();
+                        this.startThrottleTest();
+                    }
+
+                    bindEvents() {
+                        document.getElementById('startBtn').addEventListener('click', () => this.start());
+                        document.getElementById('stopBtn').addEventListener('click', () => this.stop());
+
+                        // 设置切换事件
+                        document.getElementById('mouseToggle').addEventListener('click', (e) => {
+                            this.toggleSetting('mouseMove', e.target);
+                        });
+
+                        document.getElementById('keyboardToggle').addEventListener('click', (e) => {
+                            this.toggleSetting('keyboardActivity', e.target);
+                        });
+
+                        document.getElementById('soundToggle').addEventListener('click', (e) => {
+                            this.toggleSetting('soundEnabled', e.target);
+                        });
+
+                        document.getElementById('backgroundToggle').addEventListener('click', (e) => {
+                            this.toggleSetting('backgroundMode', e.target);
+                        });
+
+                        document.getElementById('intervalInput').addEventListener('change', (e) => {
+                            this.settings.intervalSeconds = parseInt(e.target.value);
+                            this.saveSettings();
+                            if (this.isActive) {
+                                this.restart();
+                            }
+                        });
+
+                        document.getElementById('timerInput').addEventListener('change', (e) => {
+                            this.settings.timerMinutes = parseInt(e.target.value) || 0;
+                            this.saveSettings();
+                            if (this.isActive) {
+                                this.setupShutdownTimer();
+                            }
+                        });
+
+                        // 页面状态变化监听 - 增强后台运行能力
+                        document.addEventListener('visibilitychange', () => {
+                            if (document.hidden) {
+                                // 页面进入后台，切换到后台模式
+                                this.switchToBackgroundMode();
+                            } else {
+                                // 页面重新获得焦点，切换回前台模式并立即获取Wake Lock
+                                this.switchToForegroundMode();
+                                if (this.isActive) {
+                                    setTimeout(() => this.requestWakeLock(), 100); // 延迟100ms确保页面完全可见
+                                }
+                            }
+                        });
+
+                        // 监听页面获得/失去焦点
+                        window.addEventListener('focus', () => {
+                            if (this.isActive) {
+                                this.switchToForegroundMode();
+                            }
+                        });
+
+                        window.addEventListener('blur', () => {
+                            if (this.isActive) {
+                                this.switchToBackgroundMode();
+                            }
+                        });
+
+                        // 页面关闭前提醒
+                        window.addEventListener('beforeunload', (e) => {
+                            if (this.isActive) {
+                                e.preventDefault();
+                                e.returnValue = '防息屏工具正在运行，确定要关闭页面吗？';
+                                return e.returnValue;
+                            }
+                        });
+                    }
+
+                    toggleSetting(setting, element) {
+                        this.settings[setting] = !this.settings[setting];
+                        element.classList.toggle('active');
+                        this.saveSettings();
+
+                        if (this.settings.soundEnabled && this.settings[setting]) {
+                            this.playSound();
+                        }
+                    }
+
+                    start() {
+                        if (this.isActive) return;
+
+                        this.isActive = true;
+                        this.startTime = Date.now();
+                        this.actionCount = 0;
+                        this.remainingSeconds = this.settings.intervalSeconds;
+
+                        // 立即执行一次
+                        this.performAction();
+
+                        // 设置定时器
+                        this.interval = setInterval(() => {
+                            this.performAction();
+                        }, this.settings.intervalSeconds * 1000);
+
+                        this.updateUI();
+                        this.startStatsTimer();
+                        this.setupShutdownTimer(); // 设置定时关闭
+
+                        if (this.settings.soundEnabled) {
+                            this.playSound(440, 100); // 启动音
+                        }
+
+                        this.logDiagnostic('✅ 防息屏工具已启动');
+                    }
+
+                    stop() {
+                        if (!this.isActive) return;
+
+                        this.isActive = false;
+                        this.isBackground = false;
+
+                        // 清理所有定时器
+                        if (this.interval) {
+                            clearInterval(this.interval);
+                            this.interval = null;
+                        }
+
+                        if (this.statsTimer) {
+                            clearInterval(this.statsTimer);
+                            this.statsTimer = null;
+                        }
+
+                        if (this.backgroundInterval) {
+                            clearInterval(this.backgroundInterval);
+                            this.backgroundInterval = null;
+                        }
+
+                        // 清理定时关闭定时器
+                        if (this.shutdownTimer) {
+                            clearTimeout(this.shutdownTimer);
+                            this.shutdownTimer = null;
+                        }
+                        this.shutdownTimeRemaining = 0;
+
+                        // 释放唤醒锁
+                        if (this.wakeLock) {
+                            this.wakeLock.release();
+                            this.wakeLock = null;
+                        }
+
+                        this.updateUI();
+
+                        if (this.settings.soundEnabled) {
+                            this.playSound(220, 100); // 停止音
+                        }
+
+                        this.logDiagnostic('✅ 防息屏工具已停止');
+                    }
+
+                    restart() {
+                        if (this.isActive) {
+                            this.stop();
+                            setTimeout(() => this.start(), 100);
+                        }
+                    }
+
+                    // 切换到后台模式
+                    switchToBackgroundMode() {
+                        if (!this.isActive || this.isBackground || !this.settings.backgroundMode) return;
+
+                        this.isBackground = true;
+                        this.logDiagnostic('🔄 切换到后台模式');
+
+                        // 更新UI显示后台状态
+                        const statusDescription = document.getElementById('statusDescription');
+                        if (statusDescription) {
+                            statusDescription.textContent = '后台模式运行 - 简单策略防止息屏';
+                        }
+
+                        // 后台模式：每5秒执行一次基本操作
+                        this.backgroundInterval = setInterval(() => {
+                            if (!document.hidden) {
+                                this.requestWakeLock();
+                            }
+                            this.performAction(); // 复用现有的动作执行函数
+                        }, 5000);
+
+                        this.logDiagnostic('✅ 后台模式已启动');
+                    }
+
+                    // 切换到前台模式
+                    switchToForegroundMode() {
+                        if (!this.isActive || !this.isBackground) return;
+
+                        this.isBackground = false;
+                        this.logDiagnostic('🔄 切换到前台模式');
+
+                        // 更新UI显示前台状态
+                        const statusDescription = document.getElementById('statusDescription');
+                        if (statusDescription) {
+                            statusDescription.textContent = '正在模拟用户活动，防止电脑休眠';
+                        }
+
+                        // 清理后台定时器
+                        if (this.backgroundInterval) {
+                            clearInterval(this.backgroundInterval);
+                            this.backgroundInterval = null;
+                        }
+
+                        this.logDiagnostic('✅ 前台模式已恢复');
+                    }
+
+                    // 设置定时关闭
+                    setupShutdownTimer() {
+                        // 清理现有定时器
+                        if (this.shutdownTimer) {
+                            clearTimeout(this.shutdownTimer);
+                            this.shutdownTimer = null;
+                        }
+
+                        // 如果设置为0，则不启用定时关闭
+                        if (this.settings.timerMinutes <= 0) {
+                            this.shutdownTimeRemaining = 0;
+                            document.getElementById('timerRemainingValue').textContent = '--';
+                            this.logDiagnostic('🔄 定时关闭已禁用');
+                            return;
+                        }
+
+                        // 设置剩余时间（转换为秒）
+                        this.shutdownTimeRemaining = this.settings.timerMinutes * 60;
+
+                        // 设置定时器
+                        this.shutdownTimer = setTimeout(() => {
+                            this.logDiagnostic('⏰ 定时关闭时间到，自动停止防息屏');
+
+                            if (this.settings.soundEnabled) {
+                                // 播放特殊的关闭提示音
+                                this.playSound(800, 200);
+                                setTimeout(() => this.playSound(600, 200), 250);
+                                setTimeout(() => this.playSound(400, 300), 500);
+                            }
+
+                            this.stop();
+                        }, this.shutdownTimeRemaining * 1000);
+
+                        this.logDiagnostic(`⏰ 设置定时关闭：${this.settings.timerMinutes}分钟后自动停止`);
+                    }
+
+                    // 更新定时关闭倒计时显示
+                    updateShutdownCountdown() {
+                        if (this.shutdownTimeRemaining <= 0) {
+                            document.getElementById('timerRemainingValue').textContent = '--';
+                            return;
+                        }
+
+                        this.shutdownTimeRemaining--;
+
+                        const hours = Math.floor(this.shutdownTimeRemaining / 3600);
+                        const minutes = Math.floor((this.shutdownTimeRemaining % 3600) / 60);
+                        const seconds = this.shutdownTimeRemaining % 60;
+
+                        let timeString = '';
+                        if (hours > 0) {
+                            timeString = `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                        } else {
+                            timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                        }
+
+                        document.getElementById('timerRemainingValue').textContent = timeString;
+
+                        // 在最后1分钟时改变颜色提醒
+                        const timerElement = document.getElementById('timerRemainingValue');
+                        if (this.shutdownTimeRemaining <= 60) {
+                            timerElement.style.color = 'var(--error-color)';
+
+                            // 最后10秒倒计时提醒
+                            if (this.shutdownTimeRemaining <= 10 && this.shutdownTimeRemaining > 0) {
+                                if (this.settings.soundEnabled) {
+                                    this.playSound(1000, 100);
+                                }
+                                this.logDiagnostic(`⚠️ 倒计时：${this.shutdownTimeRemaining}秒后自动关闭`);
+                            }
+                        } else if (this.shutdownTimeRemaining <= 300) { // 最后5分钟变橙色
+                            timerElement.style.color = 'var(--warning-color)';
+                        } else {
+                            timerElement.style.color = 'var(--primary-color)';
+                        }
+                    }
+
+
+
+                    performAction() {
+                        const actions = [];
+
+                        if (this.settings.mouseMove) {
+                            actions.push('鼠标移动');
+                            this.simulateMouseMove();
+                        }
+
+                        if (this.settings.keyboardActivity) {
+                            actions.push('键盘活动');
+                            this.simulateKeyboardActivity();
+                        }
+
+                        // 请求保持屏幕唤醒
+                        this.requestWakeLock();
+
+                        this.actionCount++;
+                        this.remainingSeconds = this.settings.intervalSeconds;
+
+                        const actionText = actions.join(' + ');
+                        document.getElementById('lastActionValue').textContent = actionText;
+
+                        console.log(`执行防息屏动作 #${this.actionCount}: ${actionText}`);
+                    }
+
+                    simulateMouseMove() {
+                        // 创建一个极小的鼠标移动事件
+                        const event = new MouseEvent('mousemove', {
+                            clientX: Math.random() * 2,
+                            clientY: Math.random() * 2,
+                            bubbles: true
+                        });
+                        document.dispatchEvent(event);
+
+                        // 移动一个隐藏元素来触发重绘
+                        if (!this.hiddenElement) {
+                            this.hiddenElement = document.createElement('div');
+                            this.hiddenElement.style.position = 'absolute';
+                            this.hiddenElement.style.left = '-9999px';
+                            this.hiddenElement.style.width = '1px';
+                            this.hiddenElement.style.height = '1px';
+                            document.body.appendChild(this.hiddenElement);
+                        }
+
+                        this.hiddenElement.style.left = `${-9999 + Math.random() * 2}px`;
+                    }
+
+                    simulateKeyboardActivity() {
+                        // 模拟按下 Shift 键（不会产生可见效果）
+                        const keydownEvent = new KeyboardEvent('keydown', {
+                            key: 'Shift',
+                            code: 'ShiftLeft',
+                            shiftKey: true,
+                            bubbles: true
+                        });
+
+                        const keyupEvent = new KeyboardEvent('keyup', {
+                            key: 'Shift',
+                            code: 'ShiftLeft',
+                            shiftKey: false,
+                            bubbles: true
+                        });
+
+                        document.dispatchEvent(keydownEvent);
+                        setTimeout(() => document.dispatchEvent(keyupEvent), 50);
+                    }
+
+                    async requestWakeLock() {
+                        try {
+                            if ('wakeLock' in navigator) {
+                                // 检查页面是否可见，Wake Lock只能在可见页面中获取
+                                if (document.hidden) {
+                                    document.getElementById('wakeLockValue').textContent = '页面后台';
+                                    this.logDiagnostic('⚠️ 页面在后台，无法获取唤醒锁');
+                                    return;
+                                }
+
+                                if (this.wakeLock) {
+                                    await this.wakeLock.release();
+                                }
+
+                                this.wakeLock = await navigator.wakeLock.request('screen');
+                                document.getElementById('wakeLockValue').textContent = '已激活';
+                                this.logDiagnostic('🔒 Wake Lock 已激活');
+
+                                // 监听唤醒锁被释放的事件
+                                this.wakeLock.addEventListener('release', () => {
+                                    document.getElementById('wakeLockValue').textContent = '已释放';
+                                    this.logDiagnostic('⚠️ Wake Lock 被系统释放');
+
+                                    // 自动重新获取Wake Lock
+                                    if (this.isActive && !document.hidden) {
+                                        this.logDiagnostic('🔄 尝试自动重新获取Wake Lock');
+                                        setTimeout(() => {
+                                            this.requestWakeLock();
+                                        }, 1000); // 1秒后重试
+                                    }
+                                });
+
+                            } else {
+                                document.getElementById('wakeLockValue').textContent = '不支持';
+                                this.logDiagnostic('❌ 浏览器不支持Wake Lock API');
+                            }
+                        } catch (err) {
+                            document.getElementById('wakeLockValue').textContent = '获取失败';
+                            this.logDiagnostic(`❌ 唤醒锁获取失败: ${err.message}`);
+
+                            // 如果是因为页面不可见导致的失败，提供解决建议
+                            if (err.message.includes('not visible')) {
+                                this.logDiagnostic('💡 建议：保持页面在前台或切换到Chrome浏览器');
+                            }
+                        }
+                    }
+
+                    playSound(frequency = 800, duration = 200) {
+                        if (!this.audioContext) {
+                            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        }
+
+                        const oscillator = this.audioContext.createOscillator();
+                        const gainNode = this.audioContext.createGain();
+
+                        oscillator.connect(gainNode);
+                        gainNode.connect(this.audioContext.destination);
+
+                        oscillator.frequency.value = frequency;
+                        oscillator.type = 'sine';
+
+                        gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + duration / 1000);
+
+                        oscillator.start(this.audioContext.currentTime);
+                        oscillator.stop(this.audioContext.currentTime + duration / 1000);
+                    }
+
+                    startStatsTimer() {
+                        this.statsTimer = setInterval(() => {
+                            this.updateStats();
+                        }, 1000);
+                    }
+
+                    startCountdownTimer() {
+                        this.countdownInterval = setInterval(() => {
+                            if (this.isActive && this.remainingSeconds > 0) {
+                                this.remainingSeconds--;
+                                document.getElementById('nextActionValue').textContent = `${this.remainingSeconds}秒`;
+                            } else if (!this.isActive) {
+                                document.getElementById('nextActionValue').textContent = '--';
+                            }
+                        }, 1000);
+                    }
+
+                    updateStats() {
+                        if (!this.isActive) return;
+
+                        const runTime = Date.now() - this.startTime;
+                        const hours = Math.floor(runTime / 3600000);
+                        const minutes = Math.floor((runTime % 3600000) / 60000);
+                        const seconds = Math.floor((runTime % 60000) / 1000);
+
+                        document.getElementById('runTimeValue').textContent =
+                            `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                        document.getElementById('actionCountValue').textContent = this.actionCount;
+
+
+
+                        // 更新定时关闭倒计时
+                        this.updateShutdownCountdown();
+                    }
+
+                    updateUI() {
+                        const statusIndicator = document.getElementById('statusIndicator');
+                        const statusText = document.getElementById('statusText');
+                        const statusDescription = document.getElementById('statusDescription');
+                        const startBtn = document.getElementById('startBtn');
+                        const stopBtn = document.getElementById('stopBtn');
+
+                        if (this.isActive) {
+                            statusIndicator.className = 'status-indicator active';
+                            statusIndicator.innerHTML = '<i class="fas fa-shield-alt"></i>';
+                            statusText.className = 'status-text active';
+                            statusText.textContent = '防息屏已启动';
+                            statusDescription.textContent = '正在模拟用户活动，防止电脑休眠';
+                            startBtn.style.display = 'none';
+                            stopBtn.style.display = 'flex';
+                        } else {
+                            statusIndicator.className = 'status-indicator inactive';
+                            statusIndicator.innerHTML = '<i class="fas fa-moon"></i>';
+                            statusText.className = 'status-text inactive';
+                            statusText.textContent = '防息屏已关闭';
+                            statusDescription.textContent = '点击启动按钮开始防止电脑息屏';
+                            startBtn.style.display = 'flex';
+                            stopBtn.style.display = 'none';
+
+                            // 重置统计
+                            document.getElementById('runTimeValue').textContent = '00:00:00';
+                            document.getElementById('actionCountValue').textContent = '0';
+                            document.getElementById('lastActionValue').textContent = '未启动';
+                            document.getElementById('timerRemainingValue').textContent = '--';
+                            document.getElementById('timerRemainingValue').style.color = 'var(--primary-color)';
+
+
+                        }
+                    }
+
+                    saveSettings() {
+                        localStorage.setItem('antiIdleSettings', JSON.stringify(this.settings));
+                    }
+
+                    loadSettings() {
+                        const saved = localStorage.getItem('antiIdleSettings');
+                        if (saved) {
+                            this.settings = { ...this.settings, ...JSON.parse(saved) };
+                        }
+
+                        // 应用设置到UI
+                        document.getElementById('intervalInput').value = this.settings.intervalSeconds;
+                        document.getElementById('timerInput').value = this.settings.timerMinutes;
+
+                        const toggles = {
+                            mouseToggle: this.settings.mouseMove,
+                            keyboardToggle: this.settings.keyboardActivity,
+                            soundToggle: this.settings.soundEnabled,
+                            backgroundToggle: this.settings.backgroundMode
+                        };
+
+                        Object.entries(toggles).forEach(([id, active]) => {
+                            const element = document.getElementById(id);
+                            element.classList.toggle('active', active);
+                        });
+                    }
+
+                    // 检测浏览器类型
+                    detectBrowser() {
+                        const ua = navigator.userAgent;
+                        if (ua.includes('Chrome') && !ua.includes('Edg')) return 'Chrome';
+                        if (ua.includes('Firefox')) return 'Firefox';
+                        if (ua.includes('Safari') && !ua.includes('Chrome')) return 'Safari';
+                        if (ua.includes('Edg')) return 'Edge';
+                        return '未知';
+                    }
+
+                    // 检测操作系统
+                    detectOS() {
+                        const platform = navigator.platform;
+                        const ua = navigator.userAgent;
+
+                        if (platform.includes('Mac') || ua.includes('Mac')) return 'macOS';
+                        if (platform.includes('Win') || ua.includes('Windows')) return 'Windows';
+                        if (platform.includes('Linux') || ua.includes('Linux')) return 'Linux';
+                        if (ua.includes('iPhone') || ua.includes('iPad')) return 'iOS';
+                        if (ua.includes('Android')) return 'Android';
+                        return '未知';
+                    }
+
+                    // 初始化诊断
+                    initDiagnostics() {
+                        this.updateDiagnosticDisplay();
+                        this.logDiagnostic(`系统初始化 - 浏览器: ${this.diagnostics.browser}, 系统: ${this.diagnostics.os}`);
+                        this.logDiagnostic(`Wake Lock API 支持: ${this.diagnostics.wakeLockSupported ? '✅' : '❌'}`);
+
+                        // 页面状态监听
+                        document.addEventListener('visibilitychange', () => {
+                            const status = document.hidden ? '后台' : '前台';
+                            document.getElementById('pageStatusValue').textContent = status;
+                            this.logDiagnostic(`页面状态变更: ${status}`);
+                        });
+
+                        window.addEventListener('focus', () => {
+                            document.getElementById('pageStatusValue').textContent = '前台(焦点)';
+                            this.logDiagnostic('页面获得焦点');
+                        });
+
+                        window.addEventListener('blur', () => {
+                            document.getElementById('pageStatusValue').textContent = '后台(失焦)';
+                            this.logDiagnostic('页面失去焦点');
+                        });
+                    }
+
+                    // 开始节流检测
+                    startThrottleTest() {
+                        let lastTime = Date.now();
+                        let missedCalls = 0;
+                        let totalCalls = 0;
+
+                        const testInterval = setInterval(() => {
+                            totalCalls++;
+                            const now = Date.now();
+                            const timeDiff = now - lastTime;
+
+                            if (timeDiff > 1100) { // 超过1.1秒表示被节流
+                                missedCalls++;
+                            }
+
+                            const throttleRate = ((missedCalls / totalCalls) * 100).toFixed(1);
+                            const status = missedCalls > 0 ? `${throttleRate}%节流` : '正常';
+
+                            document.getElementById('throttleStatusValue').textContent = status;
+
+                            if (timeDiff > 1500) {
+                                this.logDiagnostic(`⚠️ 检测到严重节流 - 间隔: ${timeDiff}ms`);
+                            }
+
+                            lastTime = now;
+                        }, 1000);
+
+                        // 30秒后停止测试
+                        setTimeout(() => {
+                            clearInterval(testInterval);
+                            this.logDiagnostic('节流检测完成');
+                        }, 30000);
+                    }
+
+                    // 更新诊断显示
+                    updateDiagnosticDisplay() {
+                        document.getElementById('browserValue').textContent = this.diagnostics.browser;
+                        document.getElementById('osValue').textContent = this.diagnostics.os;
+                        document.getElementById('wakeLockValue').textContent = this.diagnostics.wakeLockSupported ? '支持' : '不支持';
+                    }
+
+                    // 记录诊断日志
+                    logDiagnostic(message) {
+                        const logElement = document.getElementById('diagnosticLog');
+                        const timestamp = new Date().toLocaleTimeString();
+
+                        // 创建新的日志行元素
+                        const logLine = document.createElement('div');
+                        logLine.style.cssText = 'margin-bottom: 2px; padding: 2px 0; border-bottom: 1px solid rgba(156, 163, 175, 0.1);';
+                        logLine.innerHTML = `<span style="color: var(--text-secondary); font-size: 11px;">[${timestamp}]</span> <span style="color: var(--text-primary);">${message}</span>`;
+
+                        logElement.appendChild(logLine);
+                        logElement.scrollTop = logElement.scrollHeight;
+
+                        // 保持最近30条记录
+                        const lines = logElement.children;
+                        if (lines.length > 30) {
+                            logElement.removeChild(lines[0]);
+                        }
+                    }
+
+                    // 获取浏览器特定的性能指标
+                    getBrowserPerformanceInfo() {
+                        const info = {
+                            memory: performance.memory ? {
+                                used: Math.round(performance.memory.usedJSHeapSize / 1024 / 1024),
+                                total: Math.round(performance.memory.totalJSHeapSize / 1024 / 1024)
+                            } : null,
+                            connection: navigator.connection ? {
+                                effectiveType: navigator.connection.effectiveType,
+                                downlink: navigator.connection.downlink
+                            } : null
+                        };
+                        return info;
+                    }
+                }
+
+                // 初始化工具
+                document.addEventListener('DOMContentLoaded', () => {
+                    new AntiIdleTool();
+                });
+
+                // 应用主题（与主页面保持一致）
+                function applyTheme() {
+                    const parentTheme = window.parent?.document?.documentElement?.getAttribute('data-theme');
+                    if (parentTheme) {
+                        document.documentElement.setAttribute('data-theme', parentTheme);
+                    }
+                }
+
+                // 监听主题变化
+                const observer = new MutationObserver(() => {
+                    applyTheme();
+                });
+
+                if (window.parent?.document?.documentElement) {
+                    observer.observe(window.parent.document.documentElement, {
+                        attributes: true,
+                        attributeFilter: ['data-theme']
+                    });
+                }
+
+                applyTheme();
+            </script>
+</body>
+
+</html>

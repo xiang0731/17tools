@@ -439,7 +439,118 @@
         .nav-item:nth-child(9) {
             animation-delay: 0.8s;
         }
+
+        /* 密码保护样式 */
+        .password-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            backdrop-filter: blur(10px);
+        }
+
+        .password-modal {
+            background-color: var(--background-primary);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: var(--shadow-large);
+            width: 400px;
+            max-width: 90%;
+            text-align: center;
+        }
+
+        .password-modal h3 {
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .password-modal p {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        .password-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 16px;
+            background-color: var(--background-secondary);
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .password-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .password-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .password-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .password-btn.primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .password-btn.primary:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .password-btn.secondary {
+            background-color: var(--background-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .password-btn.secondary:hover {
+            background-color: var(--background-tertiary);
+        }
+
+        .password-error {
+            color: #ef4444;
+            font-size: 14px;
+            margin-top: 8px;
+            display: none;
+        }
+
+        /* 研发中项目样式 */
+        .dev-item {
+            opacity: 0.7;
+        }
+
+        .dev-item:hover {
+            opacity: 1;
+        }
     </style>
+
+    <!-- 认证管理模块 -->
+    <script src="js/auth.js"></script>
 </head>
 
 <body>
@@ -506,6 +617,24 @@
                     <div class="nav-item" data-file="WorldTime.html">
                         <i class="fas fa-globe"></i>
                         <span>世界时间</span>
+                    </div>
+
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">研发中</div>
+                    <div class="nav-item" data-file="Keeper.html" data-protected="true">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>敬请期待</span>
+                    </div>
+
+                    <div class="nav-item dev-item" data-file="DevTool1.html" data-protected="true">
+                        <i class="fas fa-flask"></i>
+                        <span>敬请期待</span>
+                    </div>
+                    <div class="nav-item dev-item" data-file="DevTool2.html" data-protected="true">
+                        <i class="fas fa-cog"></i>
+                        <span>敬请期待</span>
                     </div>
                 </div>
 
@@ -623,6 +752,8 @@
             }
         }
 
+        // 权限管理 - 已移至独立文件 js/auth.js
+
         // 应用管理
         class AppManager {
             constructor() {
@@ -715,6 +846,21 @@
             }
 
             navigateToPage(navItem) {
+                const isProtected = navItem.getAttribute('data-protected') === 'true';
+
+                if (isProtected) {
+                    // 如果是受保护的页面，需要密码验证
+                    passwordManager.checkAccess(() => {
+                        this.performNavigation(navItem);
+                        passwordManager.updateProtectedItemNames();
+                    });
+                } else {
+                    // 普通页面直接导航
+                    this.performNavigation(navItem);
+                }
+            }
+
+            performNavigation(navItem) {
                 // 移除所有活动状态
                 document.querySelectorAll('.nav-item').forEach(item => {
                     item.classList.remove('active');
@@ -748,10 +894,14 @@
 
         // 初始化应用
         const themeManager = new ThemeManager();
+        const passwordManager = new PasswordManager();
         const appManager = new AppManager();
 
         // 页面加载完成后的处理
         document.addEventListener('DOMContentLoaded', () => {
+            // 更新受保护项目的显示名称
+            passwordManager.updateProtectedItemNames();
+
             // 短暂延迟后触发resize事件确保布局正确
             setTimeout(() => {
                 window.dispatchEvent(new Event('resize'));
