@@ -984,6 +984,13 @@
                             cooldownPeriod: 30000, // 30秒冷却期
                             minInterval: 10000 // 最小间隔10秒
                         };
+                        this.performanceMonitor = {
+                            eventCount: 0,
+                            errorCount: 0,
+                            lastPerformanceCheck: Date.now(),
+                            maxEventsPerMinute: 10, // 每分钟最多10个事件
+                            isThrottled: false
+                        };
                         this.diagnostics = {
                             browser: this.detectBrowser(),
                             os: this.detectOS(),
@@ -1296,21 +1303,42 @@
 
 
                     performAction() {
+                        // 性能监控和保护机制
+                        if (!this.checkPerformanceHealth()) {
+                            this.logDiagnostic('⚠️ 性能保护：跳过本次操作');
+                            return;
+                        }
+
                         const actions = [];
 
-                        if (this.settings.mouseMove) {
-                            actions.push('鼠标移动');
-                            this.simulateMouseMove();
-                        }
+                        try {
+                            if (this.settings.mouseMove) {
+                                actions.push('鼠标移动');
+                                this.simulateMouseMove();
+                            }
 
-                        if (this.settings.keyboardActivity) {
-                            actions.push('键盘活动');
-                            this.simulateKeyboardActivity();
-                        }
+                            if (this.settings.keyboardActivity) {
+                                actions.push('键盘活动');
+                                this.simulateKeyboardActivity();
+                            }
 
-                        // 请求保持屏幕唤醒（仅在启用Wake Lock模式时，且需要检查频率限制）
-                        if (this.settings.wakeLockEnabled) {
-                            this.requestWakeLockThrottled();
+                            // 请求保持屏幕唤醒（仅在启用Wake Lock模式时，且需要检查频率限制）
+                            if (this.settings.wakeLockEnabled) {
+                                this.requestWakeLockThrottled();
+                            }
+
+                            this.performanceMonitor.eventCount++;
+
+                        } catch (error) {
+                            this.performanceMonitor.errorCount++;
+                            this.logDiagnostic(`❌ 操作执行错误: ${error.message}`);
+
+                            // 如果错误过多，暂停操作
+                            if (this.performanceMonitor.errorCount > 5) {
+                                this.logDiagnostic('⚠️ 错误过多，暂停模拟操作');
+                                this.settings.mouseMove = false;
+                                this.settings.keyboardActivity = false;
+                            }
                         }
 
                         this.actionCount++;
@@ -1323,45 +1351,144 @@
                     }
 
                     simulateMouseMove() {
-                        // 创建一个极小的鼠标移动事件
-                        const event = new MouseEvent('mousemove', {
-                            clientX: Math.random() * 2,
-                            clientY: Math.random() * 2,
-                            bubbles: true
-                        });
-                        document.dispatchEvent(event);
+                        // 增强鼠标模拟，提高对Zoom等应用的兼容性
+                        const strategies = [
+                            // 策略1：微小移动（原有策略）
+                            () => {
+                                const event = new MouseEvent('mousemove', {
+                                    clientX: Math.random() * 2,
+                                    clientY: Math.random() * 2,
+                                    bubbles: true,
+                                    cancelable: true,
+                                    view: window
+                                });
+                                document.dispatchEvent(event);
+                            },
 
-                        // 移动一个隐藏元素来触发重绘
+                            // 策略2：在屏幕边缘进行微小移动
+                            () => {
+                                const edge = Math.random() < 0.5 ? 0 : window.innerWidth - 1;
+                                const event = new MouseEvent('mousemove', {
+                                    clientX: edge + (Math.random() - 0.5) * 2,
+                                    clientY: Math.random() * window.innerHeight,
+                                    bubbles: true,
+                                    cancelable: true,
+                                    view: window
+                                });
+                                document.dispatchEvent(event);
+                            },
+
+                            // 策略3：模拟鼠标悬停
+                            () => {
+                                const centerX = window.innerWidth / 2;
+                                const centerY = window.innerHeight / 2;
+                                const event = new MouseEvent('mousemove', {
+                                    clientX: centerX + (Math.random() - 0.5) * 4,
+                                    clientY: centerY + (Math.random() - 0.5) * 4,
+                                    bubbles: true,
+                                    cancelable: true,
+                                    view: window
+                                });
+                                document.dispatchEvent(event);
+                            }
+                        ];
+
+                        // 随机选择一个策略
+                        const strategy = strategies[Math.floor(Math.random() * strategies.length)];
+                        strategy();
+
+                        // 额外触发mouseover事件，某些应用可能更关注这个事件
+                        const mouseoverEvent = new MouseEvent('mouseover', {
+                            clientX: Math.random() * 10,
+                            clientY: Math.random() * 10,
+                            bubbles: true,
+                            cancelable: true,
+                            view: window
+                        });
+                        document.dispatchEvent(mouseoverEvent);
+
+                        // 移动隐藏元素来触发重绘（保持原有功能）
                         if (!this.hiddenElement) {
                             this.hiddenElement = document.createElement('div');
                             this.hiddenElement.style.position = 'absolute';
                             this.hiddenElement.style.left = '-9999px';
                             this.hiddenElement.style.width = '1px';
                             this.hiddenElement.style.height = '1px';
+                            this.hiddenElement.style.pointerEvents = 'none';
                             document.body.appendChild(this.hiddenElement);
                         }
 
                         this.hiddenElement.style.left = `${-9999 + Math.random() * 2}px`;
+                        this.hiddenElement.style.top = `${-9999 + Math.random() * 2}px`;
+
+                        this.logDiagnostic('🖱️ 鼠标模拟活动完成');
                     }
 
                     simulateKeyboardActivity() {
-                        // 模拟按下 Shift 键（不会产生可见效果）
+                        // 使用多种键盘模拟策略，提高对Zoom等应用的兼容性
+                        const strategies = [
+                            // 策略1：F15键（功能键，通常不会触发任何功能）
+                            {
+                                key: 'F15',
+                                code: 'F15',
+                                keyCode: 126,
+                                which: 126
+                            },
+                            // 策略2：ScrollLock键（很少使用，相对安全）
+                            {
+                                key: 'ScrollLock',
+                                code: 'ScrollLock',
+                                keyCode: 145,
+                                which: 145
+                            },
+                            // 策略3：NumLock键（在某些情况下更有效）
+                            {
+                                key: 'NumLock',
+                                code: 'NumLock',
+                                keyCode: 144,
+                                which: 144
+                            },
+                            // 策略4：Ctrl键（保持原有功能）
+                            {
+                                key: 'Control',
+                                code: 'ControlLeft',
+                                ctrlKey: true,
+                                keyCode: 17,
+                                which: 17
+                            }
+                        ];
+
+                        // 随机选择一个策略，增加真实性
+                        const strategy = strategies[Math.floor(Math.random() * strategies.length)];
+
                         const keydownEvent = new KeyboardEvent('keydown', {
-                            key: 'Shift',
-                            code: 'ShiftLeft',
-                            shiftKey: true,
-                            bubbles: true
+                            ...strategy,
+                            bubbles: true,
+                            cancelable: true,
+                            view: window
                         });
 
                         const keyupEvent = new KeyboardEvent('keyup', {
-                            key: 'Shift',
-                            code: 'ShiftLeft',
-                            shiftKey: false,
-                            bubbles: true
+                            ...strategy,
+                            bubbles: true,
+                            cancelable: true,
+                            view: window,
+                            // 对于Ctrl键，keyup时需要设置为false
+                            ctrlKey: strategy.ctrlKey ? false : strategy.ctrlKey
                         });
 
+                        // 先触发keydown事件
                         document.dispatchEvent(keydownEvent);
-                        setTimeout(() => document.dispatchEvent(keyupEvent), 50);
+
+                        // 50ms后触发keyup事件
+                        setTimeout(() => {
+                            document.dispatchEvent(keyupEvent);
+                            this.logDiagnostic(`⌨️ 模拟${strategy.key}键完成`);
+                        }, 50);
+
+                        // 额外在document.body上也触发事件，提高检测率
+                        document.body.dispatchEvent(keydownEvent.constructor === KeyboardEvent ?
+                            new KeyboardEvent('keydown', { ...strategy, bubbles: true }) : keydownEvent);
                     }
 
                     // 节流版本的Wake Lock请求
@@ -1711,6 +1838,37 @@
                             } : null
                         };
                         return info;
+                    }
+
+                    // 性能健康检查
+                    checkPerformanceHealth() {
+                        const now = Date.now();
+                        const timeSinceLastCheck = now - this.performanceMonitor.lastPerformanceCheck;
+
+                        // 每分钟重置计数器
+                        if (timeSinceLastCheck > 60000) {
+                            this.performanceMonitor.eventCount = 0;
+                            this.performanceMonitor.errorCount = 0;
+                            this.performanceMonitor.lastPerformanceCheck = now;
+                            this.performanceMonitor.isThrottled = false;
+                        }
+
+                        // 检查事件频率是否过高
+                        if (this.performanceMonitor.eventCount >= this.performanceMonitor.maxEventsPerMinute) {
+                            if (!this.performanceMonitor.isThrottled) {
+                                this.performanceMonitor.isThrottled = true;
+                                this.logDiagnostic('⚠️ 检测到高频操作，启动性能保护');
+                            }
+                            return false;
+                        }
+
+                        // 检查错误率是否过高
+                        if (this.performanceMonitor.errorCount > 3) {
+                            this.logDiagnostic('⚠️ 错误率过高，暂停操作');
+                            return false;
+                        }
+
+                        return true;
                     }
                 }
 
