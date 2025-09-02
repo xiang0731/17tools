@@ -907,6 +907,22 @@
 
                         <div class="setting-item">
                             <div class="setting-label">
+                                <i class="fas fa-layer-group"></i>
+                                后台增强模式
+                            </div>
+                            <div class="toggle-switch active" id="backgroundToggle"></div>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <i class="fas fa-lock"></i>
+                                Wake Lock模式
+                            </div>
+                            <div class="toggle-switch active" id="wakeLockToggle"></div>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-label">
                                 <i class="fas fa-clock"></i>
                                 活动间隔
                             </div>
@@ -926,19 +942,11 @@
 
                         <div class="setting-item">
                             <div class="setting-label">
-                                <i class="fas fa-layer-group"></i>
-                                后台增强模式
-                            </div>
-                            <div class="toggle-switch active" id="backgroundToggle"></div>
-                        </div>
-
-                        <div class="setting-item">
-                            <div class="setting-label">
                                 <i class="fas fa-clock"></i>
                                 定时关闭
                             </div>
                             <div class="input-group">
-                                <input type="number" id="timerInput" value="0" min="0" max="480" placeholder="0=不限制">
+                                <input type="number" id="timerInput" value="0" min="0" max="99999" placeholder="0=不限制">
                                 <span>分钟</span>
                             </div>
                         </div>
@@ -959,6 +967,7 @@
                             intervalSeconds: 30,
                             soundEnabled: false,
                             backgroundMode: true, // 新增：后台模式开关
+                            wakeLockEnabled: true, // 新增：Wake Lock模式开关
                             timerMinutes: 0 // 新增：定时关闭分钟数，0表示不限制
                         };
                         this.countdownInterval = null;
@@ -967,6 +976,14 @@
                         this.backgroundInterval = null;
                         this.shutdownTimer = null; // 定时关闭定时器
                         this.shutdownTimeRemaining = 0; // 剩余关闭时间（秒）
+                        this.wakeLockState = {
+                            isActive: false,
+                            lastRequestTime: 0,
+                            failureCount: 0,
+                            maxFailures: 3,
+                            cooldownPeriod: 30000, // 30秒冷却期
+                            minInterval: 10000 // 最小间隔10秒
+                        };
                         this.diagnostics = {
                             browser: this.detectBrowser(),
                             os: this.detectOS(),
@@ -1007,6 +1024,10 @@
                             this.toggleSetting('backgroundMode', e.target);
                         });
 
+                        document.getElementById('wakeLockToggle').addEventListener('click', (e) => {
+                            this.toggleSetting('wakeLockEnabled', e.target);
+                        });
+
                         document.getElementById('intervalInput').addEventListener('change', (e) => {
                             this.settings.intervalSeconds = parseInt(e.target.value);
                             this.saveSettings();
@@ -1031,8 +1052,8 @@
                             } else {
                                 // 页面重新获得焦点，切换回前台模式并立即获取Wake Lock
                                 this.switchToForegroundMode();
-                                if (this.isActive) {
-                                    setTimeout(() => this.requestWakeLock(), 100); // 延迟100ms确保页面完全可见
+                                if (this.isActive && this.settings.wakeLockEnabled) {
+                                    setTimeout(() => this.requestWakeLockThrottled(), 100); // 延迟100ms确保页面完全可见
                                 }
                             }
                         });
@@ -1131,6 +1152,7 @@
                             this.wakeLock.release();
                             this.wakeLock = null;
                         }
+                        this.wakeLockState.isActive = false;
 
                         this.updateUI();
 
@@ -1163,8 +1185,8 @@
 
                         // 后台模式：每5秒执行一次基本操作
                         this.backgroundInterval = setInterval(() => {
-                            if (!document.hidden) {
-                                this.requestWakeLock();
+                            if (!document.hidden && this.settings.wakeLockEnabled) {
+                                this.requestWakeLockThrottled();
                             }
                             this.performAction(); // 复用现有的动作执行函数
                         }, 5000);
@@ -1286,8 +1308,10 @@
                             this.simulateKeyboardActivity();
                         }
 
-                        // 请求保持屏幕唤醒
-                        this.requestWakeLock();
+                        // 请求保持屏幕唤醒（仅在启用Wake Lock模式时，且需要检查频率限制）
+                        if (this.settings.wakeLockEnabled) {
+                            this.requestWakeLockThrottled();
+                        }
 
                         this.actionCount++;
                         this.remainingSeconds = this.settings.intervalSeconds;
@@ -1340,49 +1364,109 @@
                         setTimeout(() => document.dispatchEvent(keyupEvent), 50);
                     }
 
+                    // 节流版本的Wake Lock请求
+                    requestWakeLockThrottled() {
+                        const now = Date.now();
+
+                        // 检查是否在冷却期内
+                        if (this.wakeLockState.failureCount >= this.wakeLockState.maxFailures) {
+                            const timeSinceLastFailure = now - this.wakeLockState.lastRequestTime;
+                            if (timeSinceLastFailure < this.wakeLockState.cooldownPeriod) {
+                                const remainingCooldown = Math.ceil((this.wakeLockState.cooldownPeriod - timeSinceLastFailure) / 1000);
+                                document.getElementById('wakeLockValue').textContent = `冷却中(${remainingCooldown}s)`;
+                                return;
+                            } else {
+                                // 冷却期结束，重置失败计数
+                                this.wakeLockState.failureCount = 0;
+                                this.logDiagnostic('🔄 Wake Lock 冷却期结束，重置失败计数');
+                            }
+                        }
+
+                        // 检查最小间隔
+                        const timeSinceLastRequest = now - this.wakeLockState.lastRequestTime;
+                        if (timeSinceLastRequest < this.wakeLockState.minInterval) {
+                            // 太频繁，跳过这次请求
+                            return;
+                        }
+
+                        // 如果已经有活跃的Wake Lock，且不需要重新获取，则跳过
+                        if (this.wakeLockState.isActive && this.wakeLock) {
+                            return;
+                        }
+
+                        this.wakeLockState.lastRequestTime = now;
+                        this.requestWakeLock();
+                    }
+
                     async requestWakeLock() {
                         try {
+                            if (!this.settings.wakeLockEnabled) {
+                                document.getElementById('wakeLockValue').textContent = '已禁用';
+                                this.wakeLockState.isActive = false;
+                                return;
+                            }
+
                             if ('wakeLock' in navigator) {
                                 // 检查页面是否可见，Wake Lock只能在可见页面中获取
                                 if (document.hidden) {
                                     document.getElementById('wakeLockValue').textContent = '页面后台';
                                     this.logDiagnostic('⚠️ 页面在后台，无法获取唤醒锁');
+                                    this.wakeLockState.isActive = false;
                                     return;
                                 }
 
-                                if (this.wakeLock) {
+                                // 只有在没有活跃Wake Lock时才释放旧的
+                                if (this.wakeLock && !this.wakeLockState.isActive) {
                                     await this.wakeLock.release();
+                                    this.wakeLock = null;
+                                }
+
+                                // 如果已经有活跃的Wake Lock，不需要重新获取
+                                if (this.wakeLockState.isActive && this.wakeLock) {
+                                    return;
                                 }
 
                                 this.wakeLock = await navigator.wakeLock.request('screen');
+                                this.wakeLockState.isActive = true;
+                                this.wakeLockState.failureCount = 0; // 成功后重置失败计数
                                 document.getElementById('wakeLockValue').textContent = '已激活';
                                 this.logDiagnostic('🔒 Wake Lock 已激活');
 
                                 // 监听唤醒锁被释放的事件
                                 this.wakeLock.addEventListener('release', () => {
+                                    this.wakeLockState.isActive = false;
                                     document.getElementById('wakeLockValue').textContent = '已释放';
                                     this.logDiagnostic('⚠️ Wake Lock 被系统释放');
 
-                                    // 自动重新获取Wake Lock
-                                    if (this.isActive && !document.hidden) {
-                                        this.logDiagnostic('🔄 尝试自动重新获取Wake Lock');
+                                    // 延迟重新获取Wake Lock，避免立即重试
+                                    if (this.isActive && !document.hidden && this.settings.wakeLockEnabled) {
+                                        this.logDiagnostic('🔄 计划重新获取Wake Lock');
                                         setTimeout(() => {
-                                            this.requestWakeLock();
-                                        }, 1000); // 1秒后重试
+                                            this.requestWakeLockThrottled();
+                                        }, 5000); // 5秒后重试，而不是1秒
                                     }
                                 });
 
                             } else {
                                 document.getElementById('wakeLockValue').textContent = '不支持';
                                 this.logDiagnostic('❌ 浏览器不支持Wake Lock API');
+                                this.wakeLockState.isActive = false;
                             }
                         } catch (err) {
+                            this.wakeLockState.isActive = false;
+                            this.wakeLockState.failureCount++;
+
                             document.getElementById('wakeLockValue').textContent = '获取失败';
-                            this.logDiagnostic(`❌ 唤醒锁获取失败: ${err.message}`);
+                            this.logDiagnostic(`❌ 唤醒锁获取失败 (${this.wakeLockState.failureCount}/${this.wakeLockState.maxFailures}): ${err.message}`);
 
                             // 如果是因为页面不可见导致的失败，提供解决建议
                             if (err.message.includes('not visible')) {
                                 this.logDiagnostic('💡 建议：保持页面在前台或切换到Chrome浏览器');
+                            }
+
+                            // 连续失败达到阈值时，进入冷却期
+                            if (this.wakeLockState.failureCount >= this.wakeLockState.maxFailures) {
+                                this.logDiagnostic(`⚠️ Wake Lock 连续失败${this.wakeLockState.maxFailures}次，进入${this.wakeLockState.cooldownPeriod / 1000}秒冷却期`);
                             }
                         }
                     }
@@ -1496,7 +1580,8 @@
                             mouseToggle: this.settings.mouseMove,
                             keyboardToggle: this.settings.keyboardActivity,
                             soundToggle: this.settings.soundEnabled,
-                            backgroundToggle: this.settings.backgroundMode
+                            backgroundToggle: this.settings.backgroundMode,
+                            wakeLockToggle: this.settings.wakeLockEnabled
                         };
 
                         Object.entries(toggles).forEach(([id, active]) => {
