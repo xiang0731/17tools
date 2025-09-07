@@ -137,13 +137,12 @@ class PasswordManager {
                     span.textContent = '实验性工具';
                 } else if (fileName === 'Keeper.html') {
                     span.textContent = '防息屏工具';
+                } else if (fileName === 'WifiQRCode.html') {
+                    span.textContent = 'WiFi二维码';
                 }
             } else {
                 // 如果未认证，显示"敬请期待"
-                const fileName = item.getAttribute('data-file');
-                if (fileName !== 'Keeper.html') {
-                    span.textContent = '敬请期待';
-                }
+                span.textContent = '敬请期待';
             }
         });
     }

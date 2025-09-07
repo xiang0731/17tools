@@ -618,16 +618,18 @@
                         <i class="fas fa-globe"></i>
                         <span>世界时间</span>
                     </div>
-
                 </div>
 
                 <div class="nav-section">
                     <div class="nav-section-title">研发中</div>
+                    <div class="nav-item" data-file="WifiQRCode.html" data-protected="true">
+                        <i class="fas fa-wifi"></i>
+                        <span>敬请期待</span>
+                    </div>
                     <div class="nav-item" data-file="Keeper.html" data-protected="true">
                         <i class="fas fa-shield-alt"></i>
                         <span>敬请期待</span>
                     </div>
-
                     <div class="nav-item dev-item" data-file="DevTool1.html" data-protected="true">
                         <i class="fas fa-flask"></i>
                         <span>敬请期待</span>
@@ -731,6 +733,22 @@
                 this.applyTheme(this.currentTheme);
                 this.updateThemeButton();
                 localStorage.setItem('theme', this.currentTheme);
+
+                // 同步主题到iframe
+                this.syncThemeToIframe();
+            }
+
+            syncThemeToIframe() {
+                try {
+                    const iframe = document.getElementById('content-frame');
+                    if (iframe && iframe.contentDocument) {
+                        const frameDoc = iframe.contentDocument || iframe.contentWindow.document;
+                        frameDoc.documentElement.setAttribute('data-theme', this.currentTheme);
+                        console.log('主题已同步到iframe:', this.currentTheme);
+                    }
+                } catch (e) {
+                    console.log('无法同步主题到iframe，可能是跨域限制');
+                }
             }
 
             applyTheme(theme) {
@@ -913,6 +931,12 @@
             try {
                 const frameDoc = this.contentDocument || this.contentWindow.document;
                 frameDoc.documentElement.setAttribute('data-theme', themeManager.currentTheme);
+                console.log('iframe加载完成，应用主题:', themeManager.currentTheme);
+
+                // 延迟一下确保主题注入器完全加载
+                setTimeout(() => {
+                    frameDoc.documentElement.setAttribute('data-theme', themeManager.currentTheme);
+                }, 100);
             } catch (e) {
                 console.log('无法访问iframe内容，可能是跨域限制');
             }
