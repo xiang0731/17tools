@@ -14,6 +14,9 @@
             padding: 0;
             min-height: 100vh;
             width: 100%;
+            background-color: var(--background-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         /* 主容器样式 */
@@ -28,6 +31,26 @@
             overflow-y: auto;
             background-color: var(--background-primary);
             color: var(--text-primary);
+        }
+
+        /* 左右分栏容器 */
+        .main-layout {
+            display: flex;
+            gap: var(--spacing-xl);
+            flex: 1;
+            align-items: flex-start;
+        }
+
+        /* 左侧预览区域 */
+        .left-panel {
+            flex: 1;
+            min-width: 400px;
+        }
+
+        /* 右侧输入区域 */
+        .right-panel {
+            flex: 1;
+            min-width: 400px;
         }
 
         /* 标题样式 */
@@ -139,7 +162,7 @@
 
         .btn-primary {
             background-color: var(--primary-color);
-            color: white;
+            color: var(--text-on-primary, #ffffff);
         }
 
         .btn-primary:hover {
@@ -150,7 +173,7 @@
 
         .btn-success {
             background-color: var(--success-color);
-            color: white;
+            color: var(--text-on-success, #ffffff);
         }
 
         .btn-success:hover {
@@ -299,6 +322,19 @@
         }
 
         /* 响应式设计 */
+        @media (max-width: 1024px) {
+            .main-layout {
+                flex-direction: column;
+                gap: var(--spacing-lg);
+            }
+
+            .left-panel,
+            .right-panel {
+                min-width: auto;
+                width: 100%;
+            }
+        }
+
         @media (max-width: 768px) {
             .wifi-generator {
                 padding: var(--spacing-md);
@@ -322,6 +358,11 @@
                 align-items: flex-start;
                 gap: var(--spacing-xs);
             }
+
+            .left-panel,
+            .right-panel {
+                min-width: auto;
+            }
         }
 
         /* 隐藏元素 */
@@ -332,7 +373,7 @@
         /* 成功提示样式 */
         .success-message {
             background: var(--success-color);
-            color: white;
+            color: var(--text-on-success, #ffffff);
             padding: var(--spacing-sm) var(--spacing-md);
             border-radius: var(--radius-md);
             font-size: 14px;
@@ -1710,90 +1751,91 @@
             WiFi二维码生成器
         </h1>
 
-        <!-- 输入表单 -->
-        <div class="input-section">
-            <h2>
-                <i class="fas fa-edit"></i>
-                WiFi信息设置
-            </h2>
-            <form id="wifi-form">
-                <div class="form-group">
-                    <label class="form-label" for="ssid">WiFi名称 (SSID)</label>
-                    <input type="text" id="ssid" class="form-input" placeholder="请输入WiFi名称，例如：家里的WiFi" value="我的WiFi"
-                        maxlength="32" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="password">WiFi密码</label>
-                    <input type="text" id="password" class="form-input" placeholder="请输入WiFi密码" value="12345678"
-                        maxlength="63" required>
-                </div>
-                <div class="button-group">
-                    <button type="button" class="btn btn-primary" onclick="generateQRCode()">
-                        <i class="fas fa-qrcode"></i>
-                        生成二维码
-                    </button>
-                    <button type="button" class="btn btn-success" onclick="downloadQRCode()" id="download-btn" disabled>
-                        <i class="fas fa-download"></i>
-                        下载二维码
-                    </button>
-                    <button type="button" class="btn" onclick="testQRCode()"
-                        style="background-color: var(--warning-color); color: white;">
-                        <i class="fas fa-bug"></i>
-                        测试QR库
-                    </button>
-                </div>
-            </form>
-        </div>
+        <!-- 左右分栏布局 -->
+        <div class="main-layout">
+            <!-- 左侧：二维码预览和信息显示 -->
+            <div class="left-panel">
+                <!-- 预览区域 -->
+                <div class="preview-section">
+                    <h2>
+                        <i class="fas fa-eye"></i>
+                        二维码预览
+                    </h2>
+                    <div class="qr-container" id="qr-display">
+                        <div class="qr-placeholder">
+                            <i class="fas fa-qrcode"></i>
+                            <div>请填写WiFi信息以生成二维码</div>
+                        </div>
+                    </div>
 
-        <!-- 预览区域 -->
-        <div class="preview-section">
-            <h2>
-                <i class="fas fa-eye"></i>
-                二维码预览
-            </h2>
-            <div class="qr-container" id="qr-display">
-                <div class="qr-placeholder">
-                    <i class="fas fa-qrcode"></i>
-                    <div>请先填写WiFi信息并点击"生成二维码"</div>
+                    <!-- WiFi信息显示 -->
+                    <div class="wifi-info" id="wifi-info" style="display: none;">
+                        <div class="wifi-info-item">
+                            <span class="wifi-info-label">WiFi名称:</span>
+                            <span class="wifi-info-value" id="display-ssid">-</span>
+                        </div>
+                        <div class="wifi-info-item">
+                            <span class="wifi-info-label">WiFi密码:</span>
+                            <span class="wifi-info-value" id="display-password">-</span>
+                        </div>
+                        <div class="wifi-info-item">
+                            <span class="wifi-info-label">加密类型:</span>
+                            <span class="wifi-info-value">WPA/WPA2</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- WiFi信息显示 -->
-            <div class="wifi-info" id="wifi-info" style="display: none;">
-                <div class="wifi-info-item">
-                    <span class="wifi-info-label">WiFi名称:</span>
-                    <span class="wifi-info-value" id="display-ssid">-</span>
+            <!-- 右侧：输入表单 -->
+            <div class="right-panel">
+                <!-- 输入表单 -->
+                <div class="input-section">
+                    <h2>
+                        <i class="fas fa-edit"></i>
+                        WiFi信息设置
+                    </h2>
+                    <form id="wifi-form">
+                        <div class="form-group">
+                            <label class="form-label" for="ssid">WiFi名称 (SSID)</label>
+                            <input type="text" id="ssid" class="form-input" placeholder="请输入WiFi名称，例如：家里的WiFi"
+                                maxlength="32" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="password">WiFi密码</label>
+                            <input type="text" id="password" class="form-input" placeholder="请输入WiFi密码" maxlength="63"
+                                required>
+                        </div>
+                        <div class="button-group">
+                            <button type="button" class="btn btn-success" onclick="downloadQRCode()" id="download-btn"
+                                disabled>
+                                <i class="fas fa-download"></i>
+                                下载二维码
+                            </button>
+                        </div>
+                    </form>
                 </div>
-                <div class="wifi-info-item">
-                    <span class="wifi-info-label">WiFi密码:</span>
-                    <span class="wifi-info-value" id="display-password">-</span>
-                </div>
-                <div class="wifi-info-item">
-                    <span class="wifi-info-label">加密类型:</span>
-                    <span class="wifi-info-value">WPA/WPA2</span>
+
+                <!-- 使用说明 -->
+                <div class="help-section">
+                    <h2>
+                        <i class="fas fa-question-circle"></i>
+                        使用说明
+                    </h2>
+                    <p><strong>如何使用生成的二维码：</strong></p>
+                    <ul>
+                        <li><strong>iOS设备：</strong>打开相机应用，对准二维码即可自动识别并连接WiFi</li>
+                        <li><strong>Android设备：</strong>打开相机或扫码应用，扫描二维码后点击连接</li>
+                        <li><strong>其他设备：</strong>手动输入显示的WiFi名称和密码进行连接</li>
+                    </ul>
+                    <p><strong>注意事项：</strong></p>
+                    <ul>
+                        <li>生成的二维码包含WiFi连接信息，请妥善保管</li>
+                        <li>建议定期更换WiFi密码以确保网络安全</li>
+                        <li>二维码支持WPA/WPA2加密的WiFi网络</li>
+                        <li>部分老旧设备可能不支持二维码连接WiFi功能</li>
+                    </ul>
                 </div>
             </div>
-        </div>
-
-        <!-- 使用说明 -->
-        <div class="help-section">
-            <h2>
-                <i class="fas fa-question-circle"></i>
-                使用说明
-            </h2>
-            <p><strong>如何使用生成的二维码：</strong></p>
-            <ul>
-                <li><strong>iOS设备：</strong>打开相机应用，对准二维码即可自动识别并连接WiFi</li>
-                <li><strong>Android设备：</strong>打开相机或扫码应用，扫描二维码后点击连接</li>
-                <li><strong>其他设备：</strong>手动输入显示的WiFi名称和密码进行连接</li>
-            </ul>
-            <p><strong>注意事项：</strong></p>
-            <ul>
-                <li>生成的二维码包含WiFi连接信息，请妥善保管</li>
-                <li>建议定期更换WiFi密码以确保网络安全</li>
-                <li>二维码支持WPA/WPA2加密的WiFi网络</li>
-                <li>部分老旧设备可能不支持二维码连接WiFi功能</li>
-            </ul>
         </div>
 
         <!-- 隐藏的临时容器 -->
@@ -1812,13 +1854,13 @@
             }
 
             init() {
-                // 绑定输入事件
+                // 绑定输入事件 - 实时生成二维码
                 document.getElementById('ssid').addEventListener('input', () => {
-                    this.clearQRCode();
+                    this.generateQRCode();
                 });
 
                 document.getElementById('password').addEventListener('input', () => {
-                    this.clearQRCode();
+                    this.generateQRCode();
                 });
 
                 // 绑定回车键生成二维码
@@ -1834,6 +1876,11 @@
                         this.generateQRCode();
                     }
                 });
+
+                // 页面加载后显示空状态
+                setTimeout(() => {
+                    this.showEmptyState();
+                }, 100);
             }
 
             // 转义WiFi字符串中的特殊字符
@@ -1863,29 +1910,33 @@
                 const ssid = document.getElementById('ssid').value.trim();
                 const password = document.getElementById('password').value.trim();
 
-                if (!ssid) {
-                    this.showMessage('请输入WiFi名称', 'error');
-                    document.getElementById('ssid').focus();
+                // 如果SSID和密码都为空，显示空状态
+                if (!ssid && !password) {
+                    this.showEmptyState();
                     return;
                 }
 
-                if (!password) {
-                    this.showMessage('请输入WiFi密码', 'error');
-                    document.getElementById('password').focus();
+                // 如果只有一个为空，不生成二维码
+                if (!ssid || !password) {
+                    this.showEmptyState();
                     return;
                 }
+
+                // 使用实际输入的值
+                const finalSSID = ssid;
+                const finalPassword = password;
 
                 try {
                     console.log('开始生成二维码...');
-                    console.log('SSID:', ssid);
-                    console.log('Password:', password);
+                    console.log('SSID:', finalSSID);
+                    console.log('Password:', finalPassword);
 
                     // 生成WiFi配置字符串 - 直接使用原始字符串，QR8bitByte会处理UTF-8编码
-                    const encodedSSID = this.escapeWifiString(ssid);
-                    const encodedPassword = this.escapeWifiString(password);
+                    const encodedSSID = this.escapeWifiString(finalSSID);
+                    const encodedPassword = this.escapeWifiString(finalPassword);
                     const wifiString = `WIFI:S:${encodedSSID};T:WPA;P:${encodedPassword};`;
 
-                    console.log('原始SSID:', ssid);
+                    console.log('原始SSID:', finalSSID);
                     console.log('转义后SSID:', encodedSSID);
                     console.log('WiFi字符串:', wifiString);
                     console.log('WiFi字符串长度:', wifiString.length);
@@ -1911,6 +1962,11 @@
                     const qrDisplay = document.getElementById('qr-display');
                     qrDisplay.innerHTML = '';
 
+                    // 获取当前主题的颜色
+                    const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+                    const backgroundColor = isDarkMode ? '#ffffff' : '#ffffff'; // 二维码背景始终为白色
+                    const foregroundColor = isDarkMode ? '#000000' : '#000000'; // 二维码前景始终为黑色
+
                     // 直接在显示区域生成，不使用临时容器
                     window.qrcode(qrDisplay, {
                         text: wifiString,
@@ -1918,8 +1974,8 @@
                         height: 300,
                         typeNumber: -1,
                         correctLevel: QRErrorCorrectLevel.L,
-                        background: "#ffffff",
-                        foreground: "#000000"
+                        background: backgroundColor,
+                        foreground: foregroundColor
                     });
 
                     // 等待DOM更新
@@ -1945,14 +2001,14 @@
                             console.log('Canvas显示:', window.getComputedStyle(this.qrCanvas).display);
 
                             // 更新WiFi信息显示
-                            document.getElementById('display-ssid').textContent = ssid;
-                            document.getElementById('display-password').textContent = password;
+                            document.getElementById('display-ssid').textContent = finalSSID;
+                            document.getElementById('display-password').textContent = finalPassword;
                             document.getElementById('wifi-info').style.display = 'block';
 
                             // 启用下载按钮
                             document.getElementById('download-btn').disabled = false;
 
-                            this.showMessage('二维码生成成功！', 'success');
+                            // 不显示成功消息，因为是实时生成
                             console.log('二维码生成成功！');
 
                             // 额外检查：尝试获取canvas数据URL
@@ -2007,7 +2063,7 @@
 
                     // 创建下载链接
                     const link = document.createElement('a');
-                    const ssid = document.getElementById('ssid').value || 'WiFi';
+                    const ssid = document.getElementById('ssid').value.trim() || 'WiFi';
                     link.download = `${ssid}-二维码.png`;
                     link.href = dataURL;
 
@@ -2026,20 +2082,38 @@
                 }
             }
 
-            // 清除二维码
-            clearQRCode() {
+            // 显示空状态
+            showEmptyState() {
                 const qrDisplay = document.getElementById('qr-display');
                 qrDisplay.innerHTML = `
                     <div class="qr-placeholder">
                         <i class="fas fa-qrcode"></i>
-                        <div>请先填写WiFi信息并点击"生成二维码"</div>
+                        <div>请填写WiFi信息以生成二维码</div>
                     </div>
                 `;
                 qrDisplay.classList.remove('has-qr');
 
+                // 隐藏WiFi信息显示
                 document.getElementById('wifi-info').style.display = 'none';
+
+                // 禁用下载按钮
                 document.getElementById('download-btn').disabled = true;
+
+                // 清除canvas引用
                 this.qrCanvas = null;
+            }
+
+            // 清除二维码（已不再使用，保留以防兼容性问题）
+            clearQRCode() {
+                // 检查是否有输入，决定显示二维码还是空状态
+                const ssid = document.getElementById('ssid').value.trim();
+                const password = document.getElementById('password').value.trim();
+
+                if (ssid && password) {
+                    this.generateQRCode();
+                } else {
+                    this.showEmptyState();
+                }
             }
 
             // 显示消息
@@ -2095,59 +2169,6 @@
             }
         }
 
-        // 测试QR码库是否正常工作
-        function testQRCode() {
-            console.log('=== 测试QR码库 ===');
-            console.log('QRCode class:', typeof QRCode);
-            console.log('QRErrorCorrectLevel:', typeof QRErrorCorrectLevel);
-            console.log('window.qrcode function:', typeof window.qrcode);
-
-            if (typeof QRCode === 'undefined') {
-                alert('错误：QRCode类未定义');
-                return;
-            }
-
-            if (typeof QRErrorCorrectLevel === 'undefined') {
-                alert('错误：QRErrorCorrectLevel未定义');
-                return;
-            }
-
-            if (typeof window.qrcode !== 'function') {
-                alert('错误：window.qrcode函数未定义');
-                return;
-            }
-
-            try {
-                // 测试生成一个简单的二维码
-                const testContainer = document.getElementById('qr-temp-container');
-                testContainer.innerHTML = '';
-
-                window.qrcode(testContainer, {
-                    text: 'WIFI:S:测试WiFi;T:WPA;P:12345678;',
-                    width: 200,
-                    height: 200,
-                    typeNumber: -1,
-                    correctLevel: QRErrorCorrectLevel.L,
-                    background: "#ffffff",
-                    foreground: "#000000"
-                });
-
-                setTimeout(() => {
-                    const canvas = testContainer.querySelector('canvas');
-                    if (canvas) {
-                        alert('测试成功！QR码库工作正常。');
-                        console.log('测试成功，生成的canvas:', canvas);
-                    } else {
-                        alert('测试失败：未生成canvas元素');
-                        console.error('测试失败：未找到canvas');
-                    }
-                }, 100);
-
-            } catch (error) {
-                alert('测试失败：' + error.message);
-                console.error('测试失败:', error);
-            }
-        }
 
         // 页面加载完成后初始化
         document.addEventListener('DOMContentLoaded', () => {
