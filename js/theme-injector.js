@@ -121,6 +121,29 @@
                 box-sizing: border-box !important;
             }
 
+            /* About.html 特殊样式修复 */
+            body:has(.rectangle),
+            body .container:has(.rectangle) {
+                margin: 0 !important;
+                padding: 0 !important;
+                height: 100vh !important;
+                display: flex !important;
+                justify-content: center !important;
+                align-items: center !important;
+                max-width: none !important;
+                width: 100% !important;
+                overflow: hidden !important;
+            }
+
+            .rectangle {
+                border: none !important;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1) !important;
+            }
+
+            [data-theme="dark"] .rectangle {
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+            }
+
             /* 超强制白色背景覆盖 */
             *[style*="background-color: white"],
             *[style*="background: white"],
@@ -158,10 +181,13 @@
             *[style*="background: #f9f9f9"],
             *[style*="background-color: #f8fafc"],
             *[style*="background: #f8fafc"],
+            *[style*="background-color: #f0f0f0"],
+            *[style*="background: #f0f0f0"],
             .function-button,
             .input-group,
             .dual-input,
-            .line-numbers {
+            .line-numbers,
+            .rectangle {
                 background-color: var(--background-tertiary) !important;
                 background: var(--background-tertiary) !important;
             }
@@ -178,11 +204,17 @@
             *[style*="color:#1d1d1f"],
             *[style*="color: #2d3748"],
             *[style*="color:#2d3748"],
+            *[style*="color: #666"],
+            *[style*="color:#666"],
+            *[style*="color: #888"],
+            *[style*="color:#888"],
             h1, h2, h3, h4, h5, h6,
             .result-content,
             .digital-time,
             .code-header,
             .language-selector,
+            .title,
+            .subtitle,
             label,
             span,
             div,
@@ -444,7 +476,9 @@
                     style.includes('background-color: #f8f9fa') ||
                     style.includes('background: #f8f9fa') ||
                     style.includes('background-color: #f8fafc') ||
-                    style.includes('background: #f8fafc')) {
+                    style.includes('background: #f8fafc') ||
+                    style.includes('background-color: #f0f0f0') ||
+                    style.includes('background: #f0f0f0')) {
                     element.style.setProperty('background-color', 'var(--background-tertiary)', 'important');
                 }
 
@@ -454,7 +488,9 @@
                     style.includes('color: #000') ||
                     style.includes('color: #2c3e50') ||
                     style.includes('color: #1d1d1f') ||
-                    style.includes('color: #2d3748')) {
+                    style.includes('color: #2d3748') ||
+                    style.includes('color: #666') ||
+                    style.includes('color: #888')) {
                     element.style.setProperty('color', 'var(--text-primary)', 'important');
                 }
 
@@ -493,6 +529,31 @@
                 el.style.setProperty('border-color', 'var(--border-color)', 'important');
             });
         });
+
+        // 特殊处理About.html页面
+        const rectangle = document.querySelector('.rectangle');
+        if (rectangle) {
+            // 重置body和container的样式
+            document.body.style.setProperty('margin', '0', 'important');
+            document.body.style.setProperty('padding', '0', 'important');
+            document.body.style.setProperty('height', '100vh', 'important');
+            document.body.style.setProperty('display', 'flex', 'important');
+            document.body.style.setProperty('justify-content', 'center', 'important');
+            document.body.style.setProperty('align-items', 'center', 'important');
+            document.body.style.setProperty('overflow', 'hidden', 'important');
+
+            // 确保rectangle没有边框
+            rectangle.style.setProperty('border', 'none', 'important');
+
+            // 修复container如果存在的话
+            const container = document.querySelector('.container');
+            if (container) {
+                container.style.setProperty('margin', '0', 'important');
+                container.style.setProperty('padding', '0', 'important');
+                container.style.setProperty('max-width', 'none', 'important');
+                container.style.setProperty('width', '100%', 'important');
+            }
+        }
     }
 
     // 初始化主题管理器
