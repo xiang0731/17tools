@@ -3,7 +3,7 @@
  * 用于管理研发中工具的访问权限
  * 
  * @author 17Tools Team
- * @version 2.1.0
+ * @version 2.2.0
  */
 
 class PasswordManager {
