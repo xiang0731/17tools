@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>链接清理工具</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="../css/theme.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            width: 100%;
+        }
+
+        .link-cleaner {
+            width: 100%;
+            min-height: 100vh;
+            padding: var(--spacing-lg);
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            font-family: var(--font-family);
+            overflow-y: auto;
+            background-color: var(--background-primary);
+            color: var(--text-primary);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--text-primary);
+            margin: 0 0 var(--spacing-lg) 0;
+            padding: 0;
+            font-size: 28px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .input-container {
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .input-label {
+            display: block;
+            margin-bottom: var(--spacing-sm);
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .url-input {
+            width: 100%;
+            height: 120px;
+            padding: var(--spacing-md);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            font-size: 16px;
+            box-sizing: border-box;
+            resize: none;
+            font-family: var(--font-mono);
+            background-color: var(--background-primary);
+            color: var(--text-primary);
+            transition: all var(--transition-fast);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .url-input:focus {
+            outline: none;
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        .url-input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .button-group {
+            display: flex;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+            flex-wrap: wrap;
+        }
+
+        .paste-button {
+            flex: 1;
+            min-width: 120px;
+            padding: var(--spacing-md) var(--spacing-lg);
+            background: #8b5cf6;
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all var(--transition-fast);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+        }
+
+        .paste-button:hover {
+            background: #7c3aed;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .clean-button {
+            flex: 1;
+            min-width: 120px;
+            padding: var(--spacing-md) var(--spacing-lg);
+            background: var(--primary-color);
+            color: var(--text-inverse);
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all var(--transition-fast);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+        }
+
+        .clean-button:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .copy-new-button {
+            flex: 1;
+            min-width: 120px;
+            padding: var(--spacing-md) var(--spacing-lg);
+            background: var(--success-color);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all var(--transition-fast);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+        }
+
+        .copy-new-button:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .copy-new-button:disabled {
+            background: var(--background-tertiary);
+            color: var(--text-tertiary);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .clear-button {
+            flex: 1;
+            min-width: 120px;
+            padding: var(--spacing-md) var(--spacing-lg);
+            background: var(--background-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all var(--transition-fast);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+        }
+
+        .clear-button:hover {
+            background: var(--background-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .result-container {
+            flex-shrink: 0;
+            padding: var(--spacing-lg);
+            background: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            margin-bottom: var(--spacing-lg);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .result-label {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .copy-button {
+            padding: var(--spacing-sm) var(--spacing-md);
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all var(--transition-fast);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+        }
+
+        .copy-button:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .result-value {
+            font-family: var(--font-mono);
+            font-size: 14px;
+            color: var(--text-secondary);
+            word-break: break-all;
+            line-height: 1.5;
+            padding: var(--spacing-md);
+            background: var(--background-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .bottom-section {
+            display: flex;
+            gap: var(--spacing-lg);
+            flex: 1;
+        }
+
+        .stats-container {
+            flex: 1;
+            background: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            min-height: 200px;
+        }
+
+        .history-container {
+            flex: 1;
+            background: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            min-height: 200px;
+        }
+
+        .stats-header {
+            padding: var(--spacing-lg);
+            border-bottom: 1px solid var(--border-color);
+            background: var(--background-tertiary);
+        }
+
+        .stats-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .stats-content {
+            padding: var(--spacing-lg);
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-sm) 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .removed-params {
+            margin-top: var(--spacing-md);
+        }
+
+        .param-tag {
+            display: inline-block;
+            background: var(--warning-light);
+            color: var(--warning-color);
+            padding: 2px var(--spacing-sm);
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 500;
+            margin: 2px;
+            font-family: var(--font-mono);
+            position: relative;
+            cursor: help;
+        }
+
+        .param-description {
+            font-size: 10px;
+            color: var(--text-tertiary);
+            font-weight: normal;
+            margin-left: 4px;
+        }
+
+        .history-header {
+            padding: var(--spacing-lg);
+            border-bottom: 1px solid var(--border-color);
+            background: var(--background-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .history-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .history-content {
+            padding: var(--spacing-md);
+            overflow-y: auto;
+            max-height: 300px;
+        }
+
+        .history-item {
+            padding: var(--spacing-md);
+            border-bottom: 1px solid var(--border-light);
+            margin-bottom: var(--spacing-sm);
+            background: var(--background-primary);
+            border-radius: var(--radius-md);
+            transition: all var(--transition-fast);
+        }
+
+        .history-item:hover {
+            background: var(--background-hover);
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .history-time {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .history-urls {
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .history-url {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            word-break: break-all;
+            margin-bottom: var(--spacing-xs);
+            padding: var(--spacing-xs);
+            border-radius: var(--radius-sm);
+        }
+
+        .history-url.original {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--text-secondary);
+        }
+
+        .history-url.cleaned {
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--text-primary);
+        }
+
+        .history-actions {
+            display: flex;
+            gap: var(--spacing-xs);
+            justify-content: flex-end;
+        }
+
+        .history-btn {
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all var(--transition-fast);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .history-btn.restore {
+            background: var(--warning-light);
+            color: var(--warning-color);
+        }
+
+        .history-btn.copy {
+            background: var(--primary-light);
+            color: var(--primary-color);
+        }
+
+        .history-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .clear-history-btn {
+            padding: var(--spacing-xs) var(--spacing-sm);
+            background: var(--background-primary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all var(--transition-fast);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .clear-history-btn:hover {
+            background: var(--background-hover);
+            color: var(--text-primary);
+        }
+
+        .empty-state {
+            text-align: center;
+            color: var(--text-tertiary);
+            padding: var(--spacing-xl);
+            font-style: italic;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .link-cleaner {
+                padding: var(--spacing-md);
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .url-input {
+                height: 100px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .result-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--spacing-sm);
+            }
+
+            .copy-button {
+                align-self: flex-end;
+            }
+
+            .bottom-section {
+                flex-direction: column;
+            }
+        }
+
+        /* 动画效果 */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-container {
+            animation: fadeIn 0.3s ease;
+        }
+
+        /* 成功状态 */
+        .success {
+            color: var(--success-color);
+        }
+
+        .copy-success::after {
+            content: " ✓";
+            color: var(--success-color);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="link-cleaner">
+        <h1><i class="fas fa-link"></i> 链接清理工具</h1>
+
+        <div class="input-container">
+            <label class="input-label" for="urlInput">
+                <i class="fas fa-paste"></i> 输入需要清理的链接
+            </label>
+            <textarea id="urlInput" class="url-input" placeholder="粘贴包含追踪参数的链接，支持多行输入，例如:
+https://example.com/page?utm_source=google&utm_medium=cpc&utm_campaign=summer&ref=homepage
+https://shop.example.com/product/123?fbclid=abc123&gclid=def456&utm_term=keyword"></textarea>
+        </div>
+
+        <div class="button-group">
+            <button class="paste-button" onclick="pasteLinks()">
+                <i class="fas fa-paste"></i>
+                粘贴链接
+            </button>
+            <button class="clean-button" onclick="cleanLinks()">
+                <i class="fas fa-broom"></i>
+                清理链接
+            </button>
+            <button class="copy-new-button" onclick="copyNewLinks()" id="copyNewBtn" disabled>
+                <i class="fas fa-copy"></i>
+                复制新链接
+            </button>
+            <button class="clear-button" onclick="clearAll()">
+                <i class="fas fa-eraser"></i>
+                清空
+            </button>
+        </div>
+
+        <div class="result-container" id="resultContainer" style="display: none;">
+            <div class="result-header">
+                <div class="result-label">
+                    <i class="fas fa-check-circle"></i>
+                    清理后的链接
+                </div>
+            </div>
+            <div class="result-value" id="resultValue"></div>
+        </div>
+
+        <div class="bottom-section">
+            <div class="stats-container">
+                <div class="stats-header">
+                    <h3 class="stats-title">
+                        <i class="fas fa-chart-bar"></i>
+                        清理统计
+                    </h3>
+                </div>
+                <div class="stats-content" id="statsContent">
+                    <div class="empty-state">
+                        <i class="fas fa-info-circle"></i><br>
+                        输入链接后查看清理统计
+                    </div>
+                </div>
+            </div>
+
+            <div class="history-container">
+                <div class="history-header">
+                    <h3 class="history-title">
+                        <i class="fas fa-history"></i>
+                        清理历史
+                    </h3>
+                    <button class="clear-history-btn" onclick="clearCleaningHistory()" id="clearHistoryBtn"
+                        style="display: none;">
+                        <i class="fas fa-trash"></i>
+                        清空
+                    </button>
+                </div>
+                <div class="history-content" id="historyContent">
+                    <div class="empty-state">
+                        <i class="fas fa-clock"></i><br>
+                        暂无清理历史
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/theme.js"></script>
+    <script>
+        // 常见的追踪参数列表
+        const trackingParams = [
+            // Google Analytics & Ads
+            'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+            'gclid', 'gclsrc', 'dclid', 'gbraid', 'wbraid',
+
+            // Facebook
+            'fbclid', 'fb_action_ids', 'fb_action_types', 'fb_source', 'fb_ref',
+
+            // Twitter
+            'twclid', 'ref_src', 'ref_url',
+
+            // LinkedIn
+            'li_fat_id', 'trk', 'trkCampaign',
+
+            // TikTok
+            'ttclid',
+
+            // Microsoft/Bing
+            'msclkid',
+
+            // Amazon
+            'tag', 'ref_', 'ref', 'pf_rd_', 'pf', 'keywords',
+
+            // Email tracking
+            'mc_cid', 'mc_eid', 'mkt_tok',
+
+            // General tracking
+            '_ga', '_gl', 'igshid', 'si', 'feature', 'app', 'ved',
+            'sa', 'usg', 'cd', 'cad', 'rct', 'q', 'esrc',
+            'source', 'medium', 'campaign', 'content', 'term',
+
+            // YouTube
+            'feature', 'kw', 'si',
+
+            // Shopify
+            'variant', '_pos', '_sid', '_ss',
+
+            // Other common ones
+            'spm', 'scm', 'from', 'share_medium', 'share_source',
+            'vn_medium', 'vn_campaign', 'vn_source', 'vn_term', 'vn_content'
+        ];
+
+        // 参数说明字典
+        const paramDescriptions = {
+            // Google Analytics & Ads
+            'utm_source': '流量来源',
+            'utm_medium': '营销媒介',
+            'utm_campaign': '推广活动',
+            'utm_term': '关键词',
+            'utm_content': '广告内容',
+            'gclid': 'Google点击ID',
+            'gclsrc': 'Google点击源',
+            'dclid': '展示广告点击ID',
+            'gbraid': 'Google品牌广告ID',
+            'wbraid': 'Web品牌广告ID',
+
+            // Facebook
+            'fbclid': 'Facebook点击ID',
+            'fb_action_ids': 'Facebook行为ID',
+            'fb_action_types': 'Facebook行为类型',
+            'fb_source': 'Facebook来源',
+            'fb_ref': 'Facebook引用',
+
+            // Twitter
+            'twclid': 'Twitter点击ID',
+            'ref_src': '引用源',
+            'ref_url': '引用URL',
+
+            // LinkedIn
+            'li_fat_id': 'LinkedIn跟踪ID',
+            'trk': 'LinkedIn跟踪',
+            'trkCampaign': 'LinkedIn活动',
+
+            // TikTok
+            'ttclid': 'TikTok点击ID',
+
+            // Microsoft/Bing
+            'msclkid': '微软点击ID',
+
+            // Amazon
+            'tag': '联盟标签',
+            'ref_': '推荐人',
+            'ref': '引用',
+            'pf_rd_': '产品推荐',
+            'keywords': '关键词',
+
+            // Email tracking
+            'mc_cid': '邮件活动ID',
+            'mc_eid': '邮件订阅ID',
+            'mkt_tok': '营销令牌',
+
+            // General tracking
+            '_ga': 'Google分析',
+            '_gl': 'Google链接',
+            'igshid': 'Instagram分享ID',
+            'si': '分享信息',
+            'feature': '功能标识',
+            'app': '应用标识',
+            'ved': '验证数据',
+            'sa': '搜索行为',
+            'usg': '用户生成',
+            'cd': '自定义维度',
+            'cad': '广告数据',
+            'rct': '推荐类型',
+            'q': '查询参数',
+            'esrc': '事件源',
+            'source': '来源',
+            'medium': '媒介',
+            'campaign': '活动',
+            'content': '内容',
+            'term': '术语',
+
+            // Shopify
+            'variant': '产品变体',
+            '_pos': '位置信息',
+            '_sid': '会话ID',
+            '_ss': '会话状态',
+
+            // Other
+            'spm': '页面标识',
+            'scm': '场景标识',
+            'from': '来源页面',
+            'share_medium': '分享媒介',
+            'share_source': '分享来源',
+            'vn_medium': '越南媒介',
+            'vn_campaign': '越南活动',
+            'vn_source': '越南来源',
+            'vn_term': '越南术语',
+            'vn_content': '越南内容'
+        };
+
+        let cleaningStats = {
+            totalLinks: 0,
+            cleanedLinks: 0,
+            removedParams: []
+        };
+
+        let cleaningHistory = [];
+
+        function cleanLinks() {
+            const input = document.getElementById('urlInput').value.trim();
+            if (!input) {
+                alert('请输入需要清理的链接');
+                return;
+            }
+
+            // 重置统计
+            cleaningStats = {
+                totalLinks: 0,
+                cleanedLinks: 0,
+                removedParams: []
+            };
+
+            const lines = input.split('\n').filter(line => line.trim());
+            const cleanedLines = [];
+            const historyItems = [];
+
+            lines.forEach(line => {
+                const trimmedLine = line.trim();
+                if (trimmedLine) {
+                    cleaningStats.totalLinks++;
+                    const cleaned = cleanSingleLink(trimmedLine);
+                    cleanedLines.push(cleaned.url);
+                    if (cleaned.removed.length > 0) {
+                        cleaningStats.cleanedLinks++;
+                        cleaningStats.removedParams.push(...cleaned.removed);
+                    }
+
+                    // 添加到历史记录
+                    if (trimmedLine !== cleaned.url) {
+                        historyItems.push({
+                            original: trimmedLine,
+                            cleaned: cleaned.url,
+                            timestamp: new Date().toLocaleString(),
+                            removedParams: cleaned.removed
+                        });
+                    }
+                }
+            });
+
+            // 添加历史记录
+            cleaningHistory.unshift(...historyItems);
+            updateHistory();
+
+            // 显示结果
+            const resultContainer = document.getElementById('resultContainer');
+            const resultValue = document.getElementById('resultValue');
+            const copyNewBtn = document.getElementById('copyNewBtn');
+
+            resultValue.textContent = cleanedLines.join('\n');
+            resultContainer.style.display = 'block';
+            copyNewBtn.disabled = false;
+
+            // 更新统计信息
+            updateStats();
+
+            // 滚动到结果区域
+            resultContainer.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function cleanSingleLink(url) {
+            try {
+                const urlObj = new URL(url);
+                const removedParams = [];
+
+                // 检查并移除追踪参数
+                trackingParams.forEach(param => {
+                    if (urlObj.searchParams.has(param)) {
+                        removedParams.push(param);
+                        urlObj.searchParams.delete(param);
+                    }
+                });
+
+                // 检查参数名包含追踪关键词的参数
+                const paramNames = Array.from(urlObj.searchParams.keys());
+                paramNames.forEach(paramName => {
+                    const lowerParam = paramName.toLowerCase();
+                    if (lowerParam.includes('utm_') ||
+                        lowerParam.includes('gclid') ||
+                        lowerParam.includes('fbclid') ||
+                        lowerParam.includes('ref') ||
+                        lowerParam.includes('track') ||
+                        lowerParam.includes('campaign') ||
+                        lowerParam.includes('source') ||
+                        lowerParam.includes('medium')) {
+                        if (!removedParams.includes(paramName)) {
+                            removedParams.push(paramName);
+                            urlObj.searchParams.delete(paramName);
+                        }
+                    }
+                });
+
+                return {
+                    url: urlObj.toString(),
+                    removed: removedParams
+                };
+            } catch (e) {
+                // 如果不是有效URL，返回原始字符串
+                return {
+                    url: url,
+                    removed: []
+                };
+            }
+        }
+
+        function updateStats() {
+            const statsContent = document.getElementById('statsContent');
+            const uniqueRemovedParams = [...new Set(cleaningStats.removedParams)];
+
+            statsContent.innerHTML = `
+                <div class="stat-item">
+                    <span class="stat-label">处理链接数</span>
+                    <span class="stat-value">${cleaningStats.totalLinks}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">清理成功数</span>
+                    <span class="stat-value">${cleaningStats.cleanedLinks}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">移除参数数</span>
+                    <span class="stat-value">${cleaningStats.removedParams.length}</span>
+                </div>
+                ${uniqueRemovedParams.length > 0 ? `
+                <div class="removed-params">
+                    <div style="margin-bottom: var(--spacing-sm); font-weight: 500; color: var(--text-secondary);">
+                        <i class="fas fa-tags"></i> 移除的参数:
+                    </div>
+                    ${uniqueRemovedParams.map(param => {
+                const description = paramDescriptions[param] || '追踪参数';
+                return `<span class="param-tag">${param}<span class="param-description">(${description})</span></span>`;
+            }).join('')}
+                </div>
+                ` : ''}
+            `;
+        }
+
+        function updateHistory() {
+            const historyContent = document.getElementById('historyContent');
+            const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+
+            if (cleaningHistory.length === 0) {
+                historyContent.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-clock"></i><br>
+                        暂无清理历史
+                    </div>
+                `;
+                clearHistoryBtn.style.display = 'none';
+                return;
+            }
+
+            clearHistoryBtn.style.display = 'flex';
+            historyContent.innerHTML = cleaningHistory.map((item, index) => `
+                <div class="history-item">
+                    <div class="history-time">
+                        <i class="fas fa-clock"></i> ${item.timestamp}
+                    </div>
+                    <div class="history-urls">
+                        <div class="history-url original">
+                            <strong>原链接:</strong> ${item.original}
+                        </div>
+                        <div class="history-url cleaned">
+                            <strong>清理后:</strong> ${item.cleaned}
+                        </div>
+                    </div>
+                    <div class="history-actions">
+                        <button class="history-btn restore" onclick="restoreLink('${item.original.replace(/'/g, "\\'")}')">
+                            <i class="fas fa-undo"></i> 还原
+                        </button>
+                        <button class="history-btn copy" onclick="copyHistoryLink('${item.original.replace(/'/g, "\\'")}', 'original')">
+                            <i class="fas fa-copy"></i> 复制原链接
+                        </button>
+                        <button class="history-btn copy" onclick="copyHistoryLink('${item.cleaned.replace(/'/g, "\\'")}', 'cleaned')">
+                            <i class="fas fa-copy"></i> 复制新链接
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function restoreLink(originalUrl) {
+            document.getElementById('urlInput').value = originalUrl;
+            document.getElementById('urlInput').focus();
+        }
+
+        function pasteLinks() {
+            navigator.clipboard.readText().then(text => {
+                const urlInput = document.getElementById('urlInput');
+                urlInput.value = text;
+                urlInput.focus();
+            }).catch(() => {
+                alert('无法读取剪贴板内容，请手动粘贴');
+            });
+        }
+
+        function copyNewLinks() {
+            const resultValue = document.getElementById('resultValue').textContent;
+            if (!resultValue) {
+                alert('没有可复制的内容');
+                return;
+            }
+
+            navigator.clipboard.writeText(resultValue).then(() => {
+                const copyNewBtn = document.getElementById('copyNewBtn');
+                const originalHTML = copyNewBtn.innerHTML;
+                copyNewBtn.innerHTML = '<i class="fas fa-check"></i> 已复制';
+
+                setTimeout(() => {
+                    copyNewBtn.innerHTML = originalHTML;
+                }, 2000);
+            }).catch(() => {
+                // 备用复制方法
+                const textArea = document.createElement('textarea');
+                textArea.value = resultValue;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+
+                alert('链接已复制到剪贴板');
+            });
+        }
+
+        function copyHistoryLink(url, type) {
+            navigator.clipboard.writeText(url).then(() => {
+                // 临时显示成功提示
+                const button = event.target.closest('.history-btn');
+                const originalHTML = button.innerHTML;
+                const typeText = type === 'original' ? '原链接' : '新链接';
+                button.innerHTML = `<i class="fas fa-check"></i> 已复制${typeText}`;
+
+                setTimeout(() => {
+                    button.innerHTML = originalHTML;
+                }, 1500);
+            }).catch(() => {
+                // 备用复制方法
+                const textArea = document.createElement('textarea');
+                textArea.value = url;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+
+                alert('链接已复制到剪贴板');
+            });
+        }
+
+        function clearCleaningHistory() {
+            if (cleaningHistory.length === 0) return;
+
+            if (confirm('确定要清空所有清理历史吗？')) {
+                cleaningHistory = [];
+                updateHistory();
+            }
+        }
+
+
+        function clearAll() {
+            document.getElementById('urlInput').value = '';
+            document.getElementById('resultContainer').style.display = 'none';
+
+            // 禁用复制新链接按钮
+            const copyNewBtn = document.getElementById('copyNewBtn');
+            copyNewBtn.disabled = true;
+
+            // 重置统计
+            const statsContent = document.getElementById('statsContent');
+            statsContent.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-info-circle"></i><br>
+                    输入链接后查看清理统计
+                </div>
+            `;
+
+            // 聚焦到输入框
+            document.getElementById('urlInput').focus();
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function () {
+            // 自动聚焦到输入框
+            document.getElementById('urlInput').focus();
+        });
+    </script>
+</body>
+
+</html>
