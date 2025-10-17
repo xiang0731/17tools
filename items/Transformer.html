@@ -257,6 +257,7 @@
             <button class="function-button" data-function="L">L-提取特定前值</button>
             <button class="function-button" data-function="M">M-提取特定后值</button>
             <button class="function-button" data-function="N">N-添加顺序前缀</button>
+            <button class="function-button" data-function="O">O-空格换行</button>
         </div>
 
         <textarea id="input" placeholder="请在此输入需要转换的文本..."></textarea>
@@ -466,6 +467,11 @@
                 input: "苹果\n香蕉\n橙子",
                 auxiliary: "1a.",
                 output: "1a.苹果\n1b.香蕉\n1c.橙子"
+            },
+            'O': {
+                input: "1 \n2 3",
+                auxiliary: "注意：当前功能下此输入框无作用",
+                output: "1\n2\n3"
             }
         };
 
@@ -602,6 +608,18 @@
                         // 没有可递增部分，直接使用整个输入作为前缀
                         result = lines.map(line => `${suffix}${line}`).join('\n');
                     }
+                    break;
+                case 'O':
+                    result = lines.map(line => {
+                        // 删除首尾空格
+                        const trimmedLine = line.trim();
+                        // 如果是空行，保持为空
+                        if (trimmedLine === '') {
+                            return '';
+                        }
+                        // 将行内的空格替换为换行符
+                        return trimmedLine.split(/\s+/).join('\n');
+                    }).join('\n');
                     break;
             }
             document.getElementById('output').value = result;
