@@ -137,14 +137,17 @@
             border-bottom: 1px solid var(--border-color);
             gap: var(--spacing-md);
             flex-wrap: wrap;
+            row-gap: var(--spacing-sm);
         }
 
         .language-controls {
             display: flex;
             align-items: center;
             gap: var(--spacing-md);
-            flex: 1;
-            min-width: 200px;
+            flex: 1 1 auto;
+            min-width: 300px;
+            flex-wrap: wrap;
+            row-gap: var(--spacing-sm);
         }
 
         .language-label {
@@ -171,21 +174,30 @@
             padding: var(--spacing-md) 0;
             text-align: right;
             font-family: var(--font-mono);
-            font-size: 13px;
-            line-height: 1.6;
+            font-size: 14px;
+            line-height: 22.4px;
             color: var(--text-tertiary);
-            overflow: hidden;
+            overflow-y: auto;
+            overflow-x: hidden;
             user-select: none;
             display: flex;
             flex-direction: column;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .line-numbers::-webkit-scrollbar {
+            display: none;
         }
 
         .line-numbers span {
             padding: 0 var(--spacing-sm);
-            min-height: 20.8px;
+            min-height: 22.4px;
+            height: 22.4px;
             display: flex;
             align-items: center;
             justify-content: flex-end;
+            box-sizing: border-box;
         }
 
         textarea {
@@ -199,7 +211,7 @@
             overflow: auto;
             background: var(--background-primary);
             color: var(--text-primary);
-            line-height: 1.6;
+            line-height: 22.4px;
             outline: none;
             transition: background-color var(--transition-fast);
         }
@@ -214,39 +226,24 @@
             flex: 1;
             overflow: auto;
             background: var(--background-primary);
-            padding: var(--spacing-md);
         }
 
-        .output-table {
-            width: 100%;
-            border-collapse: collapse;
-            table-layout: fixed;
+        .output-code {
+            margin: 0;
+            padding: var(--spacing-md);
             font-family: var(--font-mono);
             font-size: 14px;
-            line-height: 1.6;
-        }
-
-        .output-table td {
-            vertical-align: top;
-            padding: 0;
-        }
-
-        .output-line-number {
-            width: 60px;
-            text-align: right;
-            padding-right: var(--spacing-sm) !important;
-            color: var(--text-tertiary);
-            background: var(--background-tertiary);
-            border-right: 1px solid var(--border-color);
-            user-select: none;
-            font-size: 13px;
-        }
-
-        .output-line-code {
-            padding-left: var(--spacing-md) !important;
-            white-space: pre;
-            color: var(--text-primary);
+            line-height: 22.4px;
             background: var(--background-primary);
+            color: var(--text-primary);
+            white-space: pre;
+            overflow: visible;
+        }
+
+        .output-code code {
+            font-family: var(--font-mono);
+            font-size: 14px;
+            line-height: 22.4px;
         }
 
         /* 按钮样式 */
@@ -489,14 +486,28 @@
             color: var(--text-primary) !important;
         }
 
-        /* 响应式调整 */
-        @media (max-width: 768px) {
+        /* 响应式调整 - 中等屏幕 */
+        @media (max-width: 900px) {
             .language-selector {
                 flex-direction: column;
                 align-items: stretch;
                 gap: var(--spacing-sm);
             }
 
+            .language-controls {
+                min-width: auto;
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .action-buttons {
+                width: 100%;
+                justify-content: flex-start;
+            }
+        }
+
+        /* 响应式调整 - 小屏幕 */
+        @media (max-width: 768px) {
             .language-controls {
                 flex-direction: column;
                 align-items: stretch;
@@ -517,10 +528,6 @@
             }
 
             .line-numbers {
-                width: 50px;
-            }
-
-            .output-line-number {
                 width: 50px;
             }
         }
@@ -640,17 +647,14 @@
                     </div>
                 </div>
                 <div class="editor-wrapper">
+                    <div id="output-line-numbers" class="line-numbers" style="display: none;"></div>
                     <div class="code-output">
                         <div class="empty-state" id="empty-state">
                             <i class="fas fa-code"></i>
                             <h3>等待格式化</h3>
                             <p>输入代码后点击"格式化代码"按钮</p>
                         </div>
-                        <table class="output-table" id="output-table" style="display: none;">
-                            <tbody>
-                                <!-- 代码和行号将在这里动态生成 -->
-                            </tbody>
-                        </table>
+                        <pre id="output-code" class="output-code" style="display: none;"><code></code></pre>
                     </div>
                 </div>
             </div>
@@ -872,7 +876,8 @@
                 if (!code) {
                     // 清空输出
                     document.getElementById('empty-state').style.display = 'flex';
-                    document.getElementById('output-table').style.display = 'none';
+                    document.getElementById('output-line-numbers').style.display = 'none';
+                    document.getElementById('output-code').style.display = 'none';
                     return;
                 }
 
@@ -1019,53 +1024,45 @@
         // 更新输出显示
         function updateOutputDisplay(formattedCode, language) {
             const emptyState = document.getElementById('empty-state');
-            const outputTable = document.getElementById('output-table');
+            const outputLineNumbers = document.getElementById('output-line-numbers');
+            const outputCode = document.getElementById('output-code');
+            const codeElement = outputCode.querySelector('code');
 
             emptyState.style.display = 'none';
-            outputTable.style.display = 'table';
+            outputLineNumbers.style.display = 'flex';
+            outputCode.style.display = 'block';
 
+            // 更新行号
             const lines = formattedCode.split('\n');
-            const tbody = outputTable.querySelector('tbody') || outputTable.createTBody();
-            tbody.innerHTML = '';
+            let lineNumbers = '';
+            for (let i = 1; i <= lines.length; i++) {
+                lineNumbers += `<span>${i}</span>`;
+            }
+            outputLineNumbers.innerHTML = lineNumbers;
 
-            lines.forEach((line, index) => {
-                const tr = document.createElement('tr');
-
-                // 行号
-                const numberCell = document.createElement('td');
-                numberCell.className = 'output-line-number';
-                numberCell.textContent = index + 1;
-                tr.appendChild(numberCell);
-
-                // 代码
-                const codeCell = document.createElement('td');
-                codeCell.className = 'output-line-code';
-
-                const codeElement = document.createElement('code');
-                codeElement.textContent = line;
-                codeElement.className = `language-${highlightLangMap[language] || 'plaintext'}`;
-                codeCell.appendChild(codeElement);
-
-                tr.appendChild(codeCell);
-                tbody.appendChild(tr);
-            });
+            // 更新代码内容
+            codeElement.textContent = formattedCode;
+            codeElement.className = `language-${highlightLangMap[language] || 'plaintext'}`;
 
             // 应用语法高亮
-            document.querySelectorAll('.output-line-code code').forEach(block => {
-                hljs.highlightElement(block);
+            hljs.highlightElement(codeElement);
+
+            // 同步滚动
+            const codeOutput = outputCode.parentElement;
+            codeOutput.addEventListener('scroll', function () {
+                outputLineNumbers.scrollTop = codeOutput.scrollTop;
             });
         }
 
         // 复制功能
         function copyCode() {
-            const outputTable = document.getElementById('output-table');
-            if (outputTable.style.display === 'none') {
+            const outputCode = document.getElementById('output-code');
+            if (outputCode.style.display === 'none') {
                 showStatus('没有可复制的格式化结果', 'error');
                 return;
             }
 
-            const codes = Array.from(document.querySelectorAll('.output-line-code')).map(cell => cell.textContent);
-            const formattedCode = codes.join('\n');
+            const formattedCode = outputCode.querySelector('code').textContent;
 
             navigator.clipboard.writeText(formattedCode).then(() => {
                 showStatus('格式化结果已复制到剪贴板', 'success');
@@ -1090,14 +1087,13 @@
 
         // 下载功能
         function downloadCode() {
-            const outputTable = document.getElementById('output-table');
-            if (outputTable.style.display === 'none') {
+            const outputCode = document.getElementById('output-code');
+            if (outputCode.style.display === 'none') {
                 showStatus('没有可下载的格式化结果', 'error');
                 return;
             }
 
-            const codes = Array.from(document.querySelectorAll('.output-line-code')).map(cell => cell.textContent);
-            const formattedCode = codes.join('\n');
+            const formattedCode = outputCode.querySelector('code').textContent;
             const language = document.getElementById('language').value === 'auto' ? lastDetectedLanguage : document.getElementById('language').value;
             const extension = fileExtMap[language] || 'txt';
 
@@ -1135,7 +1131,8 @@
             document.getElementById('input-code').value = '';
             document.getElementById('input-line-numbers').innerHTML = '<span>1</span>';
             document.getElementById('empty-state').style.display = 'flex';
-            document.getElementById('output-table').style.display = 'none';
+            document.getElementById('output-line-numbers').style.display = 'none';
+            document.getElementById('output-code').style.display = 'none';
             document.getElementById('detected-language').classList.remove('show');
             lastDetectedLanguage = '';
             showStatus('已清空所有内容', 'info');

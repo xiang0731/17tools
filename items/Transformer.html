@@ -121,6 +121,33 @@
             background-color: var(--background-secondary);
         }
 
+        /* 文本框包装器 - 用于定位行数标签 */
+        .textarea-wrapper {
+            position: relative;
+            margin: var(--spacing-md) 0;
+        }
+
+        .textarea-wrapper textarea {
+            margin: 0;
+        }
+
+        /* 行数标签样式 */
+        .line-count {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            background-color: var(--background-tertiary);
+            color: var(--text-secondary);
+            padding: 4px 10px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-family: var(--font-mono);
+            pointer-events: none;
+            opacity: 0.85;
+            border: 1px solid var(--border-color);
+            z-index: 1;
+        }
+
         /* 操作按钮区域 */
         .action-buttons {
             display: flex;
@@ -260,7 +287,10 @@
             <button class="function-button" data-function="O">O-空格换行</button>
         </div>
 
-        <textarea id="input" placeholder="请在此输入需要转换的文本..."></textarea>
+        <div class="textarea-wrapper">
+            <textarea id="input" placeholder="请在此输入需要转换的文本..."></textarea>
+            <span class="line-count" id="inputLineCount">0 行</span>
+        </div>
 
         <!-- 添加辅助输入框 -->
         <textarea id="auxiliaryInput" placeholder="请输入要添加的内容..."></textarea>
@@ -280,7 +310,10 @@
             </button>
         </div>
 
-        <textarea id="output" readonly placeholder="转换后的结果将显示在这里..."></textarea>
+        <div class="textarea-wrapper">
+            <textarea id="output" readonly placeholder="转换后的结果将显示在这里..."></textarea>
+            <span class="line-count" id="outputLineCount">0 行</span>
+        </div>
     </div>
 
     <script src="../js/theme.js"></script>
@@ -501,6 +534,9 @@
             document.getElementById('input').value = '';
             document.getElementById('auxiliaryInput').value = '';
             document.getElementById('output').value = '';
+            // 更新行数显示
+            updateLineCount('input', 'inputLineCount');
+            updateLineCount('output', 'outputLineCount');
         });
         // 复制按钮
         document.getElementById('copyBtn').addEventListener('click', function () {
@@ -623,7 +659,33 @@
                     break;
             }
             document.getElementById('output').value = result;
+            // 转换后更新输出框的行数
+            updateLineCount('output', 'outputLineCount');
         });
+
+        // 更新行数的函数
+        function updateLineCount(textareaId, counterId) {
+            const textarea = document.getElementById(textareaId);
+            const counter = document.getElementById(counterId);
+            const text = textarea.value;
+            
+            // 计算行数：如果文本为空则为0行，否则按换行符分割
+            let lineCount = 0;
+            if (text.length > 0) {
+                lineCount = text.split('\n').length;
+            }
+            
+            counter.textContent = lineCount + ' 行';
+        }
+
+        // 为输入框添加实时行数更新
+        document.getElementById('input').addEventListener('input', function() {
+            updateLineCount('input', 'inputLineCount');
+        });
+
+        // 初始化时更新行数
+        updateLineCount('input', 'inputLineCount');
+        updateLineCount('output', 'outputLineCount');
     </script>
 </body>
 
