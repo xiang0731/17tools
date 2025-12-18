@@ -31,127 +31,152 @@
 
         header {
             margin-bottom: var(--spacing-xl);
+            text-align: center;
         }
 
         h1 {
-            text-align: center;
             color: var(--text-primary);
-            margin: 0 0 var(--spacing-xl) 0;
+            margin: 0 0 var(--spacing-sm) 0;
             font-size: 28px;
             font-weight: 700;
-            display: flex;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: var(--spacing-sm);
         }
 
         .subtitle {
-            text-align: center;
-            font-size: 20px;
+            font-size: 16px;
             color: var(--text-secondary);
             font-weight: 400;
             margin-bottom: var(--spacing-lg);
+            opacity: 0.8;
         }
 
         .timeline {
             position: relative;
-            margin: 60px 0;
-            padding-left: 15px;
+            margin: 40px 0;
+            padding-left: 20px;
         }
 
-        .timeline::after {
-            content: '';
-            position: absolute;
-            left: 15px;
-            bottom: -10px;
-            width: 4px;
-            height: 4px;
-            border-radius: 50%;
-            background: var(--text-tertiary);
-            z-index: 1;
-        }
-
+        /* 时间轴线条 */
         .timeline::before {
             content: '';
             position: absolute;
-            left: 16px;
+            left: 19px;
             top: 0;
-            height: 100%;
+            bottom: 0;
             width: 2px;
+            background: linear-gradient(to bottom, var(--border-color) 0%, var(--border-color) 90%, transparent 100%);
+            z-index: 1;
+        }
+
+        /* 时间轴底部圆点 */
+        .timeline::after {
+            content: '';
+            position: absolute;
+            left: 16px;
+            bottom: -5px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
             background: var(--border-color);
             z-index: 1;
         }
 
         .version-entry {
             position: relative;
-            margin-bottom: 60px;
-            padding-left: 35px;
-            animation: fadeInUp 0.6s ease-out;
+            margin-bottom: 50px;
+            padding-left: 40px;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
 
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
+        .version-entry.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
 
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .version-entry:last-child {
+            margin-bottom: 0;
         }
 
         .version-dot {
             position: absolute;
-            left: 13px;
-            top: 8px;
-            width: 8px;
-            height: 8px;
+            left: 12px;
+            top: 6px;
+            width: 12px;
+            height: 12px;
             border-radius: 50%;
             background: var(--primary-color);
             z-index: 2;
-            border: 2px solid var(--background-primary);
-            box-shadow: 0 0 0 1px var(--border-color);
+            border: 2px solid var(--background-secondary);
+            box-shadow: 0 0 0 2px var(--primary-color-alpha, rgba(33, 150, 243, 0.2));
+            transition: transform 0.3s ease;
+        }
+
+        .version-entry:hover .version-dot {
+            transform: scale(1.2);
+            box-shadow: 0 0 0 4px var(--primary-color-alpha, rgba(33, 150, 243, 0.3));
         }
 
         .version-header {
             display: flex;
             align-items: baseline;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
         .version-number {
-            font-size: 24px;
-            font-weight: 600;
-            margin-right: 15px;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
         }
 
         .version-date {
-            font-size: 16px;
-            color: var(--text-secondary);
+            font-size: 14px;
+            color: var(--text-tertiary);
+            font-family: monospace;
+            background: var(--background-tertiary);
+            padding: 2px 8px;
+            border-radius: 4px;
         }
 
         .update-list {
-            background: var(--background-secondary);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+            background: var(--background-tertiary);
             border-radius: var(--radius-lg);
-            padding: 25px;
-            box-shadow: var(--shadow-sm);
-            transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+            padding: 24px;
             border: 1px solid var(--border-color);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
         .update-list:hover {
             transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary-color-alpha, rgba(33, 150, 243, 0.3));
         }
 
         .feature-category {
+            font-size: 15px;
             font-weight: 600;
-            margin-top: 20px;
-            margin-bottom: 10px;
+            margin-top: 24px;
+            margin-bottom: 12px;
             color: var(--text-primary);
+            display: flex;
+            align-items: center;
+        }
+
+        .feature-category::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 16px;
+            background: var(--primary-color);
+            margin-right: 8px;
+            border-radius: 2px;
         }
 
         .feature-category:first-child {
@@ -159,13 +184,17 @@
         }
 
         ul {
-            padding-left: 20px;
+            padding-left: 0;
             margin: 0;
+            list-style: none;
         }
 
         li {
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             position: relative;
+            line-height: 1.6;
+            padding-left: 4px;
+            color: var(--text-secondary);
         }
 
         li:last-child {
@@ -173,161 +202,52 @@
         }
 
         .tag {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: var(--radius-full);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2px 8px;
+            border-radius: 4px;
             font-size: 12px;
-            font-weight: 500;
+            font-weight: 600;
             margin-right: 8px;
-            margin-bottom: 4px;
-            background-color: var(--background-tertiary);
-            color: var(--text-secondary);
-            border: 1px solid var(--border-color);
-            transition: all var(--transition-fast);
+            vertical-align: middle;
+            background-color: var(--background-primary);
+            border: 1px solid transparent;
+            min-width: 36px;
+            text-align: center;
         }
 
-        .tag:hover {
-            transform: translateY(-1px);
-            box-shadow: var(--shadow-sm);
-        }
-
+        /* 标签配色方案优化 */
         .tag.new {
-            background-color: rgba(0, 102, 204, 0.1);
-            color: #0066cc;
+            background-color: rgba(33, 150, 243, 0.1);
+            color: #2196F3;
+            border-color: rgba(33, 150, 243, 0.2);
         }
 
-        .tag.improved {
-            background-color: rgba(56, 142, 60, 0.1);
-            color: #388e3c;
+        .tag.improved,
+        .tag.ui,
+        .tag.ux {
+            background-color: rgba(76, 175, 80, 0.1);
+            color: #4CAF50;
+            border-color: rgba(76, 175, 80, 0.2);
         }
 
         .tag.fixed {
-            background-color: rgba(211, 47, 47, 0.1);
-            color: #d32f2f;
+            background-color: rgba(244, 67, 54, 0.1);
+            color: #F44336;
+            border-color: rgba(244, 67, 54, 0.2);
         }
 
-        /* 新增tag样式 */
         .tag.deprecated {
-            background-color: rgba(117, 117, 117, 0.1);
-            color: #757575;
+            background-color: rgba(158, 158, 158, 0.1);
+            color: #9E9E9E;
             text-decoration: line-through;
         }
 
-        .tag.security {
-            background-color: rgba(183, 28, 28, 0.1);
-            color: #b71c1c;
-            font-weight: 600;
-        }
-
-        .tag.performance {
-            background-color: rgba(239, 108, 0, 0.1);
-            color: #ef6c00;
-        }
-
-        .tag.design {
-            background-color: rgba(156, 39, 176, 0.1);
-            color: #9c27b0;
-        }
-
-        .tag.experimental {
-            background-color: rgba(0, 150, 136, 0.1);
-            color: #009688;
-            border: 1px dashed rgba(0, 150, 136, 0.5);
-        }
-
-        .tag.api {
-            background-color: rgba(33, 150, 243, 0.1);
-            color: #2196f3;
-        }
-
-        .tag.documentation {
-            background-color: rgba(121, 85, 72, 0.1);
-            color: #795548;
-        }
-
-        .tag.accessibility {
-            background-color: rgba(63, 81, 181, 0.1);
-            color: #3f51b5;
-        }
-
-        .tag.i18n {
-            background-color: rgba(139, 195, 74, 0.1);
-            color: #8bc34a;
-        }
-
-        .tag.breaking {
-            background-color: rgba(216, 27, 96, 0.1);
-            color: #d81b60;
-            border-left: 2px solid #d81b60;
-            font-weight: 600;
-        }
-
-        .tag.dependency {
-            background-color: rgba(255, 193, 7, 0.1);
-            color: #ffc107;
-        }
-
-        .tag.refactor {
-            background-color: rgba(103, 58, 183, 0.1);
-            color: #673ab7;
-        }
-
-        .tag.ui {
-            background-color: rgba(233, 30, 99, 0.1);
-            color: #e91e63;
-        }
-
-        .tag.ux {
-            background-color: rgba(0, 188, 212, 0.1);
-            color: #00bcd4;
-        }
-
         .tag.critical {
-            background-color: rgba(244, 67, 54, 0.1);
-            color: #f44336;
-            font-weight: 700;
-            border: 1px solid rgba(244, 67, 54, 0.3);
-        }
-
-        .tag.maintenance {
-            background-color: rgba(158, 158, 158, 0.1);
-            color: #9e9e9e;
-        }
-
-        .tag.major {
-            background-color: rgba(66, 66, 66, 0.1);
-            color: #424242;
-            letter-spacing: 0.5px;
-            font-weight: 600;
-        }
-
-        /* 版本标签样式 */
-        .tag.beta {
-            background-color: rgba(255, 152, 0, 0.1);
-            color: #ff9800;
-            border-radius: 12px;
-        }
-
-        .tag.alpha {
-            background-color: rgba(233, 30, 99, 0.1);
-            color: #e91e63;
-            border-radius: 12px;
-        }
-
-        .tag.rc {
-            background-color: rgba(76, 175, 80, 0.1);
-            color: #4caf50;
-            border-radius: 12px;
-        }
-
-        /* 动画效果 */
-        .tag.animated {
-            transition: all 0.3s ease;
-        }
-
-        .tag.animated:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            background-color: rgba(211, 47, 47, 0.1);
+            color: #d32f2f;
+            border-color: rgba(211, 47, 47, 0.3);
         }
 
         @media (max-width: 768px) {
@@ -343,42 +263,27 @@
                 font-size: 24px;
             }
 
-            .subtitle {
-                font-size: 16px;
-            }
-
-            .version-number {
-                font-size: 20px;
-            }
-
-            .version-date {
-                font-size: 14px;
-            }
-
-            .update-list {
-                padding: var(--spacing-lg);
-            }
-
-            .timeline {
-                padding-left: 12px;
+            .version-entry {
+                padding-left: 30px;
+                margin-bottom: 40px;
             }
 
             .timeline::before {
-                left: 13px;
+                left: 11px;
             }
 
             .timeline::after {
-                left: 12px;
+                left: 8px;
             }
 
             .version-dot {
-                left: 10px;
-                width: 6px;
-                height: 6px;
+                left: 6px;
+                width: 10px;
+                height: 10px;
             }
 
-            .version-entry {
-                padding-left: 30px;
+            .update-list {
+                padding: 16px;
             }
         }
     </style>
@@ -391,27 +296,61 @@
                 <i class="fas fa-history"></i>
                 更新历史
             </h1>
-            <div class="subtitle">查看17Tools的所有功能更新与改进</div>
+            <div class="subtitle">查看 17Tools 的所有功能更新与改进</div>
         </header>
 
         <div class="timeline">
+            <!-- 版本 2.5.0 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 2.5.0</div>
+                    <div class="version-date">2025-12-18</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">新功能</div>
+                    <ul>
+                        <li><span class="tag new">新增</span>Calendar万年历：增加手动输入“日”功能，支持自动跳转</li>
+                        <li><span class="tag new">新增</span>Whiteboard智能白板：新增箭头绘制工具（快捷键A）</li>
+                        <li><span class="tag new">新增</span>Whiteboard智能白板：支持3个临时画面槽位，可快速切换不同画布状态</li>
+                        <li><span class="tag new">新增</span>Whiteboard智能白板：支持画布缩放功能（Shift+滚轮）</li>
+                    </ul>
+                    <div class="feature-category">问题修复</div>
+                    <ul>
+                        <li><span class="tag fixed">修复</span>Calendar万年历：年份显示不全问题</li>
+                        <li><span class="tag fixed">修复</span>Calendar万年历：输入后指示器同步问题</li>
+                        <li><span class="tag fixed">修复</span>Calendar万年历：信息面板日期对齐问题</li>
+                    </ul>
+                    <div class="feature-category">体验改进</div>
+                    <ul>
+                        <li><span class="tag improved">优化</span>Calendar万年历：为操作按钮添加提示文本，提升易用性</li>
+                        <li><span class="tag improved">优化</span>Calendar万年历：UI全面升级，采用卡片式设计与柔和阴影</li>
+                        <li><span class="tag improved">优化</span>PrettyFormat代码格式化：界面重构，统一输入/输出区域布局</li>
+                        <li><span class="tag improved">优化</span>PrettyFormat代码格式化：调整按钮位置和样式，实现视觉对称和谐</li>
+                        <li><span class="tag improved">优化</span>Whiteboard智能白板：优化圆形绘制逻辑，支持直径绘制方式</li>
+                        <li><span class="tag improved">优化</span>Whiteboard智能白板：优化移动端工具栏布局与Tooltip显示位置，解决遮挡问题</li>
+                        <li><span class="tag improved">优化</span>Whiteboard智能白板：美化颜色选择器样式</li>
+                        <li><span class="tag improved">优化</span>Whiteboard智能白板：性能优化，提升绘图与交互流畅度</li>
+                    </ul>
+                </div>
+            </div>
             <!-- 版本 2.4.2 -->
             <div class="version-entry">
                 <div class="version-dot"></div>
                 <div class="version-header">
                     <div class="version-number">版本 2.4.2</div>
-                    <div class="version-date">2025年12月3日</div>
+                    <div class="version-date">2025-12-03</div>
                 </div>
                 <div class="update-list">
                     <div class="feature-category">新功能</div>
                     <ul>
-                        <li><span class="tag new">新增</span>Transformer文本转换工具输入框和输出框添加行数显示功能</li>
+                        <li><span class="tag new">新增</span>Transformer文本转换工具：输入框和输出框添加行数显示功能</li>
                     </ul>
                     <div class="feature-category">问题修复</div>
                     <ul>
-                        <li><span class="tag fixed">修复</span>PrettyFormat代码格式化工具输入框行号与代码对齐问题</li>
-                        <li><span class="tag fixed">修复</span>PrettyFormat代码格式化工具输出框行号样式与输入框不一致问题</li>
-                        <li><span class="tag fixed">修复</span>PrettyFormat代码格式化工具响应式布局下按钮与语言标签重叠问题</li>
+                        <li><span class="tag fixed">修复</span>PrettyFormat代码格式化工具：输入框行号与代码对齐问题</li>
+                        <li><span class="tag fixed">修复</span>PrettyFormat代码格式化工具：输出框行号样式与输入框不一致问题</li>
+                        <li><span class="tag fixed">修复</span>PrettyFormat代码格式化工具：响应式布局下按钮与语言标签重叠问题</li>
                     </ul>
                 </div>
             </div>
@@ -420,13 +359,13 @@
                 <div class="version-dot"></div>
                 <div class="version-header">
                     <div class="version-number">版本 2.4.1</div>
-                    <div class="version-date">2025年10月17日</div>
+                    <div class="version-date">2025-10-17</div>
                 </div>
                 <div class="update-list">
                     <div class="feature-category">新功能</div>
                     <ul>
-                        <li><span class="tag new">新增</span>Transformer文本转换工具新增空格换行功能</li>
-                        <li><span class="tag new">新增</span>Replacer文本替换工具增加特殊字符支持</li>
+                        <li><span class="tag new">新增</span>Transformer文本转换工具：新增空格换行功能</li>
+                        <li><span class="tag new">新增</span>Replacer文本替换工具：增加特殊字符支持</li>
                     </ul>
                 </div>
             </div>
@@ -435,12 +374,12 @@
                 <div class="version-dot"></div>
                 <div class="version-header">
                     <div class="version-number">版本 2.4.0</div>
-                    <div class="version-date">2025年10月16日</div>
+                    <div class="version-date">2025-10-16</div>
                 </div>
                 <div class="update-list">
                     <div class="feature-category">新功能</div>
                     <ul>
-                        <li><span class="tag new">新增</span>添加智能白板工具</li>
+                        <li><span class="tag new">新增</span>Whiteboard智能白板工具</li>
                     </ul>
                 </div>
             </div>
@@ -449,12 +388,12 @@
                 <div class="version-dot"></div>
                 <div class="version-header">
                     <div class="version-number">版本 2.3.0</div>
-                    <div class="version-date">2025年9月9日</div>
+                    <div class="version-date">2025-09-09</div>
                 </div>
                 <div class="update-list">
                     <div class="feature-category">新功能</div>
                     <ul>
-                        <li><span class="tag new">新增</span>添加链接清理工具</li>
+                        <li><span class="tag new">新增</span>LinkCleaner链接清理工具</li>
                     </ul>
                 </div>
             </div>
@@ -463,7 +402,7 @@
                 <div class="version-dot"></div>
                 <div class="version-header">
                     <div class="version-number">版本 2.2.1</div>
-                    <div class="version-date">2025年9月7日</div>
+                    <div class="version-date">2025-09-07</div>
                 </div>
                 <div class="update-list">
                     <div class="feature-category">主题系统优化</div>
@@ -473,14 +412,14 @@
                     </ul>
                     <div class="feature-category">问题修复</div>
                     <ul>
-                        <li><span class="tag fixed">修复</span>修复About.html页面深色模式下字体颜色不变化问题</li>
-                        <li><span class="tag fixed">修复</span>修复About.html页面模块外边框和布局异常问题</li>
+                        <li><span class="tag fixed">修复</span>About关于：修复页面深色模式下字体颜色不变化问题</li>
+                        <li><span class="tag fixed">修复</span>About关于：修复页面模块外边框和布局异常问题</li>
                         <li><span class="tag fixed">修复</span>修复深色模式下背景颜色未正确应用的问题</li>
                     </ul>
                     <div class="feature-category">样式改进</div>
                     <ul>
                         <li><span class="tag improved">改进</span>优化主题切换时的视觉过渡效果</li>
-                        <li><span class="tag improved">改进</span>增强About.html页面的响应式布局</li>
+                        <li><span class="tag improved">改进</span>About关于：增强页面的响应式布局</li>
                     </ul>
                 </div>
             </div>
@@ -490,12 +429,12 @@
                 <div class="version-dot"></div>
                 <div class="version-header">
                     <div class="version-number">版本 2.2.0</div>
-                    <div class="version-date">2025年9月6日</div>
+                    <div class="version-date">2025-09-06</div>
                 </div>
                 <div class="update-list">
                     <div class="feature-category">新功能</div>
                     <ul>
-                        <li><span class="tag new">新增</span>添加万年历工具</li>
+                        <li><span class="tag new">新增</span>添加Calendar万年历工具</li>
                     </ul>
                     <div class="feature-category">问题修复</div>
                     <ul>
@@ -509,7 +448,7 @@
                 <div class="version-dot"></div>
                 <div class="version-header">
                     <div class="version-number">版本 2.1.0</div>
-                    <div class="version-date">2025年9月2日</div>
+                    <div class="version-date">2025-09-02</div>
                 </div>
                 <div class="update-list">
                     <div class="feature-category">新功能</div>
@@ -528,7 +467,7 @@
                 <div class="version-dot"></div>
                 <div class="version-header">
                     <div class="version-number">版本 2.0.0</div>
-                    <div class="version-date">2025年6月16日</div>
+                    <div class="version-date">2025-06-16</div>
                 </div>
                 <div class="update-list">
                     <div class="feature-category">新界面！</div>
@@ -546,12 +485,12 @@
                 <div class="version-dot"></div>
                 <div class="version-header">
                     <div class="version-number">版本 1.5.2</div>
-                    <div class="version-date">2025年6月9日</div>
+                    <div class="version-date">2025-06-09</div>
                 </div>
                 <div class="update-list">
                     <div class="feature-category">问题修复</div>
                     <ul>
-                        <li><span class="tag fixed">修复</span>修复文本转换工具功能N前缀递增异常问题</li>
+                        <li><span class="tag fixed">修复</span>Transformer文本转换工具：功能N前缀递增异常问题</li>
                     </ul>
                 </div>
             </div>
@@ -560,12 +499,12 @@
                 <div class="version-dot"></div>
                 <div class="version-header">
                     <div class="version-number">版本 1.5.1</div>
-                    <div class="version-date">2025年6月4日</div>
+                    <div class="version-date">2025-06-04</div>
                 </div>
                 <div class="update-list">
                     <div class="feature-category">新功能</div>
                     <ul>
-                        <li><span class="tag new">新增</span>添加日期计算工具</li>
+                        <li><span class="tag new">新增</span>添加DateCalculator日期计算工具</li>
                     </ul>
                 </div>
             </div>
@@ -575,12 +514,12 @@
                 <div class="version-dot"></div>
                 <div class="version-header">
                     <div class="version-number">版本 1.5.0</div>
-                    <div class="version-date">2025年4月27日</div>
+                    <div class="version-date">2025-04-27</div>
                 </div>
                 <div class="update-list">
                     <div class="feature-category">新功能</div>
                     <ul>
-                        <li><span class="tag new">新增</span>添加代码格式化工具，支持代码高亮和行号显示</li>
+                        <li><span class="tag new">新增</span>添加PrettyFormat代码格式化工具，支持代码高亮和行号显示</li>
                         <li><span class="tag new">新增</span>添加提问题选项，方便用户反馈</li>
                         <li><span class="tag new">新增</span>更新历史页面，方便用户了解产品迭代历程</li>
                     </ul>
@@ -603,13 +542,13 @@
                 <div class="version-dot"></div>
                 <div class="version-header">
                     <div class="version-number">版本 1.4.0</div>
-                    <div class="version-date">2025年3月18日</div>
+                    <div class="version-date">2025-03-18</div>
                 </div>
                 <div class="update-list">
                     <div class="feature-category">新功能</div>
                     <ul>
-                        <li><span class="tag new">新增</span>添加世界时间工具，支持查看不同时区的当前时间</li>
-                        <li><span class="tag new">新增</span>添加顺序前缀功能，方便用户整理文本</li>
+                        <li><span class="tag new">新增</span>添加WorldTime世界时间工具，支持查看不同时区的当前时间</li>
+                        <li><span class="tag new">新增</span>Transformer文本转换工具：添加顺序前缀功能，方便用户整理文本</li>
                     </ul>
 
                     <div class="feature-category">问题修复</div>
@@ -624,7 +563,7 @@
                 <div class="version-dot"></div>
                 <div class="version-header">
                     <div class="version-number">版本 1.3.0</div>
-                    <div class="version-date">2025年2月27日</div>
+                    <div class="version-date">2025-02-27</div>
                 </div>
                 <div class="update-list">
                     <div class="feature-category">新功能</div>
@@ -647,7 +586,7 @@
                 <div class="version-dot"></div>
                 <div class="version-header">
                     <div class="version-number">版本 1.2.0</div>
-                    <div class="version-date">2025年2月20日</div>
+                    <div class="version-date">2025-02-20</div>
                 </div>
                 <div class="update-list">
                     <div class="feature-category">新功能</div>
@@ -673,7 +612,7 @@
                 <div class="version-dot"></div>
                 <div class="version-header">
                     <div class="version-number">版本 1.1.0</div>
-                    <div class="version-date">2025年2月20日</div>
+                    <div class="version-date">2025-02-20</div>
                 </div>
                 <div class="update-list">
                     <div class="feature-category">新功能</div>
@@ -696,7 +635,7 @@
                 <div class="version-dot"></div>
                 <div class="version-header">
                     <div class="version-number">版本 1.0.0</div>
-                    <div class="version-date">2025年2月12日</div>
+                    <div class="version-date">2025-02-12</div>
                 </div>
                 <div class="update-list">
                     <div class="feature-category">17Tools正式发布！</div>
@@ -718,15 +657,16 @@
             constructor() {
                 this.currentVersion = this.extractLatestVersion();
                 this.exposeToGlobal();
+                this.initAnimations();
             }
 
             // 从页面中提取最新版本号
             extractLatestVersion() {
-                const versionElements = document.querySelectorAll('.version-number');
-                if (versionElements.length === 0) return '1.0.0';
+                const versionElement = document.querySelector('.version-number');
+                if (!versionElement) return '1.0.0';
 
                 // 获取第一个版本号（最新的）
-                const versionText = versionElements[0].textContent;
+                const versionText = versionElement.textContent;
                 const versionMatch = versionText.match(/(\d+\.\d+\.\d+)/);
                 return versionMatch ? versionMatch[1] : '1.0.0';
             }
@@ -734,8 +674,6 @@
             // 将版本信息暴露给全局
             exposeToGlobal() {
                 window.APP_VERSION = this.currentVersion;
-
-                // 为其他页面提供获取版本的方法
                 window.getAppVersion = () => this.currentVersion;
 
                 // 发送自定义事件通知版本已准备好
@@ -744,6 +682,31 @@
                 }));
 
                 console.log(`17Tools 当前版本: ${this.currentVersion}`);
+            }
+
+            // 初始化滚动动画
+            initAnimations() {
+                const observerOptions = {
+                    root: null,
+                    rootMargin: '0px',
+                    threshold: 0.1
+                };
+
+                const observer = new IntersectionObserver((entries, observer) => {
+                    entries.forEach((entry, index) => {
+                        if (entry.isIntersecting) {
+                            // 添加少量延迟，创造交错效果
+                            setTimeout(() => {
+                                entry.target.classList.add('visible');
+                            }, index * 50); // 这里的index其实不太准确，因为entries只包含变化的元素，但这也能产生不错的效果
+
+                            observer.unobserve(entry.target);
+                        }
+                    });
+                }, observerOptions);
+
+                const entries = document.querySelectorAll('.version-entry');
+                entries.forEach(entry => observer.observe(entry));
             }
         }
 

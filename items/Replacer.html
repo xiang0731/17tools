@@ -8,6 +8,47 @@
     <link rel="stylesheet" href="../css/theme.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
+        :root {
+            /* Fallback colors if theme.css is missing or incomplete */
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+            --spacing-xl: 32px;
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-full: 9999px;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+            --transition-fast: 0.2s ease;
+            --font-mono: 'Menlo', 'Monaco', 'Courier New', monospace;
+
+            --error-color: #ff4d4f;
+            --warning-color: #faad14;
+            --success-color: #52c41a;
+        }
+
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-tertiary);
+        }
+
         body {
             min-height: 100vh;
             padding: var(--spacing-lg);
@@ -20,6 +61,7 @@
             margin: 0 auto;
             display: grid;
             gap: var(--spacing-lg);
+            padding-bottom: var(--spacing-xl);
         }
 
         /* 标题样式 */
@@ -48,6 +90,12 @@
             border-radius: var(--radius-lg);
             padding: var(--spacing-lg);
             box-shadow: var(--shadow-sm);
+            transition: box-shadow var(--transition-fast);
+        }
+
+        .input-container:focus-within {
+            box-shadow: var(--shadow-md);
+            border-color: var(--border-focus);
         }
 
         .input-header {
@@ -130,6 +178,7 @@
             display: flex;
             gap: var(--spacing-xs);
             align-items: stretch;
+            position: relative;
         }
 
         .input-with-dropdown input[type="text"] {
@@ -169,11 +218,16 @@
             align-items: center;
             gap: var(--spacing-xs);
             white-space: nowrap;
+            height: 100%;
         }
 
         .dropdown-btn:hover {
             background: var(--primary-hover);
             transform: translateY(-1px);
+        }
+
+        .dropdown-btn:active {
+            transform: translateY(0);
         }
 
         .dropdown-menu {
@@ -184,16 +238,20 @@
             border: 1px solid var(--border-color);
             border-radius: var(--radius-md);
             box-shadow: var(--shadow-lg);
-            min-width: 200px;
+            min-width: 220px;
             max-height: 300px;
             overflow-y: auto;
             z-index: 1000;
             display: none;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
         }
 
         .dropdown-menu.show {
             display: block;
-            animation: fadeIn 0.2s ease;
+            opacity: 1;
+            transform: translateY(0);
         }
 
         .dropdown-item {
@@ -225,6 +283,9 @@
             color: var(--text-tertiary);
             font-size: 12px;
             font-family: var(--font-mono);
+            background: var(--background-tertiary);
+            padding: 2px 6px;
+            border-radius: 4px;
         }
 
         /* 按钮样式 */
@@ -234,9 +295,8 @@
             flex-wrap: wrap;
         }
 
-        .btn-replace {
-            background: var(--primary-color);
-            color: var(--text-inverse);
+        /* 通用按钮基础样式 */
+        .btn {
             border: none;
             padding: var(--spacing-md) var(--spacing-lg);
             border-radius: var(--radius-md);
@@ -247,33 +307,36 @@
             display: flex;
             align-items: center;
             gap: var(--spacing-sm);
+            user-select: none;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-replace {
+            background: var(--primary-color);
+            color: var(--text-inverse);
         }
 
         .btn-replace:hover {
             background: var(--primary-hover);
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
         }
 
         .btn-secondary {
             background: var(--background-primary);
             color: var(--text-primary);
             border: 1px solid var(--border-color);
-            padding: var(--spacing-md) var(--spacing-lg);
-            border-radius: var(--radius-md);
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all var(--transition-fast);
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-sm);
         }
 
         .btn-secondary:hover {
             background: var(--background-hover);
-            transform: translateY(-1px);
-            box-shadow: var(--shadow-sm);
         }
 
         /* 结果显示区域 */
@@ -284,6 +347,8 @@
             border-radius: var(--radius-lg);
             padding: var(--spacing-lg);
             box-shadow: var(--shadow-sm);
+            position: relative;
+            overflow: hidden;
         }
 
         .result-header {
@@ -313,10 +378,13 @@
             display: flex;
             align-items: center;
             gap: var(--spacing-xs);
+            background: var(--background-tertiary);
+            padding: 4px 12px;
+            border-radius: var(--radius-full);
         }
 
         .stat-value {
-            font-weight: 600;
+            font-weight: 700;
             color: var(--primary-color);
         }
 
@@ -351,14 +419,14 @@
         .history-count {
             background: var(--primary-light);
             color: var(--primary-color);
-            padding: 2px var(--spacing-sm);
+            padding: 2px 8px;
             border-radius: var(--radius-full);
             font-size: 12px;
-            font-weight: 500;
+            font-weight: 600;
         }
 
         .history-content {
-            max-height: 300px;
+            max-height: 400px;
             overflow-y: auto;
             padding: var(--spacing-md);
         }
@@ -367,7 +435,15 @@
             text-align: center;
             color: var(--text-tertiary);
             padding: var(--spacing-xl);
-            font-style: italic;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .history-empty i {
+            font-size: 24px;
+            opacity: 0.5;
         }
 
         .history-item {
@@ -377,11 +453,13 @@
             padding: var(--spacing-md);
             margin-bottom: var(--spacing-sm);
             transition: all var(--transition-fast);
+            position: relative;
         }
 
         .history-item:hover {
-            background: var(--background-hover);
-            transform: translateX(4px);
+            border-color: var(--primary-light);
+            box-shadow: var(--shadow-sm);
+            transform: translateX(2px);
         }
 
         .history-item:last-child {
@@ -391,39 +469,75 @@
         .history-meta {
             font-size: 12px;
             color: var(--text-tertiary);
-            margin-bottom: var(--spacing-xs);
+            margin-bottom: var(--spacing-sm);
             display: flex;
             align-items: center;
-            gap: var(--spacing-sm);
+            justify-content: space-between;
+        }
+
+        .history-badge {
+            background: var(--background-tertiary);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: var(--font-mono);
         }
 
         .history-operation {
             font-size: 14px;
             color: var(--text-secondary);
-            margin-bottom: var(--spacing-xs);
+            margin-bottom: var(--spacing-md);
             font-family: var(--font-mono);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            background: var(--background-tertiary);
+            padding: var(--spacing-sm);
+            border-radius: var(--radius-sm);
+            overflow-x: auto;
+        }
+
+        .history-arrow {
+            color: var(--text-tertiary);
         }
 
         .history-actions {
             display: flex;
             gap: var(--spacing-sm);
-            margin-top: var(--spacing-sm);
+            justify-content: flex-end;
         }
 
         .btn-restore {
             background: var(--success-color);
-            color: var(--text-inverse);
+            color: white;
             border: none;
-            padding: var(--spacing-xs) var(--spacing-sm);
+            padding: 4px 12px;
             border-radius: var(--radius-sm);
             font-size: 12px;
             cursor: pointer;
             transition: all var(--transition-fast);
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .btn-restore:hover {
-            background: var(--accent-hover);
-            transform: translateY(-1px);
+            filter: brightness(1.1);
+        }
+
+        .btn-delete-history {
+            background: transparent;
+            color: var(--text-tertiary);
+            border: 1px solid var(--border-light);
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .btn-delete-history:hover {
+            color: var(--error-color);
+            border-color: var(--error-color);
+            background: rgba(255, 77, 79, 0.1);
         }
 
         /* 响应式设计 */
@@ -438,10 +552,16 @@
 
             h1 {
                 font-size: 24px;
+                margin-bottom: var(--spacing-lg);
             }
 
             .button-container {
                 flex-direction: column;
+            }
+
+            .button-container .btn {
+                width: 100%;
+                justify-content: center;
             }
 
             .result-header {
@@ -452,20 +572,99 @@
 
             .result-stats {
                 flex-wrap: wrap;
+                width: 100%;
             }
 
-            .dropdown-btn {
-                padding: var(--spacing-sm);
-                font-size: 12px;
-            }
-
-            .dropdown-btn span {
-                display: none;
+            .stat-item {
+                flex: 1;
+                justify-content: center;
             }
 
             .dropdown-menu {
                 right: auto;
                 left: 0;
+                width: 100%;
+            }
+        }
+
+        /* Toast Notification Styles */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: var(--background-secondary);
+            color: var(--text-primary);
+            padding: 12px 24px;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 280px;
+            max-width: 90vw;
+            animation: toastSlideDown 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            pointer-events: auto;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .toast.success {
+            border-left-color: var(--success-color);
+        }
+
+        .toast.error {
+            border-left-color: var(--error-color);
+        }
+
+        .toast.warning {
+            border-left-color: var(--warning-color);
+        }
+
+        .toast-icon {
+            font-size: 18px;
+        }
+
+        .toast.success .toast-icon {
+            color: var(--success-color);
+        }
+
+        .toast.error .toast-icon {
+            color: var(--error-color);
+        }
+
+        .toast.warning .toast-icon {
+            color: var(--warning-color);
+        }
+
+        .toast-message {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        @keyframes toastSlideDown {
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes toastFadeOut {
+            to {
+                opacity: 0;
+                transform: translateY(-20px);
             }
         }
 
@@ -488,20 +687,18 @@
 
         /* 成功提示动画 */
         .success-flash {
-            animation: successFlash 0.5s ease;
+            animation: successFlash 0.6s ease;
         }
 
         @keyframes successFlash {
             0% {
-                background-color: var(--background-secondary);
-            }
-
-            50% {
-                background-color: var(--success-color);
+                border-color: var(--success-color);
+                box-shadow: 0 0 0 4px rgba(82, 196, 26, 0.2);
             }
 
             100% {
-                background-color: var(--background-secondary);
+                border-color: var(--border-color);
+                box-shadow: var(--shadow-sm);
             }
         }
     </style>
@@ -523,15 +720,15 @@
                 </div>
                 <textarea id="originalText" placeholder="请在此输入需要处理的原始文本..."></textarea>
                 <div class="button-container">
-                    <button class="btn-secondary" onclick="copyToClipboard('originalText')">
+                    <button class="btn btn-secondary" onclick="copyToClipboard('originalText')">
                         <i class="fas fa-copy"></i>
                         复制
                     </button>
-                    <button class="btn-secondary" onclick="pasteFromClipboard('originalText')">
+                    <button class="btn btn-secondary" onclick="pasteFromClipboard('originalText')">
                         <i class="fas fa-paste"></i>
                         粘贴
                     </button>
-                    <button class="btn-secondary" onclick="clearText('originalText')">
+                    <button class="btn btn-secondary" onclick="clearText('originalText')">
                         <i class="fas fa-trash"></i>
                         清空
                     </button>
@@ -554,7 +751,7 @@
                     <div class="input-with-dropdown">
                         <input type="text" id="searchText" placeholder="输入要查找的文本...">
                         <div class="special-char-dropdown">
-                            <button class="dropdown-btn" onclick="toggleDropdown('search')">
+                            <button class="dropdown-btn" onclick="toggleDropdown('search', event)">
                                 <i class="fas fa-magic"></i>
                                 特殊字符
                             </button>
@@ -572,7 +769,7 @@
                     <div class="input-with-dropdown">
                         <input type="text" id="replaceText" placeholder="输入替换后的文本...">
                         <div class="special-char-dropdown">
-                            <button class="dropdown-btn" onclick="toggleDropdown('replace')">
+                            <button class="dropdown-btn" onclick="toggleDropdown('replace', event)">
                                 <i class="fas fa-magic"></i>
                                 特殊字符
                             </button>
@@ -584,11 +781,11 @@
                 </div>
             </div>
             <div class="button-container">
-                <button class="btn-replace" onclick="performReplace()">
+                <button class="btn btn-replace" onclick="performReplace()">
                     <i class="fas fa-exchange-alt"></i>
                     执行替换
                 </button>
-                <button class="btn-secondary" onclick="clearReplaceInputs()">
+                <button class="btn btn-secondary" onclick="clearReplaceInputs()">
                     <i class="fas fa-eraser"></i>
                     清空输入
                 </button>
@@ -615,11 +812,11 @@
             </div>
             <textarea id="resultText" placeholder="替换结果将在此显示..." readonly></textarea>
             <div class="button-container">
-                <button class="btn-secondary" onclick="copyToClipboard('resultText')">
+                <button class="btn btn-secondary" onclick="copyToClipboard('resultText')">
                     <i class="fas fa-copy"></i>
                     复制结果
                 </button>
-                <button class="btn-secondary" onclick="saveToHistory()">
+                <button class="btn btn-secondary" onclick="saveToHistoryManual()">
                     <i class="fas fa-save"></i>
                     保存到历史
                 </button>
@@ -634,7 +831,7 @@
                     操作历史
                     <span class="history-count" id="historyCount">0</span>
                 </h3>
-                <button class="btn-secondary" onclick="clearHistory()">
+                <button class="btn btn-secondary" onclick="clearHistory()">
                     <i class="fas fa-trash"></i>
                     清空历史
                 </button>
@@ -642,17 +839,22 @@
             <div class="history-content">
                 <div id="historyList">
                     <div class="history-empty">
-                        <i class="fas fa-clock"></i><br>
-                        暂无操作历史
+                        <i class="fas fa-clock"></i>
+                        <span>暂无操作历史</span>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
     <script src="../js/theme.js"></script>
     <script>
+        // 历史记录数据
         let historyData = [];
+        const HISTORY_STORAGE_KEY = 'text_replacer_history_v1';
 
         // 特殊字符列表
         const specialChars = [
@@ -672,11 +874,7 @@
             const replaceDropdown = document.getElementById('replaceDropdown');
 
             const menuHTML = specialChars.map(char => {
-                // 对value进行转义，避免在HTML属性中出现问题
-                const escapedValue = char.value
-                    .replace(/\\/g, '\\\\')
-                    .replace(/'/g, "\\'");
-
+                const escapedValue = char.value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
                 return `
                     <div class="dropdown-item" onclick="insertSpecialChar('${escapedValue}', event)">
                         <span class="dropdown-item-label">${char.label}</span>
@@ -690,8 +888,12 @@
         }
 
         // 切换下拉菜单
-        function toggleDropdown(type) {
-            event.stopPropagation();
+        function toggleDropdown(type, event) {
+            if (event) {
+                event.stopPropagation();
+                event.preventDefault(); // 防止可能的表单提交
+            }
+
             const dropdownId = type === 'search' ? 'searchDropdown' : 'replaceDropdown';
             const dropdown = document.getElementById(dropdownId);
             const otherDropdownId = type === 'search' ? 'replaceDropdown' : 'searchDropdown';
@@ -701,7 +903,12 @@
             otherDropdown.classList.remove('show');
 
             // 切换当前下拉菜单
-            dropdown.classList.toggle('show');
+            const isShown = dropdown.classList.contains('show');
+            if (isShown) {
+                dropdown.classList.remove('show');
+            } else {
+                dropdown.classList.add('show');
+            }
         }
 
         // 插入特殊字符
@@ -710,12 +917,17 @@
 
             // 确定目标输入框
             const dropdown = event.target.closest('.dropdown-menu');
+            if (!dropdown) return;
+
             const inputGroup = dropdown.closest('.input-group');
+            if (!inputGroup) return;
+
             const input = inputGroup.querySelector('input[type="text"]');
+            if (!input) return;
 
             // 获取当前光标位置
-            const start = input.selectionStart;
-            const end = input.selectionEnd;
+            const start = input.selectionStart || 0;
+            const end = input.selectionEnd || 0;
             const currentValue = input.value;
 
             // 在光标位置插入特殊字符
@@ -732,22 +944,14 @@
             dropdown.classList.remove('show');
         }
 
-        // 点击页面其他地方关闭下拉菜单
-        document.addEventListener('click', function (event) {
-            if (!event.target.closest('.special-char-dropdown')) {
-                document.querySelectorAll('.dropdown-menu').forEach(menu => {
-                    menu.classList.remove('show');
-                });
-            }
-        });
-
         // 处理特殊字符转换
         function processSpecialChars(text) {
+            // 修正后的处理顺序：先处理反斜杠转义，再处理其他转义
             return text
+                .replace(/\\\\/g, '\0')     // 先将双反斜杠临时标记，避免干扰
                 .replace(/\\n/g, '\n')      // 换行符
                 .replace(/\\t/g, '\t')      // 制表符
                 .replace(/\\r/g, '\r')      // 回车符
-                .replace(/\\\\/g, '\0')     // 临时标记反斜杠
                 .replace(/\0/g, '\\');      // 恢复反斜杠
         }
 
@@ -757,36 +961,54 @@
             let searchText = document.getElementById('searchText').value;
             let replaceText = document.getElementById('replaceText').value;
 
-            if (!originalText.trim()) {
-                alert('请先输入原始文本！');
+            if (!originalText) {
+                showToast('请先输入原始文本！', 'error');
+                document.getElementById('originalText').focus();
                 return;
             }
 
-            if (searchText === '' && searchText !== ' ') {
-                alert('请输入要查找的文本！');
+            if (searchText === '') {
+                showToast('请输入要查找的文本！', 'warning');
+                document.getElementById('searchText').focus();
                 return;
             }
 
-            // 处理特殊字符
-            searchText = processSpecialChars(searchText);
-            replaceText = processSpecialChars(replaceText);
+            try {
+                // 处理特殊字符
+                const processedSearchText = processSpecialChars(searchText);
+                const processedReplaceText = processSpecialChars(replaceText);
 
-            // 执行替换
-            const regex = new RegExp(escapeRegExp(searchText), 'g');
-            const matches = originalText.match(regex) || [];
-            const resultText = originalText.replace(regex, replaceText);
+                // 执行替换
+                const regex = new RegExp(escapeRegExp(processedSearchText), 'g');
+                const matches = originalText.match(regex) || [];
 
-            // 更新结果
-            document.getElementById('resultText').value = resultText;
-            document.getElementById('foundCount').textContent = matches.length;
-            document.getElementById('replaceCount').textContent = matches.length;
+                if (matches.length === 0) {
+                    showToast('未找到匹配的文本', 'warning');
+                    return;
+                }
 
-            // 添加成功提示动画
-            const resultSection = document.querySelector('.result-section');
-            resultSection.classList.add('success-flash');
-            setTimeout(() => {
+                const resultText = originalText.replace(regex, processedReplaceText);
+
+                // 更新结果
+                document.getElementById('resultText').value = resultText;
+                document.getElementById('foundCount').textContent = matches.length;
+                document.getElementById('replaceCount').textContent = matches.length;
+
+                // 添加成功提示动画
+                const resultSection = document.querySelector('.result-section');
                 resultSection.classList.remove('success-flash');
-            }, 500);
+                void resultSection.offsetWidth; // Trigger reflow
+                resultSection.classList.add('success-flash');
+
+                showToast(`成功替换 ${matches.length} 处文本`, 'success');
+
+                // 自动保存到历史（如果不重复）
+                saveToHistory(originalText, searchText, replaceText, resultText, matches.length, false);
+
+            } catch (error) {
+                console.error('Replacement error:', error);
+                showToast('替换过程中发生错误', 'error');
+            }
         }
 
         // 转义正则表达式特殊字符
@@ -797,19 +1019,19 @@
         // 复制到剪贴板
         async function copyToClipboard(textareaId) {
             const textarea = document.getElementById(textareaId);
-            if (!textarea.value.trim()) {
-                alert('没有内容可以复制！');
+            if (!textarea.value) {
+                showToast('没有内容可以复制', 'warning');
                 return;
             }
 
             try {
                 await navigator.clipboard.writeText(textarea.value);
-                showSuccessMessage('复制成功！');
+                showToast('已复制到剪贴板', 'success');
             } catch (err) {
                 // 降级处理
                 textarea.select();
                 document.execCommand('copy');
-                showSuccessMessage('复制成功！');
+                showToast('已复制到剪贴板', 'success');
             }
         }
 
@@ -818,15 +1040,22 @@
             try {
                 const text = await navigator.clipboard.readText();
                 document.getElementById(textareaId).value = text;
-                showSuccessMessage('粘贴成功！');
+                showToast('粘贴成功', 'success');
             } catch (err) {
-                alert('无法访问剪贴板，请手动粘贴！');
+                showToast('无法访问剪贴板，请手动粘贴', 'error');
             }
         }
 
         // 清空文本
         function clearText(textareaId) {
-            document.getElementById(textareaId).value = '';
+            if (confirm('确定要清空文本吗？')) {
+                document.getElementById(textareaId).value = '';
+                if (textareaId === 'originalText') {
+                    document.getElementById('resultText').value = '';
+                    document.getElementById('foundCount').textContent = '0';
+                    document.getElementById('replaceCount').textContent = '0';
+                }
+            }
         }
 
         // 清空替换输入
@@ -835,31 +1064,79 @@
             document.getElementById('replaceText').value = '';
         }
 
-        // 保存到历史记录
-        function saveToHistory() {
+        // 手动保存到历史
+        function saveToHistoryManual() {
             const originalText = document.getElementById('originalText').value;
             const searchText = document.getElementById('searchText').value;
             const replaceText = document.getElementById('replaceText').value;
             const resultText = document.getElementById('resultText').value;
+            const count = document.getElementById('replaceCount').textContent;
 
-            if (!originalText.trim() || !searchText.trim() || !resultText.trim()) {
-                alert('请先执行一次有效的替换操作！');
+            if (!resultText) {
+                showToast('暂无替换结果可保存', 'warning');
                 return;
+            }
+
+            saveToHistory(originalText, searchText, replaceText, resultText, count, true);
+        }
+
+        // 保存到历史记录核心逻辑
+        function saveToHistory(original, search, replace, result, count, isManual) {
+            // 避免重复保存最新的一条
+            if (historyData.length > 0) {
+                const latest = historyData[0];
+                if (latest.originalText === original &&
+                    latest.searchText === search &&
+                    latest.replaceText === replace) {
+                    if (isManual) showToast('该记录已存在于历史记录中', 'warning');
+                    return;
+                }
             }
 
             const historyItem = {
                 id: Date.now(),
                 timestamp: new Date().toLocaleString(),
-                originalText: originalText,
-                searchText: searchText,
-                replaceText: replaceText,
-                resultText: resultText,
-                replaceCount: document.getElementById('replaceCount').textContent
+                originalText: original,
+                searchText: search,
+                replaceText: replace,
+                resultText: result,
+                replaceCount: count
             };
 
             historyData.unshift(historyItem);
+            // 限制历史记录数量为 50 条
+            if (historyData.length > 50) {
+                historyData.pop();
+            }
+
+            saveHistoryToStorage();
             updateHistoryDisplay();
-            showSuccessMessage('已保存到历史记录！');
+
+            if (isManual) {
+                showToast('已保存到历史记录', 'success');
+            }
+        }
+
+        // 从本地存储加载历史
+        function loadHistoryFromStorage() {
+            try {
+                const stored = localStorage.getItem(HISTORY_STORAGE_KEY);
+                if (stored) {
+                    historyData = JSON.parse(stored);
+                    updateHistoryDisplay();
+                }
+            } catch (e) {
+                console.error('Failed to load history', e);
+            }
+        }
+
+        // 保存历史到本地存储
+        function saveHistoryToStorage() {
+            try {
+                localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(historyData));
+            } catch (e) {
+                console.error('Failed to save history', e);
+            }
         }
 
         // 更新历史记录显示
@@ -872,8 +1149,8 @@
             if (historyData.length === 0) {
                 historyList.innerHTML = `
                     <div class="history-empty">
-                        <i class="fas fa-clock"></i><br>
-                        暂无操作历史
+                        <i class="fas fa-clock"></i>
+                        <span>暂无操作历史</span>
                     </div>
                 `;
                 return;
@@ -882,24 +1159,34 @@
             historyList.innerHTML = historyData.map(item => `
                 <div class="history-item">
                     <div class="history-meta">
-                        <i class="fas fa-clock"></i>
-                        ${item.timestamp}
-                        <span style="margin-left: auto;">
-                            <i class="fas fa-exchange-alt"></i>
-                            替换了 ${item.replaceCount} 处
+                        <span><i class="fas fa-clock"></i> ${item.timestamp}</span>
+                        <span class="history-badge">
+                            替换 ${item.replaceCount} 处
                         </span>
                     </div>
                     <div class="history-operation">
-                        "${item.searchText}" → "${item.replaceText}"
+                        <span style="font-weight:600; color:var(--text-primary)">"${escapeHtml(item.searchText)}"</span>
+                        <i class="fas fa-arrow-right history-arrow"></i>
+                        <span style="font-weight:600; color:var(--success-color)">"${escapeHtml(item.replaceText)}"</span>
                     </div>
                     <div class="history-actions">
                         <button class="btn-restore" onclick="restoreFromHistory(${item.id})">
                             <i class="fas fa-undo"></i>
                             恢复
                         </button>
+                        <button class="btn-delete-history" onclick="deleteHistoryItem(${item.id})">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
                 </div>
             `).join('');
+        }
+
+        // HTML 转义防止 XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         // 从历史记录恢复
@@ -914,30 +1201,72 @@
             document.getElementById('foundCount').textContent = item.replaceCount;
             document.getElementById('replaceCount').textContent = item.replaceCount;
 
-            showSuccessMessage('已恢复历史记录！');
+            showToast('已恢复历史记录', 'success');
+
+            // 滚动到顶部
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // 删除单条历史
+        function deleteHistoryItem(id) {
+            if (confirm('确定要删除这条记录吗？')) {
+                historyData = historyData.filter(item => item.id !== id);
+                saveHistoryToStorage();
+                updateHistoryDisplay();
+            }
         }
 
         // 清空历史记录
         function clearHistory() {
             if (historyData.length === 0) return;
 
-            if (confirm('确定要清空所有历史记录吗？')) {
+            if (confirm('确定要清空所有历史记录吗？此操作无法撤销。')) {
                 historyData = [];
+                saveHistoryToStorage();
                 updateHistoryDisplay();
-                showSuccessMessage('历史记录已清空！');
+                showToast('历史记录已清空', 'success');
             }
         }
 
-        // 显示成功消息
-        function showSuccessMessage(message) {
-            // 可以扩展为更好的消息提示系统
-            console.log(message);
+        // Toast 提示系统
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+
+            // 图标映射
+            const icons = {
+                success: 'fa-check-circle',
+                error: 'fa-exclamation-circle',
+                warning: 'fa-exclamation-triangle',
+                info: 'fa-info-circle'
+            };
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <i class="fas ${icons[type] || icons.info} toast-icon"></i>
+                <span class="toast-message">${message}</span>
+            `;
+
+            container.appendChild(toast);
+
+            // 3秒后自动移除
+            setTimeout(() => {
+                toast.style.animation = 'toastFadeOut 0.3s forwards';
+                setTimeout(() => {
+                    if (toast.parentElement) {
+                        toast.parentElement.removeChild(toast);
+                    }
+                }, 300);
+            }, 3000);
         }
 
         // 页面加载完成后初始化
         document.addEventListener('DOMContentLoaded', function () {
             // 初始化下拉菜单
             initDropdowns();
+
+            // 加载历史记录
+            loadHistoryFromStorage();
 
             // 绑定回车键执行替换
             document.getElementById('replaceText').addEventListener('keypress', function (e) {
@@ -949,6 +1278,15 @@
             document.getElementById('searchText').addEventListener('keypress', function (e) {
                 if (e.key === 'Enter') {
                     performReplace();
+                }
+            });
+
+            // 点击外部关闭下拉菜单
+            document.addEventListener('click', function (event) {
+                if (!event.target.closest('.special-char-dropdown')) {
+                    document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                        menu.classList.remove('show');
+                    });
                 }
             });
         });

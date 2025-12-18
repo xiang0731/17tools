@@ -569,7 +569,7 @@
                     <div class="language-controls">
                         <label class="language-label" for="language">
                             <i class="fas fa-cog"></i>
-                            语言选择:
+                            语言:
                         </label>
                         <select id="language">
                             <option value="auto" selected>🤖 自动检测</option>
@@ -599,17 +599,17 @@
                         </div>
                     </div>
                     <div class="action-buttons">
-                        <button id="copy-input-btn" class="action-button btn-secondary">
+                        <button id="clear-btn" class="action-button btn-danger" title="清空内容">
+                            <i class="fas fa-trash"></i>
+                            清空
+                        </button>
+                        <button id="copy-input-btn" class="action-button btn-secondary" title="复制内容">
                             <i class="fas fa-copy"></i>
                             复制
                         </button>
-                        <button id="download-input-btn" class="action-button btn-secondary">
+                        <button id="download-input-btn" class="action-button btn-secondary" title="下载文件">
                             <i class="fas fa-download"></i>
                             下载
-                        </button>
-                        <button id="clear-btn" class="action-button btn-danger">
-                            <i class="fas fa-trash"></i>
-                            清空
                         </button>
                     </div>
                 </div>
@@ -628,21 +628,23 @@
             <div class="code-area">
                 <div class="code-header">
                     <i class="fas fa-magic"></i>
-                    格式化结果（首次自动格式化）
+                    格式化结果
                 </div>
                 <div class="language-selector">
-                    <div class="action-buttons" style="width: 100%; justify-content: center;">
-                        <button id="format-btn" class="action-button btn-primary">
+                    <div class="language-controls">
+                        <button id="format-btn" class="action-button btn-primary" style="min-width: 120px;">
                             <i class="fas fa-magic"></i>
                             格式化代码
                         </button>
-                        <button id="copy-btn" class="action-button btn-success">
+                    </div>
+                    <div class="action-buttons">
+                        <button id="copy-btn" class="action-button btn-secondary" title="复制结果">
                             <i class="fas fa-copy"></i>
-                            复制结果
+                            复制
                         </button>
-                        <button id="download-btn" class="action-button btn-info">
+                        <button id="download-btn" class="action-button btn-secondary" title="下载结果">
                             <i class="fas fa-download"></i>
-                            下载结果
+                            下载
                         </button>
                     </div>
                 </div>

@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>智能白板 - 17Tools</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -43,6 +43,7 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
@@ -52,6 +53,8 @@
             transition: background-color 0.3s ease, color 0.3s ease;
             overflow: hidden;
             height: 100vh;
+            overscroll-behavior: none;
+            /* 防止橡皮筋效果 */
         }
 
         .board-container {
@@ -71,6 +74,7 @@
             align-items: center;
             gap: 16px;
             flex-wrap: wrap;
+            /* 默认允许换行 */
             box-shadow: var(--shadow-light);
             z-index: 100;
             position: relative;
@@ -88,6 +92,8 @@
             /* 为了让子元素的 absolute 定位正确 */
             overflow: visible;
             /* 确保 tooltip 不被裁剪 */
+            z-index: 1;
+            /* 保证内部元素层级正常 */
         }
 
         .toolbar-group:last-child {
@@ -120,6 +126,15 @@
             border-color: var(--primary-color);
             transform: translateY(-1px);
             box-shadow: var(--shadow-medium);
+            z-index: 1000;
+            /* 悬停时提高层级，防止tooltip被遮挡 */
+        }
+
+        /* 解决多行工具栏 tooltip 遮挡问题的通用方案：
+           强制 tooltip 在层级最高，并且根据位置智能调整（这里通过 z-index 暴力解决） */
+        .toolbar-group:hover {
+            z-index: 1001;
+            /* 确保整组都在上层 */
         }
 
         .tool-btn.active {
@@ -136,11 +151,24 @@
             cursor: pointer;
             transition: all 0.2s ease;
             box-shadow: var(--shadow-light);
+            padding: 0;
+            background: none;
         }
 
         .color-picker:hover {
             transform: scale(1.1);
             box-shadow: var(--shadow-medium);
+            z-index: 1000;
+        }
+
+        /* 优化颜色选择器外观 */
+        .color-picker::-webkit-color-swatch-wrapper {
+            padding: 2px;
+        }
+
+        .color-picker::-webkit-color-swatch {
+            border: none;
+            border-radius: 3px;
         }
 
         .preset-color {
@@ -158,6 +186,7 @@
             transform: scale(1.15);
             box-shadow: var(--shadow-medium);
             border-color: var(--primary-color);
+            z-index: 1000;
         }
 
         .preset-color:active {
@@ -171,6 +200,24 @@
             background: var(--background-tertiary);
             outline: none;
             cursor: pointer;
+            -webkit-appearance: none;
+            /* 移除默认样式 */
+        }
+
+        .size-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            cursor: pointer;
+            border: 2px solid var(--background-primary);
+            box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
+            transition: transform 0.1s;
+        }
+
+        .size-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
         }
 
         /* 画布容器 */
@@ -179,6 +226,8 @@
             position: relative;
             overflow: hidden;
             background: var(--background-primary);
+            touch-action: none;
+            /* 禁止触摸时的默认滚动行为 */
         }
 
         .canvas-wrapper {
@@ -188,6 +237,8 @@
             width: 100%;
             height: 100%;
             cursor: crosshair;
+            transform-origin: 0 0;
+            /* 缩放原点 */
         }
 
         #drawingCanvas {
@@ -209,6 +260,8 @@
                 radial-gradient(circle, var(--border-color) 1px, transparent 1px);
             background-size: 20px 20px;
             opacity: 0.5;
+            pointer-events: none;
+            /* 穿透背景 */
         }
 
         /* 状态栏 */
@@ -221,6 +274,7 @@
             justify-content: space-between;
             font-size: 12px;
             color: var(--text-secondary);
+            z-index: 100;
         }
 
         .status-info {
@@ -229,16 +283,33 @@
             gap: 16px;
         }
 
+        .status-action {
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .status-action:hover {
+            background-color: var(--background-tertiary);
+            color: var(--text-primary);
+        }
+
         /* 响应式设计 */
         @media (max-width: 768px) {
             .toolbar {
                 padding: 8px 12px;
                 gap: 12px;
+                flex-wrap: wrap;
+                /* 允许换行 */
+                height: auto;
+                /* 高度自适应 */
             }
 
             .toolbar-group {
                 gap: 6px;
                 padding: 0 6px;
+                flex-shrink: 0;
             }
 
             .tool-btn {
@@ -250,7 +321,24 @@
             .size-slider {
                 width: 80px;
             }
+
+            /* Tooltip 智能定位：
+               利用 CSS 选择器，当按钮在第二行时（可以通过父容器的高度或位置推断，
+               但纯 CSS 较难完美检测换行。这里我们采用一种折中方案：
+               强制 tooltip 具有非常高的层级，并给下方的空间留出余地）
+            */
+
+            /* 第一排的 tooltip 正常显示在下方 */
+
+            /* 如果我们能检测到换行就好，但在纯CSS中很难。
+               既然用户不想要底部工具栏，那我们保持顶部布局。
+               为了解决遮挡，最简单的方法是让所有 tooltip 默认显示在下方，
+               但给予极高的 z-index，并且给下一行元素留出穿透空间。
+            */
+
+            /* 强制提升 hover 状态下的 z-index，已在通用样式中添加 .toolbar-group:hover */
         }
+
 
         /* 工具提示 - 显示在按钮下方 */
         .tooltip {
@@ -276,7 +364,8 @@
             visibility: hidden;
             pointer-events: none;
             transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
-            z-index: 99999;
+            z-index: 999999;
+            /* 提高层级 */
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
             line-height: 1.4;
         }
@@ -296,7 +385,10 @@
             visibility: hidden;
             pointer-events: none;
             transition: opacity 0.2s ease, visibility 0.2s ease;
-            z-index: 99999;
+            z-index: 999999;
+            /* 提高层级 */
+            box-shadow: none;
+            /* 修复阴影问题 */
         }
 
         .tooltip:hover::before,
@@ -359,6 +451,26 @@
         ::-webkit-scrollbar-thumb:hover {
             background: var(--text-secondary);
         }
+
+        /* 槽位按钮 */
+        .slot-btn {
+            font-family: monospace;
+            font-weight: bold;
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            border-radius: 4px;
+        }
+
+        .slot-btn.active-slot {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            color: white;
+        }
+
+        .slot-btn:hover:not(.active-slot) {
+            background-color: var(--background-tertiary);
+        }
     </style>
 </head>
 
@@ -367,19 +479,22 @@
         <!-- 工具栏 -->
         <div class="toolbar">
             <div class="toolbar-group">
-                <button class="tool-btn active tooltip" id="pen-tool" data-tooltip="画笔工具">
+                <button class="tool-btn active tooltip" id="pen-tool" data-tooltip="画笔工具 (P)">
                     <i class="fas fa-pen"></i>
                 </button>
-                <button class="tool-btn tooltip" id="eraser-tool" data-tooltip="橡皮擦">
+                <button class="tool-btn tooltip" id="eraser-tool" data-tooltip="橡皮擦 (E)">
                     <i class="fas fa-eraser"></i>
                 </button>
-                <button class="tool-btn tooltip" id="line-tool" data-tooltip="直线">
+                <button class="tool-btn tooltip" id="line-tool" data-tooltip="直线 (L)">
                     <i class="fas fa-minus"></i>
                 </button>
-                <button class="tool-btn tooltip" id="rectangle-tool" data-tooltip="矩形">
+                <button class="tool-btn tooltip" id="arrow-tool" data-tooltip="箭头 (A)">
+                    <i class="fas fa-long-arrow-alt-right"></i>
+                </button>
+                <button class="tool-btn tooltip" id="rectangle-tool" data-tooltip="矩形 (R)">
                     <i class="fas fa-square"></i>
                 </button>
-                <button class="tool-btn tooltip" id="circle-tool" data-tooltip="圆形">
+                <button class="tool-btn tooltip" id="circle-tool" data-tooltip="圆形 (C)">
                     <i class="fas fa-circle"></i>
                 </button>
             </div>
@@ -392,17 +507,18 @@
             </div>
 
             <div class="toolbar-group">
-                <label for="brush-size" style="font-size: 12px; color: var(--text-secondary);">粗细:</label>
-                <input type="range" class="size-slider" id="brush-size" min="1" max="20" value="2">
+                <label for="brush-size"
+                    style="font-size: 12px; color: var(--text-secondary); white-space: nowrap;">粗细:</label>
+                <input type="range" class="size-slider" id="brush-size" min="1" max="50" value="2">
                 <span id="size-display"
-                    style="font-size: 12px; color: var(--text-secondary); min-width: 20px;">2px</span>
+                    style="font-size: 12px; color: var(--text-secondary); min-width: 20px; text-align: right;">2px</span>
             </div>
 
             <div class="toolbar-group">
-                <button class="tool-btn tooltip" id="undo-btn" data-tooltip="撤销">
+                <button class="tool-btn tooltip" id="undo-btn" data-tooltip="撤销 (Ctrl+Z)">
                     <i class="fas fa-undo"></i>
                 </button>
-                <button class="tool-btn tooltip" id="redo-btn" data-tooltip="重做">
+                <button class="tool-btn tooltip" id="redo-btn" data-tooltip="重做 (Ctrl+Y)">
                     <i class="fas fa-redo"></i>
                 </button>
                 <button class="tool-btn tooltip" id="clear-btn" data-tooltip="清空画布">
@@ -411,20 +527,27 @@
             </div>
 
             <div class="toolbar-group">
-                <button class="tool-btn tooltip" id="save-btn" data-tooltip="保存">
+                <button class="tool-btn slot-btn active-slot tooltip" id="slot-1" data-slot="1"
+                    data-tooltip="临时存档 1">1</button>
+                <button class="tool-btn slot-btn tooltip" id="slot-2" data-slot="2" data-tooltip="临时存档 2">2</button>
+                <button class="tool-btn slot-btn tooltip" id="slot-3" data-slot="3" data-tooltip="临时存档 3">3</button>
+            </div>
+
+            <div class="toolbar-group">
+                <button class="tool-btn tooltip" id="save-btn" data-tooltip="保存文件 (Ctrl+S)">
                     <i class="fas fa-save"></i>
                 </button>
-                <button class="tool-btn tooltip" id="load-btn" data-tooltip="加载">
+                <button class="tool-btn tooltip" id="load-btn" data-tooltip="打开文件">
                     <i class="fas fa-folder-open"></i>
                 </button>
-                <button class="tool-btn tooltip" id="export-btn" data-tooltip="导出PNG">
+                <button class="tool-btn tooltip" id="export-btn" data-tooltip="导出图片">
                     <i class="fas fa-download"></i>
                 </button>
             </div>
         </div>
 
         <!-- 画布区域 -->
-        <div class="canvas-container">
+        <div class="canvas-container" id="canvas-container">
             <div class="canvas-background"></div>
             <div class="canvas-wrapper">
                 <canvas id="drawingCanvas"></canvas>
@@ -440,10 +563,11 @@
             <div class="status-info">
                 <span>工具: <span id="current-tool">画笔</span></span>
                 <span>坐标: (<span id="mouse-x">0</span>, <span id="mouse-y">0</span>)</span>
-                <span>缩放: <span id="zoom-level">100%</span></span>
+                <span class="status-action tooltip" id="reset-zoom" data-tooltip="点击重置缩放">缩放: <span
+                        id="zoom-level">100%</span></span>
             </div>
             <div class="status-info">
-
+                <span style="font-size: 10px; opacity: 0.7;">Shift+滚轮缩放</span>
             </div>
         </div>
     </div>
@@ -455,9 +579,15 @@
         class WhiteBoard {
             constructor() {
                 this.canvas = document.getElementById('drawingCanvas');
-                this.ctx = this.canvas.getContext('2d');
+                this.ctx = this.canvas.getContext('2d', { willReadFrequently: true }); // 优化Canvas读取性能
+                this.container = document.getElementById('canvas-container');
                 this.isDrawing = false;
                 this.currentTool = 'pen';
+
+                // 缩放相关
+                this.scale = 1;
+                this.minScale = 0.5;
+                this.maxScale = 3.0;
 
                 // 根据当前主题设置默认颜色
                 const currentTheme = document.documentElement.getAttribute('data-theme');
@@ -471,8 +601,10 @@
                 // 用于平滑绘制的点记录
                 this.lastX = 0;
                 this.lastY = 0;
-                this.lastLastX = 0;
-                this.lastLastY = 0;
+
+                // 性能优化：RAF
+                this.rafId = null;
+                this.mousePosUpdateScheduled = false;
 
                 // 颜色历史记录
                 this.colorHistory = ['#ff0000', '#00ff00', '#0000ff']; // 备用颜色
@@ -480,7 +612,15 @@
                 // 历史记录
                 this.history = [];
                 this.historyIndex = -1;
-                this.maxHistory = 50;
+                this.maxHistory = 20; // 减少历史记录限制以节省内存
+
+                // 多槽位支持
+                this.currentSlot = 1;
+                this.slots = {
+                    1: { history: [], index: -1, snapshot: null },
+                    2: { history: [], index: -1, snapshot: null },
+                    3: { history: [], index: -1, snapshot: null }
+                };
 
                 // 窗口调整防抖定时器
                 this.resizeTimeout = null;
@@ -549,10 +689,7 @@
                     const img = new Image();
                     img.onload = () => {
                         // 恢复图像到画布
-                        this.ctx.drawImage(img, 0, 0);
-                    };
-                    img.onerror = () => {
-                        console.warn('无法恢复画布内容');
+                        this.ctx.drawImage(img, 0, 0, newWidth, newHeight);
                     };
                     img.src = imageData;
                 }
@@ -571,6 +708,14 @@
                 document.querySelectorAll('.tool-btn[id$="-tool"]').forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         this.selectTool(e.target.closest('.tool-btn').id.replace('-tool', ''));
+                    });
+                });
+
+                // 槽位切换
+                document.querySelectorAll('.slot-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const slot = parseInt(e.target.closest('.slot-btn').dataset.slot);
+                        this.switchSlot(slot);
                     });
                 });
 
@@ -611,37 +756,59 @@
                 // 触摸事件支持
                 this.canvas.addEventListener('touchstart', (e) => {
                     e.preventDefault();
+                    if (e.touches.length > 1) return; // 忽略多点触控
                     const touch = e.touches[0];
                     const mouseEvent = new MouseEvent('mousedown', {
                         clientX: touch.clientX,
                         clientY: touch.clientY
                     });
                     this.canvas.dispatchEvent(mouseEvent);
-                });
+                }, { passive: false });
 
                 this.canvas.addEventListener('touchmove', (e) => {
                     e.preventDefault();
+                    if (e.touches.length > 1) return;
                     const touch = e.touches[0];
                     const mouseEvent = new MouseEvent('mousemove', {
                         clientX: touch.clientX,
                         clientY: touch.clientY
                     });
                     this.canvas.dispatchEvent(mouseEvent);
-                });
+                }, { passive: false });
 
                 this.canvas.addEventListener('touchend', (e) => {
                     e.preventDefault();
                     const mouseEvent = new MouseEvent('mouseup', {});
                     this.canvas.dispatchEvent(mouseEvent);
+                }, { passive: false });
+
+                // 鼠标位置跟踪 (使用 requestAnimationFrame 优化)
+                this.canvas.addEventListener('mousemove', (e) => {
+                    if (!this.mousePosUpdateScheduled) {
+                        this.mousePosUpdateScheduled = true;
+                        requestAnimationFrame(() => {
+                            const rect = this.canvas.getBoundingClientRect();
+                            const x = Math.round((e.clientX - rect.left) * (this.canvas.width / rect.width / window.devicePixelRatio));
+                            const y = Math.round((e.clientY - rect.top) * (this.canvas.height / rect.height / window.devicePixelRatio));
+                            document.getElementById('mouse-x').textContent = x;
+                            document.getElementById('mouse-y').textContent = y;
+                            this.mousePosUpdateScheduled = false;
+                        });
+                    }
                 });
 
-                // 鼠标位置跟踪
-                this.canvas.addEventListener('mousemove', (e) => {
-                    const rect = this.canvas.getBoundingClientRect();
-                    const x = Math.round(e.clientX - rect.left);
-                    const y = Math.round(e.clientY - rect.top);
-                    document.getElementById('mouse-x').textContent = x;
-                    document.getElementById('mouse-y').textContent = y;
+                // 缩放支持 (Shift + 滚轮)
+                this.container.addEventListener('wheel', (e) => {
+                    if (e.shiftKey || e.ctrlKey) {
+                        e.preventDefault();
+                        const delta = e.deltaY > 0 ? -0.1 : 0.1;
+                        this.updateZoom(delta);
+                    }
+                }, { passive: false });
+
+                // 重置缩放
+                document.getElementById('reset-zoom').addEventListener('click', () => {
+                    this.setZoom(1);
                 });
 
                 // 操作按钮
@@ -659,6 +826,21 @@
 
                 // 键盘快捷键
                 document.addEventListener('keydown', (e) => {
+                    // 工具快捷键
+                    if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
+                        switch (e.key.toLowerCase()) {
+                            case 'p': this.selectTool('pen'); break;
+                            case 'e': this.selectTool('eraser'); break;
+                            case 'l': this.selectTool('line'); break;
+                            case 'a': this.selectTool('arrow'); break;
+                            case 'r': this.selectTool('rectangle'); break;
+                            case 'c': this.selectTool('circle'); break;
+                            case '1': this.switchSlot(1); break;
+                            case '2': this.switchSlot(2); break;
+                            case '3': this.switchSlot(3); break;
+                        }
+                    }
+
                     if (e.ctrlKey || e.metaKey) {
                         switch (e.key) {
                             case 'z':
@@ -673,9 +855,41 @@
                                 e.preventDefault();
                                 this.saveToLocal();
                                 break;
+                            case '=':
+                            case '+':
+                                e.preventDefault();
+                                this.updateZoom(0.1);
+                                break;
+                            case '-':
+                                e.preventDefault();
+                                this.updateZoom(-0.1);
+                                break;
+                            case '0':
+                                e.preventDefault();
+                                this.setZoom(1);
+                                break;
                         }
                     }
                 });
+            }
+
+            updateZoom(delta) {
+                const newScale = Math.min(Math.max(this.scale + delta, this.minScale), this.maxScale);
+                this.setZoom(newScale);
+            }
+
+            setZoom(scale) {
+                this.scale = scale;
+                document.getElementById('zoom-level').textContent = Math.round(this.scale * 100) + '%';
+
+                // 应用缩放
+                const wrapper = document.querySelector('.canvas-wrapper');
+                const background = document.querySelector('.canvas-background');
+
+                // 设置 transform
+                const transformValue = `scale(${this.scale})`;
+                wrapper.style.transform = transformValue;
+                background.style.transform = transformValue;
             }
 
             selectTool(tool) {
@@ -685,13 +899,17 @@
                 document.querySelectorAll('.tool-btn').forEach(btn => {
                     btn.classList.remove('active');
                 });
-                document.getElementById(tool + '-tool').classList.add('active');
+                const toolBtn = document.getElementById(tool + '-tool');
+                if (toolBtn) {
+                    toolBtn.classList.add('active');
+                }
 
                 // 更新状态栏
                 const toolNames = {
                     'pen': '画笔',
                     'eraser': '橡皮擦',
                     'line': '直线',
+                    'arrow': '箭头',
                     'rectangle': '矩形',
                     'circle': '圆形'
                 };
@@ -699,6 +917,47 @@
 
                 // 更新光标
                 this.updateCursor();
+            }
+
+            switchSlot(slotId) {
+                if (this.currentSlot === slotId) return;
+
+                // 保存当前状态到内存
+                const currentData = this.canvas.toDataURL();
+                this.slots[this.currentSlot] = {
+                    snapshot: currentData,
+                    history: [...this.history], // 复制数组
+                    index: this.historyIndex
+                };
+
+                // 更新UI状态
+                document.querySelectorAll('.slot-btn').forEach(btn => {
+                    btn.classList.remove('active-slot');
+                });
+                document.getElementById(`slot-${slotId}`).classList.add('active-slot');
+
+                // 切换槽位
+                this.currentSlot = slotId;
+                const nextSlot = this.slots[slotId];
+
+                // 恢复历史记录
+                this.history = [...nextSlot.history];
+                this.historyIndex = nextSlot.index;
+
+                // 恢复画布内容
+                if (nextSlot.snapshot) {
+                    this.restoreState(nextSlot.snapshot);
+                } else if (this.history.length > 0 && this.historyIndex >= 0) {
+                    // 如果没有快照但有历史记录（应该不会发生，除非初始状态），恢复历史
+                    this.restoreState(this.history[this.historyIndex]);
+                } else {
+                    // 空白画布
+                    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                    // 初始化该槽位的历史记录
+                    if (this.history.length === 0) {
+                        this.saveState();
+                    }
+                }
             }
 
             updateCursor() {
@@ -711,6 +970,7 @@
                         this.setEraserCursor();
                         break;
                     case 'line':
+                    case 'arrow':
                     case 'rectangle':
                     case 'circle':
                         wrapper.style.cursor = 'crosshair';
@@ -827,20 +1087,23 @@
 
             getMousePos(e) {
                 const rect = this.canvas.getBoundingClientRect();
+                // 考虑缩放因素
                 return {
-                    x: e.clientX - rect.left,
-                    y: e.clientY - rect.top
+                    x: (e.clientX - rect.left) * (this.canvas.width / rect.width),
+                    y: (e.clientY - rect.top) * (this.canvas.height / rect.height)
                 };
             }
 
             startDrawing(e) {
+                if (e.which !== 1 && e.type !== 'touchstart') return; // 只允许左键或触摸
+
                 this.isDrawing = true;
                 const pos = this.getMousePos(e);
                 this.startX = pos.x;
                 this.startY = pos.y;
 
                 // 保存当前画布状态用于形状工具的实时预览
-                if (['line', 'rectangle', 'circle'].includes(this.currentTool)) {
+                if (['line', 'arrow', 'rectangle', 'circle'].includes(this.currentTool)) {
                     this.snapshot = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
                 }
 
@@ -848,8 +1111,6 @@
                     // 初始化平滑绘制的点记录
                     this.lastX = pos.x;
                     this.lastY = pos.y;
-                    this.lastLastX = pos.x;
-                    this.lastLastY = pos.y;
 
                     // 开始新的路径
                     this.ctx.beginPath();
@@ -915,6 +1176,7 @@
                         break;
 
                     case 'line':
+                    case 'arrow':
                     case 'rectangle':
                     case 'circle':
                         // 恢复快照以清除之前的预览
@@ -933,21 +1195,51 @@
                             this.ctx.moveTo(this.startX, this.startY);
                             this.ctx.lineTo(pos.x, pos.y);
                             this.ctx.stroke();
+                        } else if (this.currentTool === 'arrow') {
+                            this.drawArrow(this.startX, this.startY, pos.x, pos.y);
                         } else if (this.currentTool === 'rectangle') {
                             const width = pos.x - this.startX;
                             const height = pos.y - this.startY;
                             this.ctx.rect(this.startX, this.startY, width, height);
                             this.ctx.stroke();
                         } else if (this.currentTool === 'circle') {
-                            const radius = Math.sqrt(
+                            // 修改为直径绘制逻辑
+                            const centerX = (this.startX + pos.x) / 2;
+                            const centerY = (this.startY + pos.y) / 2;
+                            const diameter = Math.sqrt(
                                 Math.pow(pos.x - this.startX, 2) +
                                 Math.pow(pos.y - this.startY, 2)
                             );
-                            this.ctx.arc(this.startX, this.startY, radius, 0, 2 * Math.PI);
+                            const radius = diameter / 2;
+                            this.ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
                             this.ctx.stroke();
                         }
                         break;
                 }
+            }
+
+            // 绘制箭头辅助函数
+            drawArrow(fromX, fromY, toX, toY) {
+                const headLength = Math.max(10, this.brushSize * 3); // 箭头头部长度
+                const dx = toX - fromX;
+                const dy = toY - fromY;
+                const angle = Math.atan2(dy, dx);
+
+                // 绘制主线
+                this.ctx.moveTo(fromX, fromY);
+                this.ctx.lineTo(toX, toY);
+                this.ctx.stroke();
+
+                // 绘制箭头头部
+                this.ctx.beginPath();
+                this.ctx.moveTo(toX, toY);
+                this.ctx.lineTo(toX - headLength * Math.cos(angle - Math.PI / 6), toY - headLength * Math.sin(angle - Math.PI / 6));
+                this.ctx.stroke();
+
+                this.ctx.beginPath();
+                this.ctx.moveTo(toX, toY);
+                this.ctx.lineTo(toX - headLength * Math.cos(angle + Math.PI / 6), toY - headLength * Math.sin(angle + Math.PI / 6));
+                this.ctx.stroke();
             }
 
             stopDrawing(e) {
@@ -977,6 +1269,11 @@
                         this.ctx.stroke();
                         break;
 
+                    case 'arrow':
+                        this.ctx.beginPath();
+                        this.drawArrow(this.startX, this.startY, endPos.x, endPos.y);
+                        break;
+
                     case 'rectangle':
                         const width = endPos.x - this.startX;
                         const height = endPos.y - this.startY;
@@ -986,12 +1283,17 @@
                         break;
 
                     case 'circle':
-                        const radius = Math.sqrt(
+                        // 修改为直径绘制逻辑
+                        const centerX = (this.startX + endPos.x) / 2;
+                        const centerY = (this.startY + endPos.y) / 2;
+                        const diameter = Math.sqrt(
                             Math.pow(endPos.x - this.startX, 2) +
                             Math.pow(endPos.y - this.startY, 2)
                         );
+                        const radius = diameter / 2;
+
                         this.ctx.beginPath();
-                        this.ctx.arc(this.startX, this.startY, radius, 0, 2 * Math.PI);
+                        this.ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
                         this.ctx.stroke();
                         break;
                 }
@@ -1084,7 +1386,7 @@
                             const img = new Image();
                             img.onload = () => {
                                 this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                                this.ctx.drawImage(img, 0, 0);
+                                this.ctx.drawImage(img, 0, 0, this.canvas.width, this.canvas.height);
                                 this.saveState();
                             };
                             img.src = e.target.result;

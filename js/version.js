@@ -3,7 +3,7 @@
  * 统一管理所有页面的版本号显示
  * 
  * @author 17Tools Team
- * @version 2.4.2
+ * @version 2.4.4
  */
 
 class GlobalVersionManager {
@@ -19,7 +19,7 @@ class GlobalVersionManager {
             this.updateVersionDisplays();
         } catch (error) {
             console.warn('版本获取失败，使用默认版本', error);
-            this.version = '2.4.2'; // 默认版本
+            this.version = '2.4.4'; // 默认版本
             this.updateVersionDisplays();
         }
     }
@@ -47,9 +47,9 @@ class GlobalVersionManager {
                     if (versionElements.length > 0) {
                         const versionText = versionElements[0].textContent;
                         const versionMatch = versionText.match(/(\d+\.\d+\.\d+)/);
-                        this.version = versionMatch ? versionMatch[1] : '2.4.2';
+                        this.version = versionMatch ? versionMatch[1] : '2.4.4';
                     } else {
-                        this.version = '2.4.2';
+                        this.version = '2.4.4';
                     }
 
                     document.body.removeChild(iframe);
@@ -75,9 +75,9 @@ class GlobalVersionManager {
         if (versionElements.length > 0) {
             const versionText = versionElements[0].textContent;
             const versionMatch = versionText.match(/(\d+\.\d+\.\d+)/);
-            this.version = versionMatch ? versionMatch[1] : '2.4.2';
+            this.version = versionMatch ? versionMatch[1] : '2.4.4';
         } else {
-            this.version = '2.4.2';
+            this.version = '2.4.4';
         }
     }
 

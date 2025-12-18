@@ -182,6 +182,34 @@
             font-weight: 600;
             color: var(--text-primary);
             margin-bottom: var(--spacing-md);
+            line-height: 1.4;
+        }
+
+        /* A/B 标签样式 */
+        .clock-label {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            line-height: 32px;
+            text-align: center;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: var(--spacing-sm);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .clock-title span {
+            display: block;
+            font-size: 0.9em;
+        }
+
+        .clock-title .en-title {
+            font-size: 0.8em;
+            color: var(--text-secondary);
+            font-weight: 400;
         }
 
         /* 数字时间样式 */
@@ -199,6 +227,13 @@
             font-size: 14px;
             color: var(--text-secondary);
             margin-bottom: var(--spacing-md);
+            line-height: 1.5;
+        }
+
+        .digital-date .en-date {
+            display: block;
+            font-size: 0.9em;
+            opacity: 0.8;
         }
 
         /* 时区选择器样式 */
@@ -384,6 +419,7 @@
         <div class="clocks-grid">
             <!-- 左侧时钟 -->
             <div class="clock-card">
+                <div class="clock-label">A</div>
                 <h2 class="clock-title" id="left-clock-title">中国 (北京)</h2>
 
                 <div class="clock-container">
@@ -424,6 +460,7 @@
 
             <!-- 右侧时钟 -->
             <div class="clock-card">
+                <div class="clock-label">B</div>
                 <h2 class="clock-title" id="right-clock-title">美国 (纽约)</h2>
 
                 <div class="clock-container">
@@ -592,6 +629,69 @@
                 'Atlantic/Reykjavik': '冰岛 (雷克雅未克)'
             };
 
+            // 英文时区名称映射
+            const timezoneEnglishNames = {
+                'Asia/Shanghai': 'China (Beijing)',
+                'Asia/Tokyo': 'Japan (Tokyo)',
+                'Asia/Singapore': 'Singapore',
+                'Asia/Seoul': 'South Korea (Seoul)',
+                'Asia/Hong_Kong': 'China (Hong Kong)',
+                'Asia/Taipei': 'China (Taipei)',
+                'Asia/Bangkok': 'Thailand (Bangkok)',
+                'Asia/Kuala_Lumpur': 'Malaysia (Kuala Lumpur)',
+                'Asia/Manila': 'Philippines (Manila)',
+                'Asia/Jakarta': 'Indonesia (Jakarta)',
+                'Asia/Ho_Chi_Minh': 'Vietnam (Ho Chi Minh)',
+                'Asia/Kolkata': 'India (New Delhi)',
+                'Asia/Dubai': 'UAE (Dubai)',
+                'Asia/Riyadh': 'Saudi Arabia (Riyadh)',
+                'Asia/Jerusalem': 'Israel (Jerusalem)',
+                'Asia/Karachi': 'Pakistan (Karachi)',
+                'Australia/Sydney': 'Australia (Sydney)',
+                'Australia/Melbourne': 'Australia (Melbourne)',
+                'Australia/Perth': 'Australia (Perth)',
+                'Australia/Brisbane': 'Australia (Brisbane)',
+                'Pacific/Auckland': 'New Zealand (Auckland)',
+                'Pacific/Fiji': 'Fiji',
+                'Europe/London': 'UK (London)',
+                'Europe/Paris': 'France (Paris)',
+                'Europe/Berlin': 'Germany (Berlin)',
+                'Europe/Rome': 'Italy (Rome)',
+                'Europe/Madrid': 'Spain (Madrid)',
+                'Europe/Moscow': 'Russia (Moscow)',
+                'Europe/Amsterdam': 'Netherlands (Amsterdam)',
+                'Europe/Brussels': 'Belgium (Brussels)',
+                'Europe/Zurich': 'Switzerland (Zurich)',
+                'Europe/Stockholm': 'Sweden (Stockholm)',
+                'Europe/Oslo': 'Norway (Oslo)',
+                'Europe/Copenhagen': 'Denmark (Copenhagen)',
+                'Europe/Helsinki': 'Finland (Helsinki)',
+                'Europe/Athens': 'Greece (Athens)',
+                'Europe/Istanbul': 'Turkey (Istanbul)',
+                'Europe/Vienna': 'Austria (Vienna)',
+                'Europe/Warsaw': 'Poland (Warsaw)',
+                'Europe/Prague': 'Czech Republic (Prague)',
+                'Europe/Budapest': 'Hungary (Budapest)',
+                'America/New_York': 'USA (New York)',
+                'America/Los_Angeles': 'USA (Los Angeles)',
+                'America/Chicago': 'USA (Chicago)',
+                'America/Denver': 'USA (Denver)',
+                'America/Toronto': 'Canada (Toronto)',
+                'America/Vancouver': 'Canada (Vancouver)',
+                'America/Mexico_City': 'Mexico (Mexico City)',
+                'America/Sao_Paulo': 'Brazil (Sao Paulo)',
+                'America/Buenos_Aires': 'Argentina (Buenos Aires)',
+                'America/Santiago': 'Chile (Santiago)',
+                'America/Lima': 'Peru (Lima)',
+                'America/Bogota': 'Colombia (Bogota)',
+                'Africa/Cairo': 'Egypt (Cairo)',
+                'Africa/Johannesburg': 'South Africa (Johannesburg)',
+                'Africa/Lagos': 'Nigeria (Lagos)',
+                'Africa/Nairobi': 'Kenya (Nairobi)',
+                'Africa/Casablanca': 'Morocco (Casablanca)',
+                'Atlantic/Reykjavik': 'Iceland (Reykjavik)'
+            };
+
             // 时区偏移量固定映射（根据标准时区定义）
             const fixedTimezoneOffsets = {
                 // 亚洲时区
@@ -691,13 +791,27 @@
             function updateTimeDifference() {
                 const difference = calculateTimeDifference(leftTimezone, rightTimezone);
                 const absHours = Math.abs(difference);
-                const sign = difference >= 0 ? '+' : '-';
 
                 let message;
                 if (difference === 0) {
-                    message = "时差：0 小时 (时区相同)";
+                    message = "A 与 B 时间相同 (时差 0 小时)";
                 } else {
-                    message = `时差：${sign}${absHours}小时 (右侧比左侧${difference > 0 ? '晚' : '早'}${absHours}小时)`;
+                    // diff > 0 means B (right) is later/larger offset than A (left) ? 
+                    // calculateTimeDifference returns offset2 - offset1.
+                    // If offset2 (B) > offset1 (A), diff > 0.
+                    // E.g. A=China(+8), B=Japan(+9). diff = 9-8=1. B is 1 hour ahead of A.
+                    // But usually "A比B..." phrase: "A 比 B 晚/早 X 小时"
+                    // If A is +8, B is +9. A is 1 hour behind B (早 1 小时).
+                    // If A is +8, B is +7. A is 1 hour ahead of B (晚 1 小时).
+                    // Logic: difference = B - A.
+                    // If difference > 0 (B > A), then A is earlier (smaller offset) than B. So A is "早".
+                    // Wait, usually "早" means "earlier in the day" (e.g. 8am vs 9am), which implies smaller time value.
+                    // Correct.
+
+                    const relation = difference > 0 ? '早' : '晚'; // A(left) relative to B(right)
+                    // If diff > 0 (B > A), A < B, so A is "earlier" (shows smaller time).
+
+                    message = `时差：${absHours}小时 (A 比 B ${relation} ${absHours}小时)`;
                 }
 
                 timeDifferenceElement.textContent = message;
@@ -818,7 +932,7 @@
 
                 // 左侧时钟时间
                 const leftOptions = { timeZone: leftTimezone, hour12: false };
-                let leftTime, leftDate;
+                let leftTime, leftDate, leftDateEn;
 
                 try {
                     leftTime = now.toLocaleTimeString('zh-CN', leftOptions);
@@ -828,10 +942,22 @@
                         month: 'long',
                         day: 'numeric'
                     });
+                    leftDateEn = now.toLocaleDateString('en-US', {
+                        timeZone: leftTimezone,
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
                 } catch (e) {
-                    // 如果时区不受支持，使用系统时区
                     leftTime = now.toLocaleTimeString('zh-CN');
                     leftDate = now.toLocaleDateString('zh-CN', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                    leftDateEn = now.toLocaleDateString('en-US', {
+                        weekday: 'long',
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric'
@@ -846,11 +972,17 @@
 
                 // 右侧时钟时间
                 const rightOptions = { timeZone: rightTimezone, hour12: false };
-                let rightTime, rightDate;
+                let rightTime, rightDate, rightDateEn;
 
                 try {
                     rightTime = now.toLocaleTimeString('en-US', rightOptions);
-                    rightDate = now.toLocaleDateString('en-US', {
+                    rightDate = now.toLocaleDateString('zh-CN', {
+                        timeZone: rightTimezone,
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                    rightDateEn = now.toLocaleDateString('en-US', {
                         timeZone: rightTimezone,
                         weekday: 'long',
                         year: 'numeric',
@@ -858,9 +990,13 @@
                         day: 'numeric'
                     });
                 } catch (e) {
-                    // 如果时区不受支持，使用系统时区
                     rightTime = now.toLocaleTimeString('en-US');
-                    rightDate = now.toLocaleDateString('en-US', {
+                    rightDate = now.toLocaleDateString('zh-CN', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                    rightDateEn = now.toLocaleDateString('en-US', {
                         weekday: 'long',
                         year: 'numeric',
                         month: 'long',
@@ -876,9 +1012,14 @@
 
                 // 更新数字时间显示
                 leftTimeElement.textContent = leftTime;
-                leftDateElement.textContent = `${leftDate} ${weekdaysCN[leftDay]}`;
-                rightTimeElement.textContent = rightTime;
-                rightDateElement.textContent = rightDate;
+                leftDateElement.innerHTML = `${leftDate} ${weekdaysCN[leftDay]}<span class="en-date">${leftDateEn}</span>`;
+
+                rightTimeElement.textContent = rightTime; // rightTime is formatted with en-US locale in original code, keeps it? Yes, but check format. 
+                // Original rightTime was 'en-US' locale. leftTime was 'zh-CN'.
+                // If we want consistency, maybe keep time as is (HH:MM:SS) which is mostly locale-independent for 24h.
+                // The date part is what changed.
+
+                rightDateElement.innerHTML = `${rightDate} ${weekdaysCN[rightDay]}<span class="en-date">${rightDateEn}</span>`;
 
                 // 计算指针角度
                 const calcHourDegrees = (hour, minute) => ((hour % 12) * 30) + (minute * 0.5);
@@ -898,12 +1039,15 @@
 
             // 更新时钟标题
             function updateClockTitle(side, timezone) {
-                const title = timezoneDisplayNames[timezone] || timezone;
+                const cnTitle = timezoneDisplayNames[timezone] || timezone;
+                const enTitle = timezoneEnglishNames[timezone] || timezone;
+                const titleHtml = `${cnTitle}<span class="en-title">${enTitle}</span>`;
+
                 if (side === 'left') {
-                    leftClockTitle.textContent = title + ' 时间';
+                    leftClockTitle.innerHTML = titleHtml;
                     leftTimezoneInfo.textContent = getFormattedOffset(timezoneOffsets[timezone]);
                 } else {
-                    rightClockTitle.textContent = title + ' 时间';
+                    rightClockTitle.innerHTML = titleHtml;
                     rightTimezoneInfo.textContent = getFormattedOffset(timezoneOffsets[timezone]);
                 }
 

@@ -153,6 +153,21 @@
             }
         }
 
+        .text-button {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            cursor: pointer;
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: var(--radius-sm);
+        }
+
+        .text-button:hover {
+            background-color: var(--primary-light);
+            text-decoration: underline;
+        }
+
         /* 结果显示区域 */
         .result-section {
             background-color: var(--background-tertiary);
@@ -327,9 +342,9 @@
             <!-- 功能A的输入区域 -->
             <div id="inputA" class="input-area hidden">
                 <div class="input-group">
-                    <label for="startDate">
-                        <i class="fas fa-calendar"></i>
-                        起始日期：
+                    <label for="startDate" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span><i class="fas fa-calendar"></i> 起始日期：</span>
+                        <button type="button" class="text-button" onclick="setToday('startDate')">今天</button>
                     </label>
                     <input type="date" id="startDate" min="1900-01-01" max="2100-12-31">
                 </div>
@@ -360,16 +375,16 @@
             <!-- 功能B的输入区域 -->
             <div id="inputB" class="input-area hidden">
                 <div class="input-group">
-                    <label for="date1">
-                        <i class="fas fa-calendar"></i>
-                        第一个日期：
+                    <label for="date1" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span><i class="fas fa-calendar"></i> 第一个日期：</span>
+                        <button type="button" class="text-button" onclick="setToday('date1')">今天</button>
                     </label>
                     <input type="date" id="date1" min="1900-01-01" max="2100-12-31">
                 </div>
                 <div class="input-group">
-                    <label for="date2">
-                        <i class="fas fa-calendar"></i>
-                        第二个日期：
+                    <label for="date2" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span><i class="fas fa-calendar"></i> 第二个日期：</span>
+                        <button type="button" class="text-button" onclick="setToday('date2')">今天</button>
                     </label>
                     <input type="date" id="date2" min="1900-01-01" max="2100-12-31">
                 </div>
@@ -384,9 +399,9 @@
 
                 <!-- 公历输入区域 -->
                 <div class="input-group">
-                    <label for="solarDate">
-                        <i class="fas fa-calendar"></i>
-                        公历日期（输入后自动转换为农历）：
+                    <label for="solarDate" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span><i class="fas fa-calendar"></i> 公历日期（输入后自动转换为农历）：</span>
+                        <button type="button" class="text-button" onclick="setToday('solarDate')">今天</button>
                     </label>
                     <input type="date" id="solarDate" min="1900-01-01" max="2100-12-31" placeholder="选择公历日期">
                 </div>
@@ -790,6 +805,7 @@
                 document.getElementById(`input${selectedFunction}`).classList.remove('hidden');
 
                 const calculateBtn = document.getElementById('calculateBtn');
+                calculateBtn.style.display = 'flex'; // 默认显示
 
                 // 根据功能类型设置按钮状态和默认值
                 if (selectedFunction === 'A' || selectedFunction === 'B') {
@@ -798,10 +814,8 @@
                     calculateBtn.innerHTML = '<i class="fas fa-calculator"></i> 计算';
                     calculateBtn.className = 'action-button btn-primary';
                 } else if (selectedFunction === 'C') {
-                    // C功能：设置为灰色的"自动计算"按钮
-                    calculateBtn.disabled = true;
-                    calculateBtn.innerHTML = '<i class="fas fa-magic"></i> 自动计算';
-                    calculateBtn.className = 'action-button btn-secondary';
+                    // C功能：隐藏计算按钮，因为是实时的
+                    calculateBtn.style.display = 'none';
                 }
 
                 // 清空结果
@@ -819,6 +833,15 @@
             const month = String(today.getMonth() + 1).padStart(2, '0');
             const day = String(today.getDate()).padStart(2, '0');
             return `${year}-${month}-${day}`;
+        }
+
+        // 设置指定输入框为今天
+        function setToday(inputId) {
+            document.getElementById(inputId).value = getTodayString();
+            // 如果是在功能C的公历输入框，还需要触发change事件
+            if (inputId === 'solarDate') {
+                document.getElementById(inputId).dispatchEvent(new Event('change'));
+            }
         }
 
         // 设置默认日期

@@ -107,7 +107,33 @@
             color: var(--text-primary);
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: var(--spacing-sm);
+        }
+
+        .result-content-wrapper {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .icon-button {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 8px;
+            font-size: 18px;
+            border-radius: var(--radius-md);
+            transition: all var(--transition-fast);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon-button:hover {
+            color: var(--primary-color);
+            background-color: var(--background-hover);
         }
 
         .result-value {
@@ -361,8 +387,13 @@
 
         <div class="result-container">
             <div class="result-label">
-                <i class="fas fa-equals"></i>
-                总和: <span class="result-value" id="result">0</span>
+                <div class="result-content-wrapper">
+                    <i class="fas fa-equals"></i>
+                    总和: <span class="result-value" id="result">0</span>
+                </div>
+                <button class="icon-button" onclick="copyResult()" title="复制结果">
+                    <i class="fas fa-copy"></i>
+                </button>
             </div>
         </div>
 
@@ -415,6 +446,7 @@
         }
 
         // 计算所有表达式的总和
+        let calculateTimer;
         function calculateSum() {
             const input = document.getElementById('numbers').value;
             const resultElement = document.getElementById('result');
@@ -422,20 +454,52 @@
             // 添加计算中状态
             resultElement.classList.add('calculating');
 
-            setTimeout(() => {
+            // 清除之前的定时器
+            if (calculateTimer) {
+                clearTimeout(calculateTimer);
+            }
+
+            // 设置新的定时器 (防抖)
+            calculateTimer = setTimeout(() => {
                 try {
                     const expressions = input
                         .split(/[\n\s]+/)  // 按换行或空格分割
                         .filter(expr => expr.trim() !== '')  // 过滤空字符串
                         .reduce((acc, curr) => acc + evaluateExpression(curr), 0);  // 计算总和
 
-                    resultElement.textContent = expressions.toFixed(2);  // 显示两位小数
+                    // 处理精度问题，最多保留4位小数，如果是整数则不显示小数
+                    const result = Math.round(expressions * 10000) / 10000;
+                    resultElement.textContent = result;
                 } catch (e) {
                     resultElement.textContent = '计算错误';
                 }
 
                 resultElement.classList.remove('calculating');
-            }, 100);
+            }, 300); // 延迟300毫秒执行
+        }
+
+        // 复制结果功能
+        function copyResult() {
+            const result = document.getElementById('result').textContent;
+            if (result && result !== '计算错误') {
+                navigator.clipboard.writeText(result).then(() => {
+                    const btn = document.querySelector('.icon-button i');
+                    const originalClass = btn.className;
+                    btn.className = 'fas fa-check';
+                    btn.style.color = 'var(--success-color)'; // Assuming var(--success-color) exists or use green
+                    if (!getComputedStyle(document.documentElement).getPropertyValue('--success-color')) {
+                        btn.style.color = 'green';
+                    }
+
+                    setTimeout(() => {
+                        btn.className = originalClass;
+                        btn.style.color = '';
+                    }, 1500);
+                }).catch(err => {
+                    console.error('复制失败:', err);
+                    alert('复制失败，请手动复制');
+                });
+            }
         }
 
         // 保存当前结果到历史记录
