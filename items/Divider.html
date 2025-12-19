@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文本分割工具</title>
+    <link rel="stylesheet" href="../css/theme.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            /* Fallback colors if theme.css is missing or incomplete */
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+            --spacing-xl: 32px;
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-full: 9999px;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+            --transition-fast: 0.2s ease;
+            --font-mono: 'Menlo', 'Monaco', 'Courier New', monospace;
+
+            --error-color: #ff4d4f;
+            --warning-color: #faad14;
+            --success-color: #52c41a;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-tertiary);
+        }
+
+        body {
+            min-height: 100vh;
+            padding: var(--spacing-lg);
+            background-color: var(--background-primary);
+            color: var(--text-primary);
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: grid;
+            gap: var(--spacing-lg);
+            padding-bottom: var(--spacing-xl);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--text-primary);
+            margin: 0 0 var(--spacing-xl) 0;
+            font-size: 28px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+        }
+
+        /* Input Section */
+        .input-section {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--spacing-lg);
+        }
+
+        .input-container {
+            background: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            box-shadow: var(--shadow-sm);
+            transition: box-shadow var(--transition-fast);
+        }
+
+        .input-container:focus-within {
+            box-shadow: var(--shadow-md);
+            border-color: var(--border-focus);
+        }
+
+        .input-header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-md);
+            font-weight: 600;
+            font-size: 18px;
+            color: var(--text-primary);
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: var(--spacing-md);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            line-height: 1.6;
+            font-family: var(--font-mono);
+            background-color: var(--background-primary);
+            color: var(--text-primary);
+            transition: all var(--transition-fast);
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        /* Control Panel */
+        .control-panel {
+            background: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .control-header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-lg);
+            font-weight: 600;
+            font-size: 18px;
+            color: var(--text-primary);
+        }
+
+        .settings-inputs {
+            display: grid;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-xs);
+        }
+
+        .input-label {
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+        }
+
+        input[type="number"] {
+            padding: var(--spacing-sm) var(--spacing-md);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            background-color: var(--background-primary);
+            color: var(--text-primary);
+            transition: all var(--transition-fast);
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        /* Buttons */
+        .button-container {
+            display: flex;
+            gap: var(--spacing-md);
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            border: none;
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            user-select: none;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: var(--text-inverse);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background: var(--background-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--background-hover);
+        }
+
+        /* Input Stats Styles */
+        .input-stats {
+            margin-left: auto;
+            font-size: 14px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        /* Settings Monitoring Styles */
+        .monitor-panel {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-xs);
+            font-size: 13px;
+            color: var(--text-tertiary);
+            padding: var(--spacing-sm) 0;
+            border-bottom: 1px dashed var(--border-color);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .monitor-item {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .monitor-label {
+            font-weight: 500;
+        }
+
+        /* Summary Style */
+        .split-summary {
+            background: var(--primary-light);
+            border-left: 4px solid var(--primary-color);
+            padding: var(--spacing-md);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--spacing-lg);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .summary-title {
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: var(--spacing-sm);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: var(--spacing-md);
+        }
+
+        .summary-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .summary-val {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .last-part-warning {
+            color: var(--warning-color);
+            font-size: 12px;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .empty-warning {
+            color: var(--warning-color);
+            display: none;
+            align-items: center;
+            gap: 4px;
+            font-weight: 500;
+        }
+
+        /* Result Section */
+        .result-section {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-lg);
+        }
+
+        .result-block {
+            background: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            box-shadow: var(--shadow-sm);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .result-block-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .result-block-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 16px;
+        }
+
+        .result-block-meta {
+            color: var(--text-tertiary);
+            font-size: 14px;
+            margin-left: 10px;
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: var(--background-secondary);
+            color: var(--text-primary);
+            padding: 12px 24px;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 280px;
+            max-width: 90vw;
+            animation: toastSlideDown 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            pointer-events: auto;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .toast.success {
+            border-left-color: var(--success-color);
+        }
+
+        .toast.error {
+            border-left-color: var(--error-color);
+        }
+
+        .toast.warning {
+            border-left-color: var(--warning-color);
+        }
+
+        .toast-icon {
+            font-size: 18px;
+        }
+
+        .toast.success .toast-icon {
+            color: var(--success-color);
+        }
+
+        .toast.error .toast-icon {
+            color: var(--error-color);
+        }
+
+        .toast.warning .toast-icon {
+            color: var(--warning-color);
+        }
+
+        .toast-message {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        @keyframes toastSlideDown {
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes toastFadeOut {
+            to {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>
+            <i class="fas fa-columns"></i>
+            文本分割工具
+        </h1>
+
+        <!-- Input Area -->
+        <div class="input-section">
+            <div class="input-container">
+                <div class="input-header">
+                    <i class="fas fa-file-alt"></i>
+                    原始数据
+                </div>
+                <textarea id="originalText" placeholder="请在此粘贴需要分割的多行数据..."></textarea>
+                <div class="button-container">
+                    <button class="btn btn-secondary" onclick="pasteFromClipboard()">
+                        <i class="fas fa-paste"></i>
+                        粘贴
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearText()">
+                        <i class="fas fa-trash"></i>
+                        清空
+                    </button>
+                    <div class="input-stats">
+                        <span id="lineCount">共 0 行</span>
+                        <span id="emptyLineWarning" class="empty-warning">
+                            <i class="fas fa-exclamation-triangle"></i> 包含空行
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Area -->
+        <div class="control-panel">
+            <div class="control-header">
+                <i class="fas fa-sliders-h"></i>
+                分割设置
+            </div>
+
+            <!-- Monitoring Panel -->
+            <div class="monitor-panel">
+                <div class="monitor-item">
+                    <span class="monitor-label"><i class="fas fa-edit"></i> 原始数据最后修改:</span>
+                    <span id="lastModified">-</span>
+                </div>
+                <div class="monitor-item">
+                    <span class="monitor-label"><i class="fas fa-clock"></i> 分割执行时间:</span>
+                    <span id="splitExecutionTime">-</span>
+                </div>
+            </div>
+
+            <div class="settings-inputs">
+                <div class="input-group">
+                    <label class="input-label" for="linesPerPart">
+                        <i class="fas fa-list-ol"></i>
+                        每份行数
+                    </label>
+                    <input type="number" id="linesPerPart" value="5" min="1" step="1">
+                </div>
+            </div>
+            <div class="button-container">
+                <button class="btn btn-primary" onclick="splitText()">
+                    <i class="fas fa-cut"></i>
+                    开始分割
+                </button>
+            </div>
+        </div>
+
+        <!-- Results Area -->
+        <div class="result-section" id="resultContainer">
+            <!-- Results will be injected here -->
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="../js/theme.js"></script>
+    <script>
+        // Real-time Stats Logic
+        function updateStats() {
+            const text = document.getElementById('originalText').value;
+
+            // Update last modified time
+            const now = new Date();
+            const timeStr = now.getHours().toString().padStart(2, '0') + ':' +
+                now.getMinutes().toString().padStart(2, '0') + ':' +
+                now.getSeconds().toString().padStart(2, '0');
+            document.getElementById('lastModified').textContent = timeStr;
+
+            if (text === '') {
+                document.getElementById('lineCount').textContent = '共 0 行';
+                document.getElementById('emptyLineWarning').style.display = 'none';
+                return;
+            }
+
+            const lines = text.split(/\r?\n/);
+            const totalLines = lines.length;
+            const hasEmptyLines = lines.some(line => line.trim() === '');
+
+            document.getElementById('lineCount').textContent = `共 ${totalLines} 行`;
+            document.getElementById('emptyLineWarning').style.display = hasEmptyLines ? 'inline-flex' : 'none';
+        }
+
+        // Attach event listener
+        document.getElementById('originalText').addEventListener('input', updateStats);
+
+        // Split Logic
+        function splitText() {
+            const originalText = document.getElementById('originalText').value;
+            const linesPerPart = parseInt(document.getElementById('linesPerPart').value, 10);
+            const resultContainer = document.getElementById('resultContainer');
+
+            if (!originalText) {
+                showToast('请先输入原始数据', 'warning');
+                return;
+            }
+
+            if (isNaN(linesPerPart) || linesPerPart < 1) {
+                showToast('请输入有效的行数', 'warning');
+                return;
+            }
+
+            // Capture Split Time
+            const now = new Date();
+            const timeStr = now.getHours().toString().padStart(2, '0') + ':' +
+                now.getMinutes().toString().padStart(2, '0') + ':' +
+                now.getSeconds().toString().padStart(2, '0');
+            document.getElementById('splitExecutionTime').textContent = timeStr;
+
+            // Split by newline
+            const allLines = originalText.split(/\r?\n/);
+            const totalLines = allLines.length;
+            const partsCount = Math.ceil(totalLines / linesPerPart);
+
+            resultContainer.innerHTML = ''; // Clear previous results
+
+            if (totalLines === 0 || (totalLines === 1 && allLines[0] === '')) {
+                showToast('没有检测到有效行', 'warning');
+                return;
+            }
+
+            // Create Summary
+            const isLastPartIncomplete = totalLines % linesPerPart !== 0;
+            const lastPartLines = isLastPartIncomplete ? (totalLines % linesPerPart) : linesPerPart;
+
+            const summaryHtml = `
+                <div class="split-summary">
+                    <div class="summary-title">
+                        <i class="fas fa-chart-pie"></i> 分割总结
+                    </div>
+                    <div class="summary-grid">
+                        <div class="summary-item">
+                            <span class="monitor-label">总行数</span>
+                            <span class="summary-val">${totalLines}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="monitor-label">每份行数</span>
+                            <span class="summary-val">${linesPerPart}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="monitor-label">分割总份数</span>
+                            <span class="summary-val">${partsCount}</span>
+                        </div>
+                    </div>
+                    ${isLastPartIncomplete ? `
+                        <div class="last-part-warning">
+                            <i class="fas fa-info-circle"></i> 最后一份不满 ${linesPerPart} 行 (实际: ${lastPartLines} 行)
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+
+            const summaryDiv = document.createElement('div');
+            summaryDiv.innerHTML = summaryHtml;
+            resultContainer.appendChild(summaryDiv);
+
+            showToast(`共 ${totalLines} 行，分割为 ${partsCount} 份`, 'success');
+
+            for (let i = 0; i < partsCount; i++) {
+                const startIdx = i * linesPerPart;
+                const endIdx = Math.min((i + 1) * linesPerPart, totalLines);
+                const partLines = allLines.slice(startIdx, endIdx);
+                const partText = partLines.join('\n');
+
+                const partId = `part-${i}`;
+                const title = `第 ${i + 1} 份`;
+                const meta = `(行 ${startIdx + 1} - ${endIdx}, 共 ${partLines.length} 行)`;
+
+                const block = document.createElement('div');
+                block.className = 'result-block';
+                block.innerHTML = `
+                    <div class="result-block-header">
+                        <div class="result-block-title">
+                            ${title}
+                            <span class="result-block-meta">${meta}</span>
+                        </div>
+                        <div class="button-container">
+                            <button class="btn btn-secondary" onclick="copyPart('${partId}')">
+                                <i class="fas fa-copy"></i> 复制
+                            </button>
+                             <button class="btn btn-secondary" onclick="downloadPart('${partId}', 'split_part_${i + 1}.txt')">
+                                <i class="fas fa-download"></i> 下载
+                            </button>
+                        </div>
+                    </div>
+                    <textarea id="${partId}" readonly>${escapeHtml(partText)}</textarea>
+                `;
+                resultContainer.appendChild(block);
+            }
+        }
+
+        // Utils
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, function (m) { return map[m]; });
+        }
+
+        async function pasteFromClipboard() {
+            try {
+                const text = await navigator.clipboard.readText();
+                document.getElementById('originalText').value = text;
+                updateStats();
+                showToast('已粘贴', 'success');
+            } catch (err) {
+                showToast('粘贴失败，请手动粘贴', 'error');
+            }
+        }
+
+        function clearText() {
+            if (confirm('确定清空输入吗？')) {
+                document.getElementById('originalText').value = '';
+                document.getElementById('resultContainer').innerHTML = '';
+                updateStats();
+            }
+        }
+
+        async function copyPart(elementId) {
+            const textarea = document.getElementById(elementId);
+            try {
+                await navigator.clipboard.writeText(textarea.value);
+                showToast('复制成功', 'success');
+            } catch (err) {
+                textarea.select();
+                document.execCommand('copy');
+                showToast('复制成功', 'success');
+            }
+        }
+
+        function downloadPart(elementId, filename) {
+            const text = document.getElementById(elementId).value;
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('开始下载', 'success');
+        }
+
+        // Toast System (reused)
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const icons = {
+                success: 'fa-check-circle',
+                error: 'fa-exclamation-circle',
+                warning: 'fa-exclamation-triangle',
+                info: 'fa-info-circle'
+            };
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<i class="fas ${icons[type] || icons.info} toast-icon"></i><span class="toast-message">${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'toastFadeOut 0.3s forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+
+</html>
