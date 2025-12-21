@@ -285,7 +285,7 @@
 
         <div class="function-buttons">
             <button class="function-button" data-function="A">A-添加单引号和逗号</button>
-            <button class="function-button" data-function="B">B-合并为一行</button>
+            <button class="function-button" data-function="B">B-添加双引号和逗号</button>
             <button class="function-button" data-function="C">C-句首字母大写</button>
             <button class="function-button" data-function="D">D-单词首字母大写</button>
             <button class="function-button" data-function="E">E-添加__c</button>
@@ -298,7 +298,9 @@
             <button class="function-button" data-function="L">L-提取特定前值</button>
             <button class="function-button" data-function="M">M-提取特定后值</button>
             <button class="function-button" data-function="N">N-添加顺序前缀</button>
-            <button class="function-button" data-function="O">O-空格换行</button>
+            <button class="function-button" data-function="O">O-添加倒序前缀</button>
+            <button class="function-button" data-function="P">P-空格换行</button>
+            <button class="function-button" data-function="Q">Q-合并为一行</button>
         </div>
 
         <div class="textarea-wrapper">
@@ -474,6 +476,73 @@
             return segments.map(segment => segment.value).join('');
         }
 
+        // 递减复杂序列的函数
+        function decrementComplexSequence(sequence, decrement) {
+            if (decrement === 0) return { value: sequence, isUnderflow: false };
+
+            let segments = [];
+            let currentSegment = '';
+            let currentType = null;
+
+            for (let i = 0; i < sequence.length; i++) {
+                let char = sequence[i];
+                let type = (char >= '0' && char <= '9') ? 'number' :
+                    (char >= 'a' && char <= 'z') ? 'lower' :
+                        (char >= 'A' && char <= 'Z') ? 'upper' : 'other';
+
+                if (type === currentType) {
+                    currentSegment += char;
+                } else {
+                    if (currentSegment) segments.push({ type: currentType, value: currentSegment });
+                    currentSegment = char;
+                    currentType = type;
+                }
+            }
+            if (currentSegment) segments.push({ type: currentType, value: currentSegment });
+
+            let carry = decrement;
+            let isUnderflow = false;
+            let resultSegments = segments.map(s => ({ ...s }));
+
+            for (let i = resultSegments.length - 1; i >= 0 && carry > 0; i--) {
+                let segment = resultSegments[i];
+                if (segment.type === 'number') {
+                    let val = BigInt(segment.value);
+                    if (val > BigInt(carry)) {
+                        segment.value = (val - BigInt(carry)).toString();
+                        carry = 0;
+                    } else {
+                        isUnderflow = true;
+                        segment.value = ""; // 序号耗尽，不显示0或负数
+                        carry = 0;
+                    }
+                } else if (segment.type === 'lower' || segment.type === 'upper') {
+                    let chars = segment.value.split('');
+                    let minCode = (segment.type === 'lower' ? 'a' : 'A').charCodeAt(0);
+
+                    for (let j = chars.length - 1; j >= 0 && carry > 0; j--) {
+                        let code = chars[j].charCodeAt(0);
+                        let val = code - minCode;
+                        if (val >= carry) {
+                            chars[j] = String.fromCharCode(code - carry);
+                            carry = 0;
+                        } else {
+                            isUnderflow = true;
+                            chars[j] = ""; // 序号耗尽
+                            carry = 0;
+                        }
+                    }
+                    segment.value = chars.join('');
+                }
+            }
+
+            const finalValue = resultSegments.map(s => s.value).join('');
+            return {
+                value: finalValue,
+                isUnderflow: isUnderflow || (finalValue === "" && decrement > 0)
+            };
+        }
+
         // 转换策略对象
         const TRANSFORMERS = {
             'A': {
@@ -484,11 +553,11 @@
                 example: { input: "17\nTools", auxiliary: "", output: "'17',\n'Tools'," }
             },
             'B': {
-                name: '合并为一行',
-                description: '将多行文本合并为一行，用空格分隔',
+                name: '添加双引号和逗号',
+                description: '为每一行添加双引号和逗号，例如: Item -> "Item",',
                 needsAuxiliary: false,
-                transform: (lines) => lines.map(line => `${line}`).join(' '),
-                example: { input: "17\nTools", auxiliary: "", output: "17 Tools" }
+                transform: (lines) => lines.map(line => `"${line}",`).join('\n'),
+                example: { input: "17\nTools", auxiliary: "", output: '"17",\n"Tools",' }
             },
             'C': {
                 name: '句首字母大写',
@@ -603,6 +672,37 @@
                 example: { input: "苹果\n香蕉\n橙子", auxiliary: "1a.", output: "1a.苹果\n1b.香蕉\n1c.橙子" }
             },
             'O': {
+                name: '添加倒序前缀',
+                description: '添加自动递减的前缀序列 (如 3. 2. 1. 或 C. B. A.)',
+                needsAuxiliary: true,
+                auxiliaryPlaceholder: '请输入起始序号 (如 "10." 或 "c.")',
+                transform: (lines, suffix) => {
+                    const separatorMatch = suffix.match(/^([a-zA-Z0-9]+)(.*)$/);
+                    if (separatorMatch) {
+                        const incrementablePart = separatorMatch[1];
+                        const punctuationPart = separatorMatch[2];
+                        let hasUnderflow = false;
+
+                        const resultLines = lines.map((line, index) => {
+                            const decResult = decrementComplexSequence(incrementablePart, index);
+                            if (decResult.isUnderflow) {
+                                hasUnderflow = true;
+                                return `[序号不足]${line}`; // 序号不足的行添加前缀
+                            }
+                            return `${decResult.value}${punctuationPart}${line}`;
+                        });
+
+                        if (hasUnderflow) {
+                            resultLines.unshift("温馨提示：当前前缀不足以填充全部数据");
+                        }
+                        return resultLines.join('\n');
+                    } else {
+                        return lines.map(line => `${suffix}${line}`).join('\n');
+                    }
+                },
+                example: { input: "苹果\n香蕉\n橙子", auxiliary: "10.", output: "10.苹果\n9.香蕉\n8.橙子" }
+            },
+            'P': {
                 name: '空格换行',
                 description: '将行内的空格转换为换行符',
                 needsAuxiliary: false,
@@ -612,6 +712,14 @@
                     return trimmedLine.split(/\s+/).join('\n');
                 }).join('\n'),
                 example: { input: "1 2\n3 4", auxiliary: "", output: "1\n2\n3\n4" }
+            },
+            'Q': {
+                name: '合并为一行',
+                description: '将多行文本合并为一行，可自定义分隔符',
+                needsAuxiliary: true,
+                auxiliaryPlaceholder: '请输入分隔符（不填则直接合并）...',
+                transform: (lines, separator) => lines.join(separator),
+                example: { input: "17\nTools", auxiliary: ",", output: "17,Tools" }
             }
         };
 
