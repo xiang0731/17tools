@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>日期计算器</title>
+    <title>时间计算器</title>
     <link rel="stylesheet" href="../css/theme.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -40,7 +40,7 @@
         }
 
         h1::before {
-            content: "\f073";
+            content: "\f017";
             font-family: "Font Awesome 6 Free";
             font-weight: 900;
             color: var(--primary-color);
@@ -321,7 +321,7 @@
 
 <body>
     <div class="container">
-        <h1>日期计算器</h1>
+        <h1>时间计算器</h1>
 
         <div class="function-buttons">
             <button class="function-button" data-function="A">
@@ -335,6 +335,10 @@
             <button class="function-button" data-function="C">
                 <i class="fas fa-calendar-alt"></i>
                 C-新旧历转换
+            </button>
+            <button class="function-button" data-function="D">
+                <i class="fas fa-clock"></i>
+                D-时间计算
             </button>
         </div>
 
@@ -443,6 +447,33 @@
                     </div>
                     <div style="font-size: 12px; color: var(--text-tertiary); margin-top: var(--spacing-xs);">
                         提示：如果该年该月有闰月，请勾选"闰月"复选框
+                    </div>
+                </div>
+            </div>
+
+            <!-- 功能D的输入区域 -->
+            <div id="inputD" class="input-area hidden">
+                <div class="input-group">
+                    <label for="baseDateTime" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span><i class="fas fa-calendar-alt"></i> 起始日期时间：</span>
+                        <button type="button" class="text-button" onclick="setNow('baseDateTime')">现在</button>
+                    </label>
+                    <input type="datetime-local" id="baseDateTime">
+                </div>
+                <div class="dual-input">
+                    <div class="input-group">
+                        <label for="offsetHours">
+                            <i class="fas fa-hourglass-half"></i>
+                            小时差 (正数为未来, 负数为过去):
+                        </label>
+                        <input type="number" id="offsetHours" placeholder="例如：8" step="1">
+                    </div>
+                    <div class="input-group">
+                        <label for="offsetMinutes">
+                            <i class="fas fa-clock"></i>
+                            分钟差:
+                        </label>
+                        <input type="number" id="offsetMinutes" placeholder="例如：0" step="1">
                     </div>
                 </div>
             </div>
@@ -808,8 +839,8 @@
                 calculateBtn.style.display = 'flex'; // 默认显示
 
                 // 根据功能类型设置按钮状态和默认值
-                if (selectedFunction === 'A' || selectedFunction === 'B') {
-                    // A和B功能：启用计算按钮，设置今天为默认日期
+                if (selectedFunction === 'A' || selectedFunction === 'B' || selectedFunction === 'D') {
+                    // A, B, D功能：启用计算按钮，设置默认日期/时间
                     calculateBtn.disabled = false;
                     calculateBtn.innerHTML = '<i class="fas fa-calculator"></i> 计算';
                     calculateBtn.className = 'action-button btn-primary';
@@ -821,7 +852,7 @@
                 // 清空结果
                 clearResult();
 
-                // 设置今天的日期作为默认值
+                // 设置默认日期
                 setDefaultDates();
             });
         });
@@ -835,6 +866,17 @@
             return `${year}-${month}-${day}`;
         }
 
+        // 获取本地时间的现在日期时间（YYYY-MM-DDTHH:mm格式）
+        function getNowString() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+
         // 设置指定输入框为今天
         function setToday(inputId) {
             document.getElementById(inputId).value = getTodayString();
@@ -842,6 +884,11 @@
             if (inputId === 'solarDate') {
                 document.getElementById(inputId).dispatchEvent(new Event('change'));
             }
+        }
+
+        // 设置指定输入框为现在
+        function setNow(inputId) {
+            document.getElementById(inputId).value = getNowString();
         }
 
         // 设置默认日期
@@ -859,6 +906,11 @@
                 document.getElementById('solarDate').value = today;
                 // 触发公历日期的change事件来自动转换
                 document.getElementById('solarDate').dispatchEvent(new Event('change'));
+            } else if (selectedFunction === 'D') {
+                // D功能：设置起始时间为现在
+                document.getElementById('baseDateTime').value = getNowString();
+                document.getElementById('offsetHours').value = '0';
+                document.getElementById('offsetMinutes').value = '0';
             }
         }
 
@@ -888,6 +940,14 @@
                 document.getElementById('lunarMonth').value = '';
                 document.getElementById('lunarDay').value = '';
                 document.getElementById('isLeapMonth').checked = false;
+            } else if (selectedFunction === 'D') {
+                document.getElementById('baseDateTime').value = '';
+                document.getElementById('offsetHours').value = '0';
+                document.getElementById('offsetMinutes').value = '0';
+                // 重新设置现在为默认时间
+                setTimeout(() => {
+                    document.getElementById('baseDateTime').value = getNowString();
+                }, 100);
             }
             clearResult();
         });
@@ -1001,6 +1061,37 @@
                     <div style="text-align: center; color: var(--text-secondary);">
                         <i class="fas fa-info-circle"></i>
                         新旧历转换已实现实时转换，请直接在上方输入日期即可看到结果
+                    </div>
+                `;
+            } else if (selectedFunction === 'D') {
+                const baseDateTime = document.getElementById('baseDateTime').value;
+                const offsetHours = parseInt(document.getElementById('offsetHours').value) || 0;
+                const offsetMinutes = parseInt(document.getElementById('offsetMinutes').value) || 0;
+
+                if (!baseDateTime) {
+                    alert('请输入起始日期时间！');
+                    return;
+                }
+
+                const date = new Date(baseDateTime);
+                date.setHours(date.getHours() + offsetHours);
+                date.setMinutes(date.getMinutes() + offsetMinutes);
+
+                const resYear = date.getFullYear();
+                const resMonth = String(date.getMonth() + 1).padStart(2, '0');
+                const resDay = String(date.getDate()).padStart(2, '0');
+                const resHours = String(date.getHours()).padStart(2, '0');
+                const resMinutes = String(date.getMinutes()).padStart(2, '0');
+                const resultDateTime = `${resYear}-${resMonth}-${resDay} ${resHours}:${resMinutes}`;
+
+                const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+                const weekday = weekdays[date.getDay()];
+
+                result = `
+                    <div>从 <span class="result-highlight">${baseDateTime.replace('T', ' ')}</span> 起</div>
+                    <div>调整 <span class="result-highlight">${offsetHours}</span> 小时 <span class="result-highlight">${offsetMinutes}</span> 分钟后的时间是：</div>
+                    <div class="result-highlight" style="margin-top: 10px; font-size: 1.5em;">
+                        ${resultDateTime} (星期${weekday})
                     </div>
                 `;
             }
