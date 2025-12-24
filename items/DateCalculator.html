@@ -340,6 +340,10 @@
                 <i class="fas fa-clock"></i>
                 D-时间计算
             </button>
+            <button class="function-button" data-function="E">
+                <i class="fas fa-calendar-alt"></i>
+                E-时间范围计算
+            </button>
         </div>
 
         <div class="input-section">
@@ -474,6 +478,61 @@
                             分钟差:
                         </label>
                         <input type="number" id="offsetMinutes" placeholder="例如：0" step="1">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 功能E的输入区域 -->
+            <div id="inputE" class="input-area hidden">
+                <div class="input-group">
+                    <label for="startDateE" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span><i class="fas fa-calendar"></i> 基准日期：</span>
+                        <button type="button" class="text-button" onclick="setToday('startDateE')">今天</button>
+                    </label>
+                    <input type="date" id="startDateE" min="1900-01-01" max="2100-12-31">
+                </div>
+                <div class="dual-input">
+                    <div class="input-group">
+                        <label for="rangeValue1">
+                            <i class="fas fa-hashtag"></i>
+                            起始偏移量：
+                        </label>
+                        <input type="number" id="rangeValue1" placeholder="例如：-7">
+                    </div>
+                    <div class="input-group">
+                        <label for="rangeUnit1">
+                            <i class="fas fa-clock"></i>
+                            起始单位：
+                        </label>
+                        <select id="rangeUnit1">
+                            <option value="days">天</option>
+                            <option value="weeks">周</option>
+                            <option value="months">月（自然月）</option>
+                            <option value="years">年</option>
+                            <option value="calendar-months">公历月（30天）</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="dual-input" style="margin-top: var(--spacing-md);">
+                    <div class="input-group">
+                        <label for="rangeValue2">
+                            <i class="fas fa-hashtag"></i>
+                            结束偏移量：
+                        </label>
+                        <input type="number" id="rangeValue2" placeholder="例如：7">
+                    </div>
+                    <div class="input-group">
+                        <label for="rangeUnit2">
+                            <i class="fas fa-clock"></i>
+                            结束单位：
+                        </label>
+                        <select id="rangeUnit2">
+                            <option value="days">天</option>
+                            <option value="weeks">周</option>
+                            <option value="months">月（自然月）</option>
+                            <option value="years">年</option>
+                            <option value="calendar-months">公历月（30天）</option>
+                        </select>
                     </div>
                 </div>
             </div>
@@ -839,8 +898,8 @@
                 calculateBtn.style.display = 'flex'; // 默认显示
 
                 // 根据功能类型设置按钮状态和默认值
-                if (selectedFunction === 'A' || selectedFunction === 'B' || selectedFunction === 'D') {
-                    // A, B, D功能：启用计算按钮，设置默认日期/时间
+                if (selectedFunction === 'A' || selectedFunction === 'B' || selectedFunction === 'D' || selectedFunction === 'E') {
+                    // A, B, D, E功能：启用计算按钮，设置默认日期/时间
                     calculateBtn.disabled = false;
                     calculateBtn.innerHTML = '<i class="fas fa-calculator"></i> 计算';
                     calculateBtn.className = 'action-button btn-primary';
@@ -911,6 +970,11 @@
                 document.getElementById('baseDateTime').value = getNowString();
                 document.getElementById('offsetHours').value = '0';
                 document.getElementById('offsetMinutes').value = '0';
+            } else if (selectedFunction === 'E') {
+                // E功能：设置基准日期为今天
+                document.getElementById('startDateE').value = today;
+                document.getElementById('rangeValue1').value = '0';
+                document.getElementById('rangeValue2').value = '0';
             }
         }
 
@@ -947,6 +1011,17 @@
                 // 重新设置现在为默认时间
                 setTimeout(() => {
                     document.getElementById('baseDateTime').value = getNowString();
+                }, 100);
+            } else if (selectedFunction === 'E') {
+                document.getElementById('startDateE').value = '';
+                document.getElementById('rangeValue1').value = '0';
+                document.getElementById('rangeValue2').value = '0';
+                document.getElementById('rangeUnit1').value = 'days';
+                document.getElementById('rangeUnit2').value = 'days';
+                // 重新设置今天为默认日期
+                setTimeout(() => {
+                    const today = getTodayString();
+                    document.getElementById('startDateE').value = today;
                 }, 100);
             }
             clearResult();
@@ -1092,6 +1167,49 @@
                     <div>调整 <span class="result-highlight">${offsetHours}</span> 小时 <span class="result-highlight">${offsetMinutes}</span> 分钟后的时间是：</div>
                     <div class="result-highlight" style="margin-top: 10px; font-size: 1.5em;">
                         ${resultDateTime} (星期${weekday})
+                    </div>
+                `;
+            } else if (selectedFunction === 'E') {
+                const startDate = document.getElementById('startDateE').value;
+                const val1 = parseInt(document.getElementById('rangeValue1').value) || 0;
+                const unit1 = document.getElementById('rangeUnit1').value;
+                const val2 = parseInt(document.getElementById('rangeValue2').value) || 0;
+                const unit2 = document.getElementById('rangeUnit2').value;
+
+                if (!startDate) {
+                    alert('请输入基准日期！');
+                    return;
+                }
+
+                const calculateOffsetDate = (baseDateStr, value, unit) => {
+                    const date = new Date(baseDateStr);
+                    switch (unit) {
+                        case 'days': date.setDate(date.getDate() + value); break;
+                        case 'weeks': date.setDate(date.getDate() + value * 7); break;
+                        case 'months': date.setMonth(date.getMonth() + value); break;
+                        case 'years': date.setFullYear(date.getFullYear() + value); break;
+                        case 'calendar-months': date.setDate(date.getDate() + value * 30); break;
+                    }
+                    return date;
+                };
+
+                const date1 = calculateOffsetDate(startDate, val1, unit1);
+                const date2 = calculateOffsetDate(startDate, val2, unit2);
+
+                const res1 = date1.toISOString().split('T')[0];
+                const res2 = date2.toISOString().split('T')[0];
+                const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+                const w1 = weekdays[date1.getDay()];
+                const w2 = weekdays[date2.getDay()];
+
+                result = `
+                    <div>从 <span class="result-highlight">${startDate}</span> 起的时间范围：</div>
+                    <div class="result-highlight" style="margin-top: 10px; font-size: 1.2em;">
+                        ${res1} (星期${w1})
+                    </div>
+                    <div style="margin: 5px 0; color: var(--text-tertiary);">至</div>
+                    <div class="result-highlight" style="font-size: 1.2em;">
+                        ${res2} (星期${w2})
                     </div>
                 `;
             }

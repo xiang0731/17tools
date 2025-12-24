@@ -300,6 +300,52 @@
         </header>
 
         <div class="timeline">
+            <!-- 版本 2.6.0 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 2.6.0</div>
+                    <div class="version-date">2025-12-24</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">新功能</div>
+                    <ul>
+                        <li><span class="tag new">新增</span>比价工具：支持输入总价和均摊单位，自动计算单价并按价格从低到高排序</li>
+                    </ul>
+                    <div class="feature-category">性能优化</div>
+                    <ul>
+                        <li><span class="tag improved">算法</span>Calendar万年历：农历算法升级，引入 1900-2100 精准农历数据表，彻底解决节气（如清明）计算误差
+                        </li>
+                        <li><span class="tag improved">优化</span>Calendar万年历：性能极致优化，实现农历计算缓存(Memoization)与节气
+                            O(1)快速检索，大幅降低页面计算负载
+                        </li>
+                        <li><span class="tag ux">体验</span>Calendar万年历：操控逻辑重构，调整箭头按钮逻辑，实现小箭头控日、大箭头控月的直觉化操作，同步支持键盘快捷键</li>
+                        <li><span class="tag ui">界面</span>Calendar万年历：信息面板升级，采用繁体中文与干支纪年展示农历年份，新增带呼吸动画的“今天”高亮标签</li>
+                        <li><span class="tag ui">界面</span>Calendar万年历：网格视觉修复，重构选中状态指示器，通过层级控制解决蓝色背景遮挡单元格边框的问题</li>
+                        <li><span class="tag ux">体验</span>Calendar万年历：节日列表重排，针对节日较多的月份，将“本月节日”改为双列五行紧凑布局，自动处理长文本溢出</li>
+                        <li><span class="tag ux">体验</span>Calendar万年历：实现内容高度全自适应布局，彻底消除垂直滚动条</li>
+                        <li><span class="tag improved">优化</span>WorldTime世界时间：深度性能优化</li>
+                        <li><span class="tag ui">界面</span>WorldTime世界时间：启用GPU加速渲染，消除指针抖动，支持中英文地区名/日期分行显示</li>
+                        <li><span class="tag ui">界面</span>WorldTime世界时间：重构60分钟精细刻度盘，优化指针对齐精度，隐藏UTC冗余标识</li>
+                        <li><span class="tag improved">优化</span>系统架构：重构主页容器布局逻辑，提升跨页面自适应稳定性</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- 版本 2.5.3 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 2.5.3</div>
+                    <div class="version-date">2025-12-24</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">新功能</div>
+                    <ul>
+                        <li><span class="tag new">新增</span>TimeCalculator时间计算：新增“E-时间范围计算”功能，支持基于基准日期通过起始/结束偏移量计算时间范围
+                        </li>
+                    </ul>
+                </div>
+            </div>
             <!-- 版本 2.5.2 -->
             <div class="version-entry">
                 <div class="version-dot"></div>
@@ -310,7 +356,8 @@
                 <div class="update-list">
                     <div class="feature-category">新功能</div>
                     <ul>
-                        <li><span class="tag new">新增</span>TimeCalculator时间计算：新增“D-时间计算”功能，支持输入起始日期时间及小时/分钟偏移量进行精确计算</li>
+                        <li><span class="tag new">新增</span>TimeCalculator时间计算：新增“D-时间计算”功能，支持输入起始日期时间及小时/分钟偏移量进行精确计算
+                        </li>
                     </ul>
                     <div class="feature-category">体验改进</div>
                     <ul>
@@ -329,7 +376,8 @@
                     <div class="feature-category">新功能</div>
                     <ul>
                         <li><span class="tag new">新增</span>Transformer文本转换工具：新增“B-添加双引号和逗号”功能</li>
-                        <li><span class="tag new">新增</span>Transformer文本转换工具：新增“O-添加倒序前缀”功能，支持数字、字母序列自动递减，并具备序号不足智能提醒</li>
+                        <li><span class="tag new">新增</span>Transformer文本转换工具：新增“O-添加倒序前缀”功能，支持数字、字母序列自动递减，并具备序号不足智能提醒
+                        </li>
                     </ul>
                     <div class="feature-category">功能改进</div>
                     <ul>

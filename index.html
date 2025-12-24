@@ -236,9 +236,14 @@
             flex: 1;
             margin-left: var(--sidebar-width);
             padding-top: 60px;
+            padding-bottom: 40px;
+            /* 为固定底部留出空间 */
             transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            min-height: 100vh;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
             background-color: var(--background-primary);
+            overflow: hidden;
         }
 
         .main-content.expanded {
@@ -246,8 +251,10 @@
         }
 
         .content-wrapper {
-            height: calc(100vh - 120px);
-            padding: 20px;
+            flex: 1;
+            padding: 16px;
+            display: flex;
+            min-height: 0;
         }
 
         .content-frame {
@@ -258,6 +265,7 @@
             background-color: var(--background-primary);
             box-shadow: var(--shadow-light);
             overflow: hidden;
+            flex: 1;
         }
 
         /* 底部状态栏 */
@@ -594,10 +602,9 @@
                         <i class="fas fa-calculator"></i>
                         <span>极速计算</span>
                     </div>
-
-                    <div class="nav-item" data-file="DateCalculator.html">
-                        <i class="fas fa-calendar-check"></i>
-                        <span>时间计算</span>
+                    <div class="nav-item" data-file="PriceComparison.html">
+                        <i class="fas fa-balance-scale"></i>
+                        <span>比价工具</span>
                     </div>
                     <div class="nav-item" data-file="PrettyFormat.html">
                         <i class="fas fa-code"></i>
@@ -630,6 +637,10 @@
                     <div class="nav-item" data-file="Calendar.html">
                         <i class="fas fa-calendar-alt"></i>
                         <span>万年历</span>
+                    </div>
+                    <div class="nav-item" data-file="DateCalculator.html">
+                        <i class="fas fa-calendar-check"></i>
+                        <span>时间计算</span>
                     </div>
                     <div class="nav-item" data-file="WorldTime.html">
                         <i class="fas fa-globe"></i>

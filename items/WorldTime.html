@@ -8,31 +8,47 @@
     <link rel="stylesheet" href="../css/theme.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
+        :root {
+            --clock-max-size: 220px;
+            --clock-min-size: 130px;
+        }
+
         body {
-            min-height: 100vh;
-            padding: var(--spacing-lg);
+            height: 100vh;
+            padding: clamp(15px, 3vh, 30px) var(--spacing-md);
             background-color: var(--background-primary);
             color: var(--text-primary);
             font-family: var(--font-family);
-            line-height: 1.6;
+            line-height: 1.4;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            margin: 0;
+            box-sizing: border-box;
         }
 
         .container {
-            max-width: 1200px;
+            width: 100%;
+            max-width: 1100px;
             margin: 0 auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            justify-content: flex-start;
         }
 
-        /* 标题样式 */
         h1 {
             text-align: center;
             color: var(--text-primary);
-            margin: 0 0 var(--spacing-xl) 0;
-            font-size: 32px;
+            margin: 0 0 clamp(10px, 2vh, 25px) 0;
+            font-size: clamp(22px, 3.5vh, 30px);
             font-weight: 700;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: var(--spacing-sm);
+            flex-shrink: 0;
         }
 
         h1::before {
@@ -42,372 +58,237 @@
             color: var(--primary-color);
         }
 
-        /* 时钟网格布局 */
         .clocks-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: var(--spacing-xl);
-            margin: var(--spacing-xl) 0;
+            grid-template-columns: repeat(2, 1fr);
+            gap: clamp(15px, 4vw, 40px);
+            margin-bottom: clamp(15px, 3vh, 30px);
+            flex-shrink: 1;
+            min-height: 0;
+            width: 100%;
         }
 
-        /* 时钟卡片 */
         .clock-card {
             background: var(--background-secondary);
             border: 1px solid var(--border-color);
             border-radius: var(--radius-lg);
-            padding: var(--spacing-xl);
+            padding: clamp(15px, 3vh, 30px);
             box-shadow: var(--shadow-md);
             text-align: center;
-            transition: all var(--transition-fast);
-        }
-
-        .clock-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-lg);
-        }
-
-        /* 时钟容器 */
-        .clock-container {
-            position: relative;
-            width: 220px;
-            height: 220px;
             display: flex;
+            flex-direction: column;
             justify-content: center;
-            align-items: center;
-            margin: 0 auto var(--spacing-lg);
-        }
-
-        .clock {
+            min-height: 0;
             position: relative;
-            width: 200px;
-            height: 200px;
-            border-radius: 50%;
-            background-color: var(--background-primary);
-            border: 2px solid var(--border-color);
-            box-shadow: var(--shadow-md);
-            display: flex;
-            justify-content: center;
-            align-items: center;
         }
 
-        /* 时钟表面 */
-        .clock-face {
-            position: absolute;
-            width: 170px;
-            height: 170px;
-            border-radius: 50%;
-            z-index: 5;
-        }
-
-        /* 小时主要刻度 */
-        .hour-line {
-            position: absolute;
-            width: 3px;
-            height: 12px;
-            background-color: var(--text-secondary);
-            top: 0;
-            left: 50%;
-            transform-origin: 50% 85px;
-            z-index: 5;
-        }
-
-        /* 分钟刻度线 */
-        .minute-marker {
-            position: absolute;
-            width: 1px;
-            height: 6px;
-            background-color: var(--text-tertiary);
-            top: 0;
-            left: 50%;
-            transform-origin: 50% 85px;
-            z-index: 5;
-        }
-
-        /* 时针 */
-        .hour-hand {
-            position: absolute;
-            width: 6px;
-            height: 60px;
-            background-color: var(--text-primary);
-            border-radius: 6px;
-            bottom: 50%;
-            left: 50%;
-            transform-origin: 50% 100%;
-            transform: rotate(0deg);
-            z-index: 10;
-        }
-
-        /* 分针 */
-        .minute-hand {
-            position: absolute;
-            width: 4px;
-            height: 80px;
-            background-color: var(--text-primary);
-            border-radius: 4px;
-            bottom: 50%;
-            left: 50%;
-            transform-origin: 50% 100%;
-            transform: rotate(0deg);
-            z-index: 11;
-        }
-
-        /* 秒针 */
-        .second-hand {
-            position: absolute;
-            width: 2px;
-            height: 90px;
-            background-color: var(--primary-color);
-            border-radius: 2px;
-            bottom: 50%;
-            left: 50%;
-            transform-origin: 50% 100%;
-            transform: rotate(0deg);
-            z-index: 12;
-            transition: all 0.05s cubic-bezier(0.9, 0.1, 0.1, 0.9);
-        }
-
-        /* 中心点 */
-        .center-dot {
-            position: absolute;
-            width: 12px;
-            height: 12px;
-            background-color: var(--primary-color);
-            border-radius: 50%;
-            z-index: 13;
-        }
-
-        /* 时钟标题 */
-        .clock-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: var(--spacing-md);
-            line-height: 1.4;
-        }
-
-        /* A/B 标签样式 */
         .clock-label {
             display: inline-block;
-            width: 32px;
-            height: 32px;
-            line-height: 32px;
-            text-align: center;
+            width: 28px;
+            height: 28px;
+            line-height: 28px;
             background-color: var(--primary-color);
             color: white;
             border-radius: 50%;
             font-weight: bold;
-            font-size: 18px;
-            margin-bottom: var(--spacing-sm);
-            box-shadow: var(--shadow-sm);
+            font-size: 14px;
+            margin: 0 auto 10px;
+            flex-shrink: 0;
         }
 
-        .clock-title span {
-            display: block;
-            font-size: 0.9em;
+        .clock-title {
+            font-size: clamp(16px, 2.5vh, 20px);
+            font-weight: 700;
+            margin-bottom: clamp(8px, 2vh, 18px);
+            line-height: 1.2;
+            flex-shrink: 0;
         }
 
         .clock-title .en-title {
-            font-size: 0.8em;
+            display: block;
+            font-size: 0.7em;
             color: var(--text-secondary);
             font-weight: 400;
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        /* 数字时间样式 */
+        .clock-container {
+            position: relative;
+            width: clamp(var(--clock-min-size), 30vh, var(--clock-max-size));
+            height: clamp(var(--clock-min-size), 30vh, var(--clock-max-size));
+            margin: 0 auto clamp(12px, 2.5vh, 25px);
+            flex-shrink: 1;
+            min-height: 0;
+        }
+
+        .clock {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-color: var(--background-primary);
+            border: 2px solid var(--border-color);
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .marker {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+        }
+
+        .marker::after {
+            content: "";
+            position: absolute;
+            top: 2%;
+            left: 50%;
+            width: 1px;
+            height: 4%;
+            background-color: var(--text-secondary);
+            transform: translateX(-50%);
+        }
+
+        .marker.hour::after {
+            width: 2px;
+            height: 8%;
+            background-color: var(--text-primary);
+        }
+
+        .hand {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            transform-origin: 50% 100%;
+            z-index: 10;
+            will-change: transform; /* 性能优化：启用 GPU 加速 */
+        }
+
+        .hour-hand {
+            width: 6px;
+            height: 25%;
+            background-color: var(--text-primary);
+            border-radius: 6px;
+            margin-left: -3px;
+        }
+
+        .minute-hand {
+            width: 4px;
+            height: 38%;
+            background-color: var(--text-secondary);
+            border-radius: 4px;
+            margin-left: -2px;
+        }
+
+        .second-hand {
+            width: 2px;
+            height: 44%;
+            background-color: #ef4444;
+            border-radius: 2px;
+            margin-left: -1px;
+            z-index: 11;
+        }
+
+        .center-dot {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #ef4444;
+            border: 2px solid white;
+            border-radius: 50%;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 12;
+        }
+
         .digital-time {
-            font-feature-settings: "tnum";
-            font-variant-numeric: tabular-nums;
-            letter-spacing: 0.5px;
-            font-size: 24px;
-            font-weight: 600;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: clamp(24px, 4vh, 32px);
+            font-weight: 700;
             color: var(--primary-color);
-            margin-bottom: var(--spacing-sm);
+            margin-bottom: 4px;
+            flex-shrink: 0;
+            letter-spacing: -1px;
         }
 
         .digital-date {
-            font-size: 14px;
+            font-size: clamp(12px, 1.8vh, 14px);
             color: var(--text-secondary);
-            margin-bottom: var(--spacing-md);
-            line-height: 1.5;
+            margin-bottom: clamp(10px, 2vh, 20px);
+            line-height: 1.4;
+            flex-shrink: 0;
         }
 
-        .digital-date .en-date {
+        .en-date {
             display: block;
-            font-size: 0.9em;
-            opacity: 0.8;
-        }
-
-        /* 时区选择器样式 */
-        .timezone-selector {
-            width: 100%;
-            max-width: 280px;
-            margin: 0 auto;
+            font-size: 0.85em;
+            opacity: 0.7;
+            margin-top: 2px;
         }
 
         .timezone-selector select {
             width: 100%;
-            padding: var(--spacing-md);
-            border-radius: var(--radius-md);
+            max-width: 220px;
+            padding: 8px 12px;
+            border-radius: 10px;
             border: 1px solid var(--border-color);
-            background-color: var(--background-primary);
+            background: var(--background-primary);
             color: var(--text-primary);
-            font-size: 14px;
+            font-size: 13px;
+            font-weight: 500;
             appearance: none;
             background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
             background-repeat: no-repeat;
-            background-position: right 12px center;
-            background-size: 16px;
-            transition: all var(--transition-fast);
+            background-position: right 10px center;
+            background-size: 14px;
+            cursor: pointer;
         }
 
-        .timezone-selector select:focus {
-            outline: none;
-            border-color: var(--border-focus);
-            box-shadow: 0 0 0 3px var(--primary-light);
-        }
-
-        /* 时区信息 */
-        .timezone-info {
-            font-size: 12px;
-            color: var(--text-tertiary);
-            margin-top: var(--spacing-sm);
-        }
-
-        /* 时差显示 */
         .time-difference {
-            margin-top: var(--spacing-xl);
-            padding: var(--spacing-lg);
+            width: 100%;
+            padding: clamp(12px, 2.5vh, 20px);
             background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
             border-radius: var(--radius-lg);
             text-align: center;
             color: white;
             box-shadow: var(--shadow-md);
+            flex-shrink: 0;
+            box-sizing: border-box;
         }
 
         .time-difference h3 {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: var(--spacing-sm);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: var(--spacing-sm);
+            font-size: clamp(14px, 2vh, 16px);
+            margin: 0 0 6px 0;
+            opacity: 0.9;
+            font-weight: 500;
         }
 
         .time-difference-value {
-            font-size: 24px;
-            font-weight: 700;
-            margin-bottom: var(--spacing-sm);
+            font-size: clamp(20px, 3.5vh, 26px);
+            font-weight: 800;
         }
 
-        .time-difference-desc {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-
-        /* 页脚信息 */
         .footer-info {
+            margin-top: auto;
+            padding-top: 15px;
             text-align: center;
-            margin-top: var(--spacing-xl);
-            padding-top: var(--spacing-lg);
             border-top: 1px solid var(--border-color);
-        }
-
-        .footer-info p {
-            color: var(--text-secondary);
-            font-size: 14px;
-            margin-bottom: var(--spacing-sm);
-        }
-
-        .footer-info .brand {
             color: var(--text-tertiary);
-            font-size: 12px;
+            font-size: 11px;
+            flex-shrink: 0;
         }
 
-        /* 响应式调整 */
         @media (max-width: 768px) {
-            body {
-                padding: var(--spacing-md);
-            }
-
             .clocks-grid {
                 grid-template-columns: 1fr;
-                gap: var(--spacing-lg);
+                overflow-y: auto;
+                max-height: 60vh;
             }
-
-            .clock {
-                width: 180px;
-                height: 180px;
-            }
-
-            .clock-face {
-                width: 150px;
-                height: 150px;
-            }
-
-            .hour-line {
-                transform-origin: 50% 75px;
-            }
-
-            .minute-marker {
-                transform-origin: 50% 75px;
-            }
-
-            .hour-hand {
-                height: 50px;
-            }
-
-            .minute-hand {
-                height: 70px;
-            }
-
-            .second-hand {
-                height: 80px;
-            }
-
-            .digital-time {
-                font-size: 20px;
-            }
-
-            h1 {
-                font-size: 28px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .clock-container {
-                width: 160px;
-                height: 160px;
-            }
-
-            .clock {
-                width: 140px;
-                height: 140px;
-            }
-
-            .clock-face {
-                width: 120px;
-                height: 120px;
-            }
-
-            .hour-line {
-                transform-origin: 50% 60px;
-            }
-
-            .minute-marker {
-                transform-origin: 50% 60px;
-            }
-
-            .hour-hand {
-                height: 40px;
-            }
-
-            .minute-hand {
-                height: 55px;
-            }
-
-            .second-hand {
-                height: 65px;
-            }
+            body { overflow-y: auto; }
         }
     </style>
 </head>
@@ -417,668 +298,249 @@
         <h1>全球时间对比</h1>
 
         <div class="clocks-grid">
-            <!-- 左侧时钟 -->
-            <div class="clock-card">
+            <div class="clock-card" id="left-card">
                 <div class="clock-label">A</div>
                 <h2 class="clock-title" id="left-clock-title">中国 (北京)</h2>
-
                 <div class="clock-container">
                     <div class="clock left-clock">
-                        <div class="clock-face" id="left-clock-face">
-                            <!-- 小时刻度 -->
-                            <div class="hour-line" style="transform: rotate(0deg);"></div>
-                            <div class="hour-line" style="transform: rotate(30deg);"></div>
-                            <div class="hour-line" style="transform: rotate(60deg);"></div>
-                            <div class="hour-line" style="transform: rotate(90deg);"></div>
-                            <div class="hour-line" style="transform: rotate(120deg);"></div>
-                            <div class="hour-line" style="transform: rotate(150deg);"></div>
-                            <div class="hour-line" style="transform: rotate(180deg);"></div>
-                            <div class="hour-line" style="transform: rotate(210deg);"></div>
-                            <div class="hour-line" style="transform: rotate(240deg);"></div>
-                            <div class="hour-line" style="transform: rotate(270deg);"></div>
-                            <div class="hour-line" style="transform: rotate(300deg);"></div>
-                            <div class="hour-line" style="transform: rotate(330deg);"></div>
-                        </div>
-
-                        <div class="hour-hand"></div>
-                        <div class="minute-hand"></div>
-                        <div class="second-hand"></div>
+                        <div class="clock-face" id="left-clock-face"></div>
+                        <div class="hand hour-hand"></div>
+                        <div class="hand minute-hand"></div>
+                        <div class="hand second-hand"></div>
                         <div class="center-dot"></div>
                     </div>
                 </div>
-
-                <div class="digital-time" id="left-time">--:--:--</div>
-                <div class="digital-date" id="left-date">----年--月--日</div>
-                <div class="timezone-info" id="left-timezone-info">UTC+8</div>
-
+                <div class="digital-time" id="left-time">00:00:00</div>
+                <div class="digital-date" id="left-date"></div>
                 <div class="timezone-selector">
-                    <select id="left-timezone-select">
-                        <!-- 时区选项将通过JavaScript动态生成 -->
-                    </select>
+                    <select id="left-timezone-select"></select>
                 </div>
             </div>
 
-            <!-- 右侧时钟 -->
-            <div class="clock-card">
+            <div class="clock-card" id="right-card">
                 <div class="clock-label">B</div>
                 <h2 class="clock-title" id="right-clock-title">美国 (纽约)</h2>
-
                 <div class="clock-container">
                     <div class="clock right-clock">
-                        <div class="clock-face" id="right-clock-face">
-                            <!-- 小时刻度 -->
-                            <div class="hour-line" style="transform: rotate(0deg);"></div>
-                            <div class="hour-line" style="transform: rotate(30deg);"></div>
-                            <div class="hour-line" style="transform: rotate(60deg);"></div>
-                            <div class="hour-line" style="transform: rotate(90deg);"></div>
-                            <div class="hour-line" style="transform: rotate(120deg);"></div>
-                            <div class="hour-line" style="transform: rotate(150deg);"></div>
-                            <div class="hour-line" style="transform: rotate(180deg);"></div>
-                            <div class="hour-line" style="transform: rotate(210deg);"></div>
-                            <div class="hour-line" style="transform: rotate(240deg);"></div>
-                            <div class="hour-line" style="transform: rotate(270deg);"></div>
-                            <div class="hour-line" style="transform: rotate(300deg);"></div>
-                            <div class="hour-line" style="transform: rotate(330deg);"></div>
-                        </div>
-
-                        <div class="hour-hand"></div>
-                        <div class="minute-hand"></div>
-                        <div class="second-hand"></div>
+                        <div class="clock-face" id="right-clock-face"></div>
+                        <div class="hand hour-hand"></div>
+                        <div class="hand minute-hand"></div>
+                        <div class="hand second-hand"></div>
                         <div class="center-dot"></div>
                     </div>
                 </div>
-
-                <div class="digital-time" id="right-time">--:--:--</div>
-                <div class="digital-date" id="right-date">----年--月--日</div>
-                <div class="timezone-info" id="right-timezone-info">UTC-4</div>
-
+                <div class="digital-time" id="right-time">00:00:00</div>
+                <div class="digital-date" id="right-date"></div>
                 <div class="timezone-selector">
-                    <select id="right-timezone-select">
-                        <!-- 时区选项将通过JavaScript动态生成 -->
-                    </select>
+                    <select id="right-timezone-select"></select>
                 </div>
             </div>
         </div>
 
-        <!-- 时差显示 -->
         <div class="time-difference" id="time-difference">
-            <h3>
-                <i class="fas fa-clock"></i>
-                时差对比
-            </h3>
-            <div class="time-difference-value" id="time-difference-value">12小时</div>
-            <div class="time-difference-desc">北京时间比纽约时间快12小时</div>
+            <h3><i class="fas fa-clock"></i> 时差对比</h3>
+            <div class="time-difference-value" id="time-difference-value">--小时</div>
         </div>
 
         <div class="footer-info">
-            <p>现已支持全球 60+ 时区，查看世界各地的实时时间</p>
-            <p class="brand">wow17.com</p>
+            <p>现已支持全球 60+ 时区 • wow17.com</p>
         </div>
     </div>
 
     <script src="../js/theme.js"></script>
     <script>
-        // 时钟功能实现
         document.addEventListener('DOMContentLoaded', function () {
-            // 获取DOM元素
-            const leftTimeElement = document.getElementById('left-time');
-            const leftDateElement = document.getElementById('left-date');
-            const rightTimeElement = document.getElementById('right-time');
-            const rightDateElement = document.getElementById('right-date');
-            const leftTimezoneInfo = document.getElementById('left-timezone-info');
-            const rightTimezoneInfo = document.getElementById('right-timezone-info');
-            const timeDifferenceElement = document.getElementById('time-difference');
-
-            // 获取时区选择器
-            const leftTimezoneSelect = document.getElementById('left-timezone-select');
-            const rightTimezoneSelect = document.getElementById('right-timezone-select');
-
-            // 获取时钟标题
-            const leftClockTitle = document.getElementById('left-clock-title');
-            const rightClockTitle = document.getElementById('right-clock-title');
-
-            // 获取时钟指针元素
-            const leftHourHand = document.querySelector('.left-clock .hour-hand');
-            const leftMinuteHand = document.querySelector('.left-clock .minute-hand');
-            const leftSecondHand = document.querySelector('.left-clock .second-hand');
-
-            const rightHourHand = document.querySelector('.right-clock .hour-hand');
-            const rightMinuteHand = document.querySelector('.right-clock .minute-hand');
-            const rightSecondHand = document.querySelector('.right-clock .second-hand');
-
-            // 获取时钟表面
-            const leftClockFace = document.getElementById('left-clock-face');
-            const rightClockFace = document.getElementById('right-clock-face');
-
-            // 初始时区
-            let leftTimezone = 'Asia/Shanghai';
-            let rightTimezone = 'America/New_York';
-
-            // 时区偏移量储存
-            const timezoneOffsets = {};
-
-            // 扩展时区显示名称映射（不包含时区信息，会动态添加）
-            const timezoneDisplayNames = {
-                // 亚洲时区
-                'Asia/Shanghai': '中国 (北京)',
-                'Asia/Tokyo': '日本 (东京)',
-                'Asia/Singapore': '新加坡',
-                'Asia/Seoul': '韩国 (首尔)',
-                'Asia/Hong_Kong': '中国 (香港)',
-                'Asia/Taipei': '中国 (台北)',
-                'Asia/Bangkok': '泰国 (曼谷)',
-                'Asia/Kuala_Lumpur': '马来西亚 (吉隆坡)',
-                'Asia/Manila': '菲律宾 (马尼拉)',
-                'Asia/Jakarta': '印尼 (雅加达)',
-                'Asia/Ho_Chi_Minh': '越南 (胡志明)',
-                'Asia/Kolkata': '印度 (新德里)',
-                'Asia/Dubai': '阿联酋 (迪拜)',
-                'Asia/Riyadh': '沙特 (利雅得)',
-                'Asia/Jerusalem': '以色列 (耶路撒冷)',
-                'Asia/Karachi': '巴基斯坦 (卡拉奇)',
-
-                // 大洋洲时区
-                'Australia/Sydney': '澳大利亚 (悉尼)',
-                'Australia/Melbourne': '澳大利亚 (墨尔本)',
-                'Australia/Perth': '澳大利亚 (珀斯)',
-                'Australia/Brisbane': '澳大利亚 (布里斯班)',
-                'Pacific/Auckland': '新西兰 (奥克兰)',
-                'Pacific/Fiji': '斐济',
-
-                // 欧洲时区
-                'Europe/London': '英国 (伦敦)',
-                'Europe/Paris': '法国 (巴黎)',
-                'Europe/Berlin': '德国 (柏林)',
-                'Europe/Rome': '意大利 (罗马)',
-                'Europe/Madrid': '西班牙 (马德里)',
-                'Europe/Moscow': '俄罗斯 (莫斯科)',
-                'Europe/Amsterdam': '荷兰 (阿姆斯特丹)',
-                'Europe/Brussels': '比利时 (布鲁塞尔)',
-                'Europe/Zurich': '瑞士 (苏黎世)',
-                'Europe/Stockholm': '瑞典 (斯德哥尔摩)',
-                'Europe/Oslo': '挪威 (奥斯陆)',
-                'Europe/Copenhagen': '丹麦 (哥本哈根)',
-                'Europe/Helsinki': '芬兰 (赫尔辛基)',
-                'Europe/Athens': '希腊 (雅典)',
-                'Europe/Istanbul': '土耳其 (伊斯坦布尔)',
-                'Europe/Vienna': '奥地利 (维也纳)',
-                'Europe/Warsaw': '波兰 (华沙)',
-                'Europe/Prague': '捷克 (布拉格)',
-                'Europe/Budapest': '匈牙利 (布达佩斯)',
-
-                // 美洲时区
-                'America/New_York': '美国 (纽约)',
-                'America/Los_Angeles': '美国 (洛杉矶)',
-                'America/Chicago': '美国 (芝加哥)',
-                'America/Denver': '美国 (丹佛)',
-                'America/Toronto': '加拿大 (多伦多)',
-                'America/Vancouver': '加拿大 (温哥华)',
-                'America/Mexico_City': '墨西哥 (墨西哥城)',
-                'America/Sao_Paulo': '巴西 (圣保罗)',
-                'America/Buenos_Aires': '阿根廷 (布宜诺斯艾利斯)',
-                'America/Santiago': '智利 (圣地亚哥)',
-                'America/Lima': '秘鲁 (利马)',
-                'America/Bogota': '哥伦比亚 (波哥大)',
-
-                // 非洲时区
-                'Africa/Cairo': '埃及 (开罗)',
-                'Africa/Johannesburg': '南非 (约翰内斯堡)',
-                'Africa/Lagos': '尼日利亚 (拉各斯)',
-                'Africa/Nairobi': '肯尼亚 (内罗毕)',
-                'Africa/Casablanca': '摩洛哥 (卡萨布兰卡)',
-                'Atlantic/Reykjavik': '冰岛 (雷克雅未克)'
+            // 性能优化点：预定义格式化器，避免每秒重复创建
+            const formatters = {
+                time: (tz) => new Intl.DateTimeFormat('zh-CN', { timeZone: tz, hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                dateCN: (tz) => new Intl.DateTimeFormat('zh-CN', { timeZone: tz, year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }),
+                dateEN: (tz) => new Intl.DateTimeFormat('en-US', { timeZone: tz, year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }),
+                // 用于指针计算的简单格式化
+                raw: (tz) => new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: false })
             };
 
-            // 英文时区名称映射
-            const timezoneEnglishNames = {
-                'Asia/Shanghai': 'China (Beijing)',
-                'Asia/Tokyo': 'Japan (Tokyo)',
-                'Asia/Singapore': 'Singapore',
-                'Asia/Seoul': 'South Korea (Seoul)',
-                'Asia/Hong_Kong': 'China (Hong Kong)',
-                'Asia/Taipei': 'China (Taipei)',
-                'Asia/Bangkok': 'Thailand (Bangkok)',
-                'Asia/Kuala_Lumpur': 'Malaysia (Kuala Lumpur)',
-                'Asia/Manila': 'Philippines (Manila)',
-                'Asia/Jakarta': 'Indonesia (Jakarta)',
-                'Asia/Ho_Chi_Minh': 'Vietnam (Ho Chi Minh)',
-                'Asia/Kolkata': 'India (New Delhi)',
-                'Asia/Dubai': 'UAE (Dubai)',
-                'Asia/Riyadh': 'Saudi Arabia (Riyadh)',
-                'Asia/Jerusalem': 'Israel (Jerusalem)',
-                'Asia/Karachi': 'Pakistan (Karachi)',
-                'Australia/Sydney': 'Australia (Sydney)',
-                'Australia/Melbourne': 'Australia (Melbourne)',
-                'Australia/Perth': 'Australia (Perth)',
-                'Australia/Brisbane': 'Australia (Brisbane)',
-                'Pacific/Auckland': 'New Zealand (Auckland)',
-                'Pacific/Fiji': 'Fiji',
-                'Europe/London': 'UK (London)',
-                'Europe/Paris': 'France (Paris)',
-                'Europe/Berlin': 'Germany (Berlin)',
-                'Europe/Rome': 'Italy (Rome)',
-                'Europe/Madrid': 'Spain (Madrid)',
-                'Europe/Moscow': 'Russia (Moscow)',
-                'Europe/Amsterdam': 'Netherlands (Amsterdam)',
-                'Europe/Brussels': 'Belgium (Brussels)',
-                'Europe/Zurich': 'Switzerland (Zurich)',
-                'Europe/Stockholm': 'Sweden (Stockholm)',
-                'Europe/Oslo': 'Norway (Oslo)',
-                'Europe/Copenhagen': 'Denmark (Copenhagen)',
-                'Europe/Helsinki': 'Finland (Helsinki)',
-                'Europe/Athens': 'Greece (Athens)',
-                'Europe/Istanbul': 'Turkey (Istanbul)',
-                'Europe/Vienna': 'Austria (Vienna)',
-                'Europe/Warsaw': 'Poland (Warsaw)',
-                'Europe/Prague': 'Czech Republic (Prague)',
-                'Europe/Budapest': 'Hungary (Budapest)',
-                'America/New_York': 'USA (New York)',
-                'America/Los_Angeles': 'USA (Los Angeles)',
-                'America/Chicago': 'USA (Chicago)',
-                'America/Denver': 'USA (Denver)',
-                'America/Toronto': 'Canada (Toronto)',
-                'America/Vancouver': 'Canada (Vancouver)',
-                'America/Mexico_City': 'Mexico (Mexico City)',
-                'America/Sao_Paulo': 'Brazil (Sao Paulo)',
-                'America/Buenos_Aires': 'Argentina (Buenos Aires)',
-                'America/Santiago': 'Chile (Santiago)',
-                'America/Lima': 'Peru (Lima)',
-                'America/Bogota': 'Colombia (Bogota)',
-                'Africa/Cairo': 'Egypt (Cairo)',
-                'Africa/Johannesburg': 'South Africa (Johannesburg)',
-                'Africa/Lagos': 'Nigeria (Lagos)',
-                'Africa/Nairobi': 'Kenya (Nairobi)',
-                'Africa/Casablanca': 'Morocco (Casablanca)',
-                'Atlantic/Reykjavik': 'Iceland (Reykjavik)'
+            const state = {
+                left: { tz: 'Asia/Shanghai', fmt: {} },
+                right: { tz: 'America/New_York', fmt: {} }
             };
 
-            // 时区偏移量固定映射（根据标准时区定义）
-            const fixedTimezoneOffsets = {
-                // 亚洲时区
-                'Asia/Shanghai': 8, // UTC+8
-                'Asia/Tokyo': 9, // UTC+9
-                'Asia/Singapore': 8, // UTC+8
-                'Asia/Seoul': 9, // UTC+9
-                'Asia/Hong_Kong': 8, // UTC+8
-                'Asia/Taipei': 8, // UTC+8
-                'Asia/Bangkok': 7, // UTC+7
-                'Asia/Kuala_Lumpur': 8, // UTC+8
-                'Asia/Manila': 8, // UTC+8
-                'Asia/Jakarta': 7, // UTC+7
-                'Asia/Ho_Chi_Minh': 7, // UTC+7
-                'Asia/Kolkata': 5.5, // UTC+5:30
-                'Asia/Dubai': 4, // UTC+4
-                'Asia/Riyadh': 3, // UTC+3
-                'Asia/Jerusalem': 3, // UTC+3（夏令时变化）
-                'Asia/Karachi': 5, // UTC+5
-
-                // 大洋洲时区
-                'Australia/Sydney': 10, // UTC+10（夏令时可能+11）
-                'Australia/Melbourne': 10, // UTC+10（夏令时可能+11）
-                'Australia/Perth': 8, // UTC+8
-                'Australia/Brisbane': 10, // UTC+10
-                'Pacific/Auckland': 12, // UTC+12（夏令时可能+13）
-                'Pacific/Fiji': 12, // UTC+12
-
-                // 欧洲时区
-                'Europe/London': 1, // UTC+1（夏令时，冬令时UTC+0）
-                'Europe/Paris': 2, // UTC+2（夏令时，冬令时UTC+1）
-                'Europe/Berlin': 2, // UTC+2（夏令时，冬令时UTC+1）
-                'Europe/Rome': 2, // UTC+2（夏令时，冬令时UTC+1）
-                'Europe/Madrid': 2, // UTC+2（夏令时，冬令时UTC+1）
-                'Europe/Moscow': 3, // UTC+3
-                'Europe/Amsterdam': 2, // UTC+2（夏令时，冬令时UTC+1）
-                'Europe/Brussels': 2, // UTC+2（夏令时，冬令时UTC+1）
-                'Europe/Zurich': 2, // UTC+2（夏令时，冬令时UTC+1）
-                'Europe/Stockholm': 2, // UTC+2（夏令时，冬令时UTC+1）
-                'Europe/Oslo': 2, // UTC+2（夏令时，冬令时UTC+1）
-                'Europe/Copenhagen': 2, // UTC+2（夏令时，冬令时UTC+1）
-                'Europe/Helsinki': 3, // UTC+3（夏令时，冬令时UTC+2）
-                'Europe/Athens': 3, // UTC+3（夏令时，冬令时UTC+2）
-                'Europe/Istanbul': 3, // UTC+3
-                'Europe/Vienna': 2, // UTC+2（夏令时，冬令时UTC+1）
-                'Europe/Warsaw': 2, // UTC+2（夏令时，冬令时UTC+1）
-                'Europe/Prague': 2, // UTC+2（夏令时，冬令时UTC+1）
-                'Europe/Budapest': 2, // UTC+2（夏令时，冬令时UTC+1）
-
-                // 美洲时区
-                'America/New_York': -4, // UTC-4（夏令时，冬令时UTC-5）
-                'America/Los_Angeles': -7, // UTC-7（夏令时，冬令时UTC-8）
-                'America/Chicago': -5, // UTC-5（夏令时，冬令时UTC-6）
-                'America/Denver': -6, // UTC-6（夏令时，冬令时UTC-7）
-                'America/Toronto': -4, // UTC-4（夏令时，冬令时UTC-5）
-                'America/Vancouver': -7, // UTC-7（夏令时，冬令时UTC-8）
-                'America/Mexico_City': -5, // UTC-5（夏令时可变）
-                'America/Sao_Paulo': -3, // UTC-3
-                'America/Buenos_Aires': -3, // UTC-3
-                'America/Santiago': -3, // UTC-3（夏令时可变）
-                'America/Lima': -5, // UTC-5
-                'America/Bogota': -5, // UTC-5
-
-                // 非洲时区
-                'Africa/Cairo': 2, // UTC+2
-                'Africa/Johannesburg': 2, // UTC+2
-                'Africa/Lagos': 1, // UTC+1
-                'Africa/Nairobi': 3, // UTC+3
-                'Africa/Casablanca': 1, // UTC+1（变化）
-                'Atlantic/Reykjavik': 0 // UTC+0
+            // 缓存 DOM 引用
+            const dom = {
+                left: {
+                    time: document.getElementById('left-time'),
+                    date: document.getElementById('left-date'),
+                    title: document.getElementById('left-clock-title'),
+                    h: document.querySelector('.left-clock .hour-hand'),
+                    m: document.querySelector('.left-clock .minute-hand'),
+                    s: document.querySelector('.left-clock .second-hand'),
+                    select: document.getElementById('left-timezone-select')
+                },
+                right: {
+                    time: document.getElementById('right-time'),
+                    date: document.getElementById('right-date'),
+                    title: document.getElementById('right-clock-title'),
+                    h: document.querySelector('.right-clock .hour-hand'),
+                    m: document.querySelector('.right-clock .minute-hand'),
+                    s: document.querySelector('.right-clock .second-hand'),
+                    select: document.getElementById('right-timezone-select')
+                },
+                diff: document.getElementById('time-difference-value')
             };
 
-            // 获取时区偏移量并填充 timezoneOffsets 对象
-            function calculateTimezoneOffsets() {
-                // 使用固定的时区偏移映射
-                Object.keys(timezoneDisplayNames).forEach(timezone => {
-                    timezoneOffsets[timezone] = fixedTimezoneOffsets[timezone] || 0;
+            const timezoneData = {
+                'Asia/Shanghai': { cn: '中国 (北京)', en: 'China (Beijing)', offset: 8 },
+                'Asia/Tokyo': { cn: '日本 (东京)', en: 'Japan (Tokyo)', offset: 9 },
+                'Asia/Singapore': { cn: '新加坡', en: 'Singapore', offset: 8 },
+                'Asia/Seoul': { cn: '韩国 (首尔)', en: 'South Korea (Seoul)', offset: 9 },
+                'Asia/Hong_Kong': { cn: '中国 (香港)', en: 'China (Hong Kong)', offset: 8 },
+                'Asia/Taipei': { cn: '中国 (台北)', en: 'China (Taipei)', offset: 8 },
+                'Asia/Bangkok': { cn: '泰国 (曼谷)', en: 'Thailand (Bangkok)', offset: 7 },
+                'Asia/Kuala_Lumpur': { cn: '马来西亚 (吉隆坡)', en: 'Malaysia (Kuala Lumpur)', offset: 8 },
+                'Asia/Manila': { cn: '菲律宾 (马尼拉)', en: 'Philippines (Manila)', offset: 8 },
+                'Asia/Jakarta': { cn: '印尼 (雅加达)', en: 'Indonesia (Jakarta)', offset: 7 },
+                'Asia/Ho_Chi_Minh': { cn: '越南 (胡志明)', en: 'Vietnam (Ho Chi Minh)', offset: 7 },
+                'Asia/Kolkata': { cn: '印度 (新德里)', en: 'India (New Delhi)', offset: 5.5 },
+                'Asia/Dubai': { cn: '阿联酋 (迪拜)', en: 'UAE (Dubai)', offset: 4 },
+                'Asia/Riyadh': { cn: '沙特 (利雅得)', en: 'Saudi Arabia (Riyadh)', offset: 3 },
+                'Asia/Jerusalem': { cn: '以色列 (耶路撒冷)', en: 'Israel (Jerusalem)', offset: 3 },
+                'Asia/Karachi': { cn: '巴基斯坦 (卡拉奇)', en: 'Pakistan (Karachi)', offset: 5 },
+                'Australia/Sydney': { cn: '澳大利亚 (悉尼)', en: 'Australia (Sydney)', offset: 10 },
+                'Australia/Melbourne': { cn: '澳大利亚 (墨尔本)', en: 'Australia (Melbourne)', offset: 10 },
+                'Australia/Perth': { cn: '澳大利亚 (珀斯)', en: 'Australia (Perth)', offset: 8 },
+                'Australia/Brisbane': { cn: '澳大利亚 (布里斯班)', en: 'Australia (Brisbane)', offset: 10 },
+                'Pacific/Auckland': { cn: '新西兰 (奥克兰)', en: 'New Zealand (Auckland)', offset: 12 },
+                'Pacific/Fiji': { cn: '斐济', en: 'Fiji', offset: 12 },
+                'Europe/London': { cn: '英国 (伦敦)', en: 'UK (London)', offset: 1 },
+                'Europe/Paris': { cn: '法国 (巴黎)', en: 'France (Paris)', offset: 2 },
+                'Europe/Berlin': { cn: '德国 (柏林)', en: 'Germany (Berlin)', offset: 2 },
+                'Europe/Rome': { cn: '意大利 (罗马)', en: 'Italy (Rome)', offset: 2 },
+                'Europe/Madrid': { cn: '西班牙 (马德里)', en: 'Spain (Madrid)', offset: 2 },
+                'Europe/Moscow': { cn: '俄罗斯 (莫斯科)', en: 'Russia (Moscow)', offset: 3 },
+                'Europe/Amsterdam': { cn: '荷兰 (阿姆斯特丹)', en: 'Netherlands (Amsterdam)', offset: 2 },
+                'Europe/Brussels': { cn: '比利时 (布鲁塞尔)', en: 'Belgium (Brussels)', offset: 2 },
+                'Europe/Zurich': { cn: '瑞士 (苏黎世)', en: 'Switzerland (Zurich)', offset: 2 },
+                'Europe/Stockholm': { cn: '瑞典 (斯德哥尔摩)', en: 'Sweden (Stockholm)', offset: 2 },
+                'Europe/Oslo': { cn: '挪威 (奥斯陆)', en: 'Norway (Oslo)', offset: 2 },
+                'Europe/Copenhagen': { cn: '丹麦 (哥本哈根)', en: 'Denmark (Copenhagen)', offset: 2 },
+                'Europe/Helsinki': { cn: '芬兰 (赫尔辛基)', en: 'Finland (Helsinki)', offset: 3 },
+                'Europe/Athens': { cn: '希腊 (雅典)', en: 'Greece (Athens)', offset: 3 },
+                'Europe/Istanbul': { cn: '土耳其 (伊斯坦布尔)', en: 'Turkey (Istanbul)', offset: 3 },
+                'Europe/Vienna': { cn: '奥地利 (维也纳)', en: 'Austria (Vienna)', offset: 2 },
+                'Europe/Warsaw': { cn: '波兰 (华沙)', en: 'Poland (Warsaw)', offset: 2 },
+                'Europe/Prague': { cn: '捷克 (布拉格)', en: 'Czech Republic (Prague)', offset: 2 },
+                'Europe/Budapest': { cn: '匈牙利 (布达佩斯)', en: 'Hungary (Budapest)', offset: 2 },
+                'America/New_York': { cn: '美国 (纽约)', en: 'USA (New York)', offset: -4 },
+                'America/Los_Angeles': { cn: '美国 (洛杉矶)', en: 'USA (Los Angeles)', offset: -7 },
+                'America/Chicago': { cn: '美国 (芝加哥)', en: 'USA (Chicago)', offset: -5 },
+                'America/Denver': { cn: '美国 (丹佛)', en: 'USA (Denver)', offset: -6 },
+                'America/Toronto': { cn: '加拿大 (多伦多)', en: 'Canada (Toronto)', offset: -4 },
+                'America/Vancouver': { cn: '加拿大 (温哥华)', en: 'Canada (Vancouver)', offset: -7 },
+                'America/Mexico_City': { cn: '墨西哥 (墨西哥城)', en: 'Mexico (Mexico City)', offset: -5 },
+                'America/Sao_Paulo': { cn: '巴西 (圣保罗)', en: 'Brazil (Sao Paulo)', offset: -3 },
+                'America/Buenos_Aires': { cn: '阿根廷 (布宜诺斯艾利斯)', en: 'Argentina (Buenos Aires)', offset: -3 },
+                'America/Santiago': { cn: '智利 (圣地亚哥)', en: 'Chile (Santiago)', offset: -3 },
+                'America/Lima': { cn: '秘鲁 (利马)', en: 'Peru (Lima)', offset: -5 },
+                'America/Bogota': { cn: '哥伦比亚 (波哥大)', en: 'Colombia (Bogota)', offset: -5 },
+                'Africa/Cairo': { cn: '埃及 (开罗)', en: 'Egypt (Cairo)', offset: 2 },
+                'Africa/Johannesburg': { cn: '南非 (约翰内斯堡)', en: 'South Africa (Johannesburg)', offset: 2 },
+                'Africa/Lagos': { cn: '尼日利亚 (拉各斯)', en: 'Nigeria (Lagos)', offset: 1 },
+                'Africa/Nairobi': { cn: '肯尼亚 (内罗毕)', en: 'Kenya (Nairobi)', offset: 3 },
+                'Africa/Casablanca': { cn: '摩洛哥 (卡萨布兰卡)', en: 'Morocco (Casablanca)', offset: 1 },
+                'Atlantic/Reykjavik': { cn: '冰岛 (雷克雅未克)', en: 'Iceland (Reykjavik)', offset: 0 }
+            };
+
+            function initClockFace(faceId) {
+                const face = document.getElementById(faceId);
+                const fragment = document.createDocumentFragment();
+                for (let i = 0; i < 60; i++) {
+                    const marker = document.createElement('div');
+                    marker.className = 'marker' + (i % 5 === 0 ? ' hour' : '');
+                    marker.style.transform = `rotate(${i * 6}deg)`;
+                    fragment.appendChild(marker);
+                }
+                face.appendChild(fragment);
+            }
+
+            function updateTzState(side, tz) {
+                state[side].tz = tz;
+                state[side].fmt = {
+                    time: formatters.time(tz),
+                    dateCN: formatters.dateCN(tz),
+                    dateEN: formatters.dateEN(tz),
+                    raw: formatters.raw(tz)
+                };
+                // 更新标题
+                const data = timezoneData[tz];
+                dom[side].title.innerHTML = `${data.cn}<span class="en-title">${data.en}</span>`;
+                updateDiff();
+            }
+
+            function updateDiff() {
+                const diff = timezoneData[state.right.tz].offset - timezoneData[state.left.tz].offset;
+                const abs = Math.abs(diff);
+                dom.diff.textContent = diff === 0 ? "A 与 B 时间相同" : `A 比 B ${diff > 0 ? '早' : '晚'} ${abs} 小时`;
+            }
+
+            function tick() {
+                const now = new Date();
+                ['left', 'right'].forEach(side => {
+                    const s = state[side];
+                    const d = dom[side];
+                    // 性能优化：使用 textContent 代替 innerHTML
+                    d.time.textContent = s.fmt.time.format(now);
+                    
+                    // 日期由于有 span 结构，仍使用 innerHTML，但日期变化频率低，可接受
+                    const cnDate = s.fmt.dateCN.format(now);
+                    const enDate = s.fmt.dateEN.format(now);
+                    d.date.innerHTML = `${cnDate}<span class="en-date">${enDate}</span>`;
+
+                    // 获取数值用于指针
+                    const parts = s.fmt.raw.formatToParts(now);
+                    const h = parseInt(parts.find(p => p.type === 'hour').value);
+                    const m = parseInt(parts.find(p => p.type === 'minute').value);
+                    const sec = parseInt(parts.find(p => p.type === 'second').value);
+
+                    d.h.style.transform = `rotate(${(h % 12) * 30 + m * 0.5}deg)`;
+                    d.m.style.transform = `rotate(${m * 6}deg)`;
+                    d.s.style.transform = `rotate(${sec * 6}deg)`;
                 });
             }
 
-            // 获取时区偏移量的格式化字符串，例如 "UTC+8"
-            function getFormattedOffset(offsetHours) {
-                if (offsetHours === undefined || offsetHours === null) return "UTC+0";
-
-                const sign = offsetHours >= 0 ? '+' : '';
-                return `UTC${sign}${offsetHours}`;
+            function populateSelectors() {
+                const keys = Object.keys(timezoneData);
+                const groups = { '亚洲': 'Asia/', '大洋洲': ['Australia/', 'Pacific/'], '欧洲': 'Europe/', '美洲': 'America/', '非洲': ['Africa/', 'Atlantic/'] };
+                
+                ['left', 'right'].forEach(side => {
+                    const select = dom[side].select;
+                    Object.entries(groups).forEach(([label, prefix]) => {
+                        const group = document.createElement('optgroup');
+                        group.label = label;
+                        keys.filter(k => Array.isArray(prefix) ? prefix.some(p => k.startsWith(p)) : k.startsWith(prefix))
+                            .sort((a, b) => timezoneData[b].offset - timezoneData[a].offset)
+                            .forEach(k => {
+                                const opt = new Option(timezoneData[k].cn, k);
+                                group.appendChild(opt);
+                            });
+                        select.appendChild(group);
+                    });
+                    select.value = state[side].tz;
+                    select.onchange = (e) => {
+                        updateTzState(side, e.target.value);
+                        tick();
+                    };
+                });
             }
 
-            // 计算两个时区之间的时差
-            function calculateTimeDifference(timezone1, timezone2) {
-                const offset1 = timezoneOffsets[timezone1] || 0;
-                const offset2 = timezoneOffsets[timezone2] || 0;
-                return offset2 - offset1;
-            }
-
-            // 更新时差显示
-            function updateTimeDifference() {
-                const difference = calculateTimeDifference(leftTimezone, rightTimezone);
-                const absHours = Math.abs(difference);
-
-                let message;
-                if (difference === 0) {
-                    message = "A 与 B 时间相同 (时差 0 小时)";
-                } else {
-                    // diff > 0 means B (right) is later/larger offset than A (left) ? 
-                    // calculateTimeDifference returns offset2 - offset1.
-                    // If offset2 (B) > offset1 (A), diff > 0.
-                    // E.g. A=China(+8), B=Japan(+9). diff = 9-8=1. B is 1 hour ahead of A.
-                    // But usually "A比B..." phrase: "A 比 B 晚/早 X 小时"
-                    // If A is +8, B is +9. A is 1 hour behind B (早 1 小时).
-                    // If A is +8, B is +7. A is 1 hour ahead of B (晚 1 小时).
-                    // Logic: difference = B - A.
-                    // If difference > 0 (B > A), then A is earlier (smaller offset) than B. So A is "早".
-                    // Wait, usually "早" means "earlier in the day" (e.g. 8am vs 9am), which implies smaller time value.
-                    // Correct.
-
-                    const relation = difference > 0 ? '早' : '晚'; // A(left) relative to B(right)
-                    // If diff > 0 (B > A), A < B, so A is "earlier" (shows smaller time).
-
-                    message = `时差：${absHours}小时 (A 比 B ${relation} ${absHours}小时)`;
-                }
-
-                timeDifferenceElement.textContent = message;
-            }
-
-            // 初始化时钟刻度
-            function initClockFace(clockFace) {
-                // 清空现有内容
-                clockFace.innerHTML = '';
-
-                // 创建小时刻度线
-                for (let i = 0; i < 12; i++) {
-                    const hourLine = document.createElement('div');
-                    hourLine.className = 'hour-line';
-                    hourLine.style.transform = `rotate(${i * 30}deg)`;
-                    clockFace.appendChild(hourLine);
-                }
-
-                // 创建分钟刻度线
-                for (let i = 0; i < 60; i++) {
-                    if (i % 5 !== 0) { // 跳过小时位置
-                        const minuteMarker = document.createElement('div');
-                        minuteMarker.className = 'minute-marker';
-                        minuteMarker.style.transform = `rotate(${i * 6}deg)`;
-                        clockFace.appendChild(minuteMarker);
-                    }
-                }
-            }
-
-            // 初始化两个时钟的刻度
-            initClockFace(leftClockFace);
-            initClockFace(rightClockFace);
-
-            // 计算所有时区的偏移量
-            calculateTimezoneOffsets();
-
-            // 生成时区选择器选项
-            function populateTimezoneSelectors() {
-                // 获取时区对象的键
-                const timezoneKeys = Object.keys(timezoneDisplayNames);
-
-                // 按区域对时区进行分组
-                const asiaTimezones = timezoneKeys.filter(tz => tz.startsWith('Asia/'));
-                const oceaniaTimezones = timezoneKeys.filter(tz => tz.startsWith('Australia/') || tz.startsWith('Pacific/'));
-                const europeTimezones = timezoneKeys.filter(tz => tz.startsWith('Europe/'));
-                const americaTimezones = timezoneKeys.filter(tz => tz.startsWith('America/'));
-                const africaTimezones = timezoneKeys.filter(tz => tz.startsWith('Africa/') || tz.startsWith('Atlantic/'));
-
-                // 按时区排序函数
-                function sortByOffset(a, b) {
-                    return timezoneOffsets[b] - timezoneOffsets[a]; // 从东到西排序（偏移量从大到小）
-                }
-
-                // 对各区域内的时区按偏移量排序
-                asiaTimezones.sort(sortByOffset);
-                oceaniaTimezones.sort(sortByOffset);
-                europeTimezones.sort(sortByOffset);
-                americaTimezones.sort(sortByOffset);
-                africaTimezones.sort(sortByOffset);
-
-                // 清空选择器
-                leftTimezoneSelect.innerHTML = '';
-                rightTimezoneSelect.innerHTML = '';
-
-                // 辅助函数：添加时区选项组
-                function addOptionGroup(select, label, timezones) {
-                    const group = document.createElement('optgroup');
-                    group.label = label;
-
-                    timezones.forEach(timezone => {
-                        const option = document.createElement('option');
-                        option.value = timezone;
-                        const formattedOffset = getFormattedOffset(timezoneOffsets[timezone]);
-                        option.textContent = `${timezoneDisplayNames[timezone]} (${formattedOffset})`;
-                        group.appendChild(option);
-                    });
-
-                    select.appendChild(group);
-                }
-
-                // 添加时区选项组到左侧选择器
-                addOptionGroup(leftTimezoneSelect, '亚洲', asiaTimezones);
-                addOptionGroup(leftTimezoneSelect, '大洋洲', oceaniaTimezones);
-                addOptionGroup(leftTimezoneSelect, '欧洲', europeTimezones);
-                addOptionGroup(leftTimezoneSelect, '美洲', americaTimezones);
-                addOptionGroup(leftTimezoneSelect, '非洲', africaTimezones);
-
-                // 添加时区选项组到右侧选择器
-                addOptionGroup(rightTimezoneSelect, '美洲', americaTimezones);
-                addOptionGroup(rightTimezoneSelect, '欧洲', europeTimezones);
-                addOptionGroup(rightTimezoneSelect, '亚洲', asiaTimezones);
-                addOptionGroup(rightTimezoneSelect, '大洋洲', oceaniaTimezones);
-                addOptionGroup(rightTimezoneSelect, '非洲', africaTimezones);
-
-                // 设置默认选中的时区
-                leftTimezoneSelect.value = leftTimezone;
-                rightTimezoneSelect.value = rightTimezone;
-
-                // 更新时区信息显示
-                leftTimezoneInfo.textContent = getFormattedOffset(timezoneOffsets[leftTimezone]);
-                rightTimezoneInfo.textContent = getFormattedOffset(timezoneOffsets[rightTimezone]);
-
-                // 更新时差显示
-                updateTimeDifference();
-            }
-
-            // 生成时区选择器
-            populateTimezoneSelectors();
-
-            // 星期几的映射
-            const weekdaysCN = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
-            const weekdaysEN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-            // 更新时钟函数
-            function updateClocks() {
-                // 获取当前时间
-                const now = new Date();
-
-                // 左侧时钟时间
-                const leftOptions = { timeZone: leftTimezone, hour12: false };
-                let leftTime, leftDate, leftDateEn;
-
-                try {
-                    leftTime = now.toLocaleTimeString('zh-CN', leftOptions);
-                    leftDate = now.toLocaleDateString('zh-CN', {
-                        timeZone: leftTimezone,
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    });
-                    leftDateEn = now.toLocaleDateString('en-US', {
-                        timeZone: leftTimezone,
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    });
-                } catch (e) {
-                    leftTime = now.toLocaleTimeString('zh-CN');
-                    leftDate = now.toLocaleDateString('zh-CN', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    });
-                    leftDateEn = now.toLocaleDateString('en-US', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    });
-                }
-
-                const leftNow = new Date(now.toLocaleString('en-US', { timeZone: leftTimezone }));
-                const leftHours = leftNow.getHours();
-                const leftMinutes = leftNow.getMinutes();
-                const leftSeconds = leftNow.getSeconds();
-                const leftDay = leftNow.getDay();
-
-                // 右侧时钟时间
-                const rightOptions = { timeZone: rightTimezone, hour12: false };
-                let rightTime, rightDate, rightDateEn;
-
-                try {
-                    rightTime = now.toLocaleTimeString('en-US', rightOptions);
-                    rightDate = now.toLocaleDateString('zh-CN', {
-                        timeZone: rightTimezone,
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    });
-                    rightDateEn = now.toLocaleDateString('en-US', {
-                        timeZone: rightTimezone,
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    });
-                } catch (e) {
-                    rightTime = now.toLocaleTimeString('en-US');
-                    rightDate = now.toLocaleDateString('zh-CN', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    });
-                    rightDateEn = now.toLocaleDateString('en-US', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    });
-                }
-
-                const rightNow = new Date(now.toLocaleString('en-US', { timeZone: rightTimezone }));
-                const rightHours = rightNow.getHours();
-                const rightMinutes = rightNow.getMinutes();
-                const rightSeconds = rightNow.getSeconds();
-                const rightDay = rightNow.getDay();
-
-                // 更新数字时间显示
-                leftTimeElement.textContent = leftTime;
-                leftDateElement.innerHTML = `${leftDate} ${weekdaysCN[leftDay]}<span class="en-date">${leftDateEn}</span>`;
-
-                rightTimeElement.textContent = rightTime; // rightTime is formatted with en-US locale in original code, keeps it? Yes, but check format. 
-                // Original rightTime was 'en-US' locale. leftTime was 'zh-CN'.
-                // If we want consistency, maybe keep time as is (HH:MM:SS) which is mostly locale-independent for 24h.
-                // The date part is what changed.
-
-                rightDateElement.innerHTML = `${rightDate} ${weekdaysCN[rightDay]}<span class="en-date">${rightDateEn}</span>`;
-
-                // 计算指针角度
-                const calcHourDegrees = (hour, minute) => ((hour % 12) * 30) + (minute * 0.5);
-                const calcMinuteDegrees = minute => minute * 6;
-                const calcSecondDegrees = second => second * 6;
-
-                // 设置左侧时钟指针
-                leftHourHand.style.transform = `rotate(${calcHourDegrees(leftHours, leftMinutes)}deg)`;
-                leftMinuteHand.style.transform = `rotate(${calcMinuteDegrees(leftMinutes)}deg)`;
-                leftSecondHand.style.transform = `rotate(${calcSecondDegrees(leftSeconds)}deg)`;
-
-                // 设置右侧时钟指针
-                rightHourHand.style.transform = `rotate(${calcHourDegrees(rightHours, rightMinutes)}deg)`;
-                rightMinuteHand.style.transform = `rotate(${calcMinuteDegrees(rightMinutes)}deg)`;
-                rightSecondHand.style.transform = `rotate(${calcSecondDegrees(rightSeconds)}deg)`;
-            }
-
-            // 更新时钟标题
-            function updateClockTitle(side, timezone) {
-                const cnTitle = timezoneDisplayNames[timezone] || timezone;
-                const enTitle = timezoneEnglishNames[timezone] || timezone;
-                const titleHtml = `${cnTitle}<span class="en-title">${enTitle}</span>`;
-
-                if (side === 'left') {
-                    leftClockTitle.innerHTML = titleHtml;
-                    leftTimezoneInfo.textContent = getFormattedOffset(timezoneOffsets[timezone]);
-                } else {
-                    rightClockTitle.innerHTML = titleHtml;
-                    rightTimezoneInfo.textContent = getFormattedOffset(timezoneOffsets[timezone]);
-                }
-
-                // 更新时差显示
-                updateTimeDifference();
-            }
-
-            // 监听时区选择变化
-            leftTimezoneSelect.addEventListener('change', function () {
-                leftTimezone = this.value;
-                updateClockTitle('left', leftTimezone);
-                updateClocks();
-            });
-
-            rightTimezoneSelect.addEventListener('change', function () {
-                rightTimezone = this.value;
-                updateClockTitle('right', rightTimezone);
-                updateClocks();
-            });
-
-            // 初始更新时钟标题
-            updateClockTitle('left', leftTimezone);
-            updateClockTitle('right', rightTimezone);
-
-            // 初始更新时钟
-            updateClocks();
-
-            // 每秒更新一次
-            setInterval(updateClocks, 1000);
+            // 初始化
+            initClockFace('left-clock-face');
+            initClockFace('right-clock-face');
+            populateSelectors();
+            updateTzState('left', state.left.tz);
+            updateTzState('right', state.right.tz);
+            
+            tick();
+            setInterval(tick, 1000);
         });
     </script>
 </body>
-
 </html>

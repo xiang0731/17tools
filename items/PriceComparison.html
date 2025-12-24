@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>比价工具 - 自由输入版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="../css/theme.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100%;
+            background-color: var(--background-primary);
+            color: var(--text-primary);
+            font-family: var(--font-family);
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: var(--spacing-lg);
+            box-sizing: border-box;
+        }
+
+        h1 {
+            text-align: center;
+            margin: 0 0 var(--spacing-md) 0;
+            font-size: 24px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .main-layout {
+            display: flex;
+            flex: 1;
+            gap: var(--spacing-lg);
+            min-height: 0;
+            /* 重要：允许子元素在 flex 容器中缩小 */
+        }
+
+        .panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .panel-header {
+            padding: var(--spacing-md) var(--spacing-lg);
+            background: var(--background-tertiary);
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            color: var(--text-secondary);
+        }
+
+        .panel-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        textarea {
+            flex: 1;
+            width: 100%;
+            padding: var(--spacing-lg);
+            border: none;
+            background: transparent;
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 16px;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+        }
+
+        .output-area {
+            flex: 1;
+            padding: var(--spacing-lg);
+            overflow-y: auto;
+            font-family: var(--font-mono);
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .output-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--radius-md);
+            margin-bottom: 2px;
+            border-left: 4px solid transparent;
+        }
+
+        .output-line.winner {
+            background: rgba(16, 185, 129, 0.1);
+            border-left-color: var(--accent-color);
+        }
+
+        .output-line.winner .unit-price {
+            color: var(--accent-color);
+            font-weight: 700;
+        }
+
+        .rank-badge {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: var(--radius-full);
+            background: var(--background-tertiary);
+            color: var(--text-tertiary);
+            margin-left: var(--spacing-sm);
+        }
+
+        .winner .rank-badge {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .unit-price {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-tertiary);
+            text-align: center;
+            gap: var(--spacing-md);
+        }
+
+        .empty-state i {
+            font-size: 48px;
+        }
+
+        .hint {
+            position: absolute;
+            bottom: var(--spacing-md);
+            right: var(--spacing-md);
+            font-size: 12px;
+            color: var(--text-tertiary);
+            pointer-events: none;
+        }
+
+        @media (max-width: 768px) {
+            .main-layout {
+                flex-direction: column;
+                overflow-y: auto;
+            }
+
+            .panel {
+                min-height: 300px;
+                flex: none;
+            }
+
+            html, body {
+                overflow: auto;
+                height: auto;
+            }
+            .app-container {
+                height: auto;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <h1><i class="fas fa-balance-scale"></i> 自由比价助手</h1>
+
+        <div class="main-layout">
+            <!-- 输入面板 -->
+            <div class="panel">
+                <div class="panel-header">
+                    <i class="fas fa-edit"></i> 输入列表 (每行: 总价 数量)
+                </div>
+                <div class="panel-content">
+                    <textarea id="inputArea" placeholder="例如:
+100 10
+200 25
+45.5 3" oninput="processComparison()"></textarea>
+                    <div class="hint">每行一个产品</div>
+                </div>
+            </div>
+
+            <!-- 输出面板 -->
+            <div class="panel">
+                <div class="panel-header">
+                    <i class="fas fa-chart-line"></i> 比价分析结果
+                </div>
+                <div class="panel-content" id="outputArea">
+                    <div class="empty-state">
+                        <i class="fas fa-keyboard"></i>
+                        <p>在左侧输入数据后<br>在此查看实时分析</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/theme.js"></script>
+    <script>
+        function processComparison() {
+            const input = document.getElementById('inputArea').value;
+            const outputArea = document.getElementById('outputArea');
+            
+            if (!input.trim()) {
+                outputArea.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-keyboard"></i>
+                        <p>在左侧输入数据后<br>在此查看实时分析</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const lines = input.split('\n');
+            const products = [];
+
+            lines.forEach((line, index) => {
+                const parts = line.trim().split(/\s+/);
+                if (parts.length >= 1) {
+                    const price = parseFloat(parts[0]);
+                    const unit = parts.length >= 2 ? parseFloat(parts[1]) : 1;
+                    
+                    if (!isNaN(price)) {
+                        const unitPrice = unit > 0 ? price / unit : 0;
+                        products.push({
+                            originalText: line,
+                            price: price,
+                            unit: unit,
+                            unitPrice: unitPrice,
+                            index: index
+                        });
+                    }
+                }
+            });
+
+            if (products.length === 0) {
+                outputArea.innerHTML = '<div class="empty-state"><p>请输入有效的数字格式</p></div>';
+                return;
+            }
+
+            // 计算排名
+            const sortedProducts = [...products].sort((a, b) => a.unitPrice - b.unitPrice);
+            products.forEach(p => {
+                p.rank = sortedProducts.findIndex(sp => sp.unitPrice === p.unitPrice) + 1;
+            });
+
+            const minPrice = sortedProducts[0].unitPrice;
+
+            // 生成输出 HTML
+            let html = '<div class="output-area">';
+            products.forEach(p => {
+                const isWinner = p.unitPrice === minPrice && products.length > 1;
+                const rankText = isWinner ? '最划算!' : `第 ${p.rank} 名`;
+                
+                html += `
+                    <div class="output-line ${isWinner ? 'winner' : ''}">
+                        <div class="original-data">
+                            ${p.price} / ${p.unit} 
+                            <span class="rank-badge">${rankText}</span>
+                        </div>
+                        <div class="unit-price">
+                            单价: ${p.unitPrice.toFixed(2)}
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            outputArea.innerHTML = html;
+        }
+
+        // 页面加载后自动聚焦
+        window.onload = () => {
+            document.getElementById('inputArea').focus();
+        };
+    </script>
+</body>
+
+</html>
