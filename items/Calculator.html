@@ -90,6 +90,29 @@
             color: var(--text-tertiary);
         }
 
+        /* 文本框包装器 - 用于定位行数标签 */
+        .textarea-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        /* 行数标签样式 */
+        .line-count {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            background-color: var(--background-tertiary);
+            color: var(--text-secondary);
+            padding: 4px 10px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-family: var(--font-mono);
+            pointer-events: none;
+            opacity: 0.85;
+            border: 1px solid var(--border-color);
+            z-index: 1;
+        }
+
         /* 结果显示区域样式 */
         .result-container {
             flex-shrink: 0;
@@ -143,6 +166,14 @@
             font-weight: 700;
         }
 
+        .warning-text {
+            color: var(--warning-color);
+            font-size: 20px;
+            margin-left: var(--spacing-sm);
+            font-weight: 500;
+            display: none;
+        }
+
         /* 按钮样式 */
         .button-group {
             display: flex;
@@ -193,8 +224,29 @@
             gap: var(--spacing-sm);
         }
 
+        .clear-input-btn {
+            background-color: #64748b;
+            /* 灰蓝色 */
+            color: var(--text-inverse);
+            border: none;
+        }
+
+        .clear-input-btn:hover {
+            background-color: #475569;
+        }
+
+        .clear-history-btn {
+            background-color: #991b1b;
+            /* 暗红色 */
+            color: var(--text-inverse);
+            border: none;
+        }
+
+        .clear-history-btn:hover {
+            background-color: #7f1d1d;
+        }
+
         .clear-button:hover {
-            background: var(--background-hover);
             transform: translateY(-2px);
             box-shadow: var(--shadow-sm);
         }
@@ -207,7 +259,10 @@
             border-radius: var(--radius-lg);
             overflow: hidden;
             box-shadow: var(--shadow-sm);
-            min-height: 200px;
+            min-height: 300px;
+            /* 增加最小高度 */
+            display: flex;
+            flex-direction: column;
         }
 
         .history-header {
@@ -217,6 +272,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            flex-shrink: 0;
         }
 
         .history-title {
@@ -241,7 +297,8 @@
         .history-content {
             padding: var(--spacing-md);
             overflow-y: auto;
-            max-height: 300px;
+            flex: 1;
+            /* 让内容区域填充剩余空间 */
         }
 
         .history-empty {
@@ -373,16 +430,19 @@
 
 <body>
     <div class="calculator">
-        <h1><i class="fas fa-calculator"></i> 在线计算器</h1>
+        <h1><i class="fas fa-calculator"></i> 极速计算</h1>
 
         <div class="input-container">
             <label class="input-label" for="numbers">
                 <i class="fas fa-edit"></i> 输入算术表达式
             </label>
-            <textarea id="numbers" placeholder="输入算术表达式，每行或空格分隔，例如:
-1+2 3*4
+            <div class="textarea-wrapper">
+                <textarea id="numbers" placeholder="输入算术表达式，每行或空格分隔，例如:
+1+2 3x4
 10/2 5-1
-支持 +、-、*、/、()、幂运算(**)" oninput="calculateSum()"></textarea>
+支持 +、-、* (或x)、/、()、幂运算(**)" oninput="handleInput()"></textarea>
+                <span class="line-count" id="inputLineCount">0 行</span>
+            </div>
         </div>
 
         <div class="result-container">
@@ -390,6 +450,7 @@
                 <div class="result-content-wrapper">
                     <i class="fas fa-equals"></i>
                     总和: <span class="result-value" id="result">0</span>
+                    <span id="warning" class="warning-text"></span>
                 </div>
                 <button class="icon-button" onclick="copyResult()" title="复制结果">
                     <i class="fas fa-copy"></i>
@@ -398,11 +459,15 @@
         </div>
 
         <div class="button-group">
+            <button class="clear-button clear-input-btn" onclick="clearInput()">
+                <i class="fas fa-eraser"></i>
+                清空输入
+            </button>
             <button class="save-button" onclick="saveToHistory()">
                 <i class="fas fa-save"></i>
                 保存结果
             </button>
-            <button class="clear-button" onclick="clearHistory()">
+            <button class="clear-button clear-history-btn" onclick="clearHistory()">
                 <i class="fas fa-trash"></i>
                 清空历史
             </button>
@@ -431,17 +496,80 @@
     <script>
         let historyCount = 0;
 
+        // 处理输入事件
+        function handleInput() {
+            calculateSum();
+            updateLineCount();
+        }
+
+        // 更新行数统计
+        function updateLineCount() {
+            const textarea = document.getElementById('numbers');
+            const counter = document.getElementById('inputLineCount');
+            const text = textarea.value;
+            let lineCount = 0;
+            if (text.length > 0) {
+                lineCount = text.split('\n').length;
+            }
+            counter.textContent = lineCount + ' 行';
+        }
+
+        // 清空输入框
+        function clearInput() {
+            const numbersInput = document.getElementById('numbers');
+            if (numbersInput.value === '') return;
+
+            numbersInput.value = '';
+            document.getElementById('result').textContent = '0';
+            const warningElement = document.getElementById('warning');
+            warningElement.textContent = '';
+            warningElement.style.display = 'none';
+            updateLineCount();
+            numbersInput.focus();
+        }
+
         // 安全地计算单个表达式
         function evaluateExpression(expr) {
             try {
+                // 将 x 或 X 替换为 *
+                const normalizedExpr = expr.replace(/x/gi, '*');
                 // 清理表达式，移除危险字符
-                const cleanExpr = expr.replace(/[^0-9+\-*/().\s]/g, '');
-                if (!cleanExpr.trim()) return 0;
+                const cleanExpr = normalizedExpr.replace(/[^0-9+\-*/().\s]/g, '');
+                const trimmed = cleanExpr.trim();
+
+                if (!trimmed) return { value: 0, error: null };
+
+                // 预检：检查是否以运算符开头（除了正负号）
+                if (/^[*/]/.test(trimmed)) {
+                    return { value: 0, error: '算式不完整' };
+                }
 
                 // 使用Function构造器执行表达式，添加严格模式
-                return Function('"use strict";return (' + cleanExpr + ')')();
+                const result = Function('"use strict";return (' + cleanExpr + ')')();
+
+                // 检查计算结果
+                if (result === Infinity || result === -Infinity) {
+                    return { value: 0, error: '除数不能为0' };
+                }
+                if (isNaN(result)) {
+                    return { value: 0, error: '非法计算' };
+                }
+
+                return { value: result || 0, error: null };
             } catch (e) {
-                return 0;  // 表达式无效时返回0
+                let errorMsg = '算式不完整';
+                const rawExpr = expr.trim();
+
+                // 括号检查
+                const openCount = (rawExpr.match(/\(/g) || []).length;
+                const closeCount = (rawExpr.match(/\)/g) || []).length;
+                if (openCount !== closeCount) {
+                    errorMsg = '括号未闭合';
+                } else if (/[+\-*/]$/.test(rawExpr)) {
+                    errorMsg = '运算符结尾';
+                }
+
+                return { value: 0, error: errorMsg };
             }
         }
 
@@ -450,6 +578,7 @@
         function calculateSum() {
             const input = document.getElementById('numbers').value;
             const resultElement = document.getElementById('result');
+            const warningElement = document.getElementById('warning');
 
             // 添加计算中状态
             resultElement.classList.add('calculating');
@@ -462,16 +591,36 @@
             // 设置新的定时器 (防抖)
             calculateTimer = setTimeout(() => {
                 try {
-                    const expressions = input
+                    const lines = input
                         .split(/[\n\s]+/)  // 按换行或空格分割
-                        .filter(expr => expr.trim() !== '')  // 过滤空字符串
-                        .reduce((acc, curr) => acc + evaluateExpression(curr), 0);  // 计算总和
+                        .filter(expr => expr.trim() !== '');  // 过滤空字符串
+
+                    let total = 0;
+                    let errors = new Set();
+
+                    lines.forEach(line => {
+                        const res = evaluateExpression(line);
+                        total += res.value;
+                        if (res.error) {
+                            errors.add(res.error);
+                        }
+                    });
 
                     // 处理精度问题，最多保留4位小数，如果是整数则不显示小数
-                    const result = Math.round(expressions * 10000) / 10000;
+                    const result = Math.round(total * 10000) / 10000;
                     resultElement.textContent = result;
+
+                    // 显示/隐藏错误提醒
+                    if (errors.size > 0) {
+                        warningElement.textContent = `(提醒：输入框中存在 ${Array.from(errors).join(', ')})`;
+                        warningElement.style.display = 'inline';
+                    } else {
+                        warningElement.textContent = '';
+                        warningElement.style.display = 'none';
+                    }
                 } catch (e) {
                     resultElement.textContent = '计算错误';
+                    warningElement.style.display = 'none';
                 }
 
                 resultElement.classList.remove('calculating');
@@ -550,12 +699,16 @@
             historyCount++;
             updateHistoryCount();
 
-            // 添加成功提示
+            // 添加成功提示并暂时禁用按钮
             const saveBtn = document.querySelector('.save-button');
-            const originalText = saveBtn.innerHTML;
+            const originalHTML = '<i class="fas fa-save"></i> 保存结果';
+
             saveBtn.innerHTML = '<i class="fas fa-check"></i> 已保存';
+            saveBtn.style.pointerEvents = 'none'; // 防止重复点击
+
             setTimeout(() => {
-                saveBtn.innerHTML = originalText;
+                saveBtn.innerHTML = originalHTML;
+                saveBtn.style.pointerEvents = 'auto';
             }, 1000);
         }
 
@@ -584,7 +737,10 @@
         // 页面加载完成后初始化
         document.addEventListener('DOMContentLoaded', function () {
             // 自动聚焦到输入框
-            document.getElementById('numbers').focus();
+            const numbersInput = document.getElementById('numbers');
+            numbersInput.focus();
+            // 初始化行数统计
+            updateLineCount();
         });
     </script>
 </body>
