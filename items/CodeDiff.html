@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>代码对比工具</title>
+    <link rel="stylesheet" href="../css/theme.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Diff2Html CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/diff2html/bundles/css/diff2html.min.css">
+    <!-- JSDiff JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js"></script>
+    <!-- Diff2Html JS -->
+    <script src="https://cdn.jsdelivr.net/npm/diff2html/bundles/js/diff2html-ui.min.js"></script>
+    <style>
+        body {
+            min-height: 100vh;
+            padding: var(--spacing-lg);
+            background-color: var(--background-primary);
+            color: var(--text-primary);
+            font-family: var(--font-family);
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--text-primary);
+            margin: 0 0 var(--spacing-xl) 0;
+            font-size: 28px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            box-shadow: var(--shadow-md);
+        }
+
+        .editor-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-xl);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        @media (max-width: 1024px) {
+            .editor-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .code-area {
+            display: flex;
+            flex-direction: column;
+            background: var(--background-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            transition: all var(--transition-fast);
+        }
+
+        .code-area:hover {
+            box-shadow: var(--shadow-md);
+            border-color: var(--primary-color);
+        }
+
+        .code-header {
+            background: var(--background-tertiary);
+            color: var(--text-primary);
+            padding: var(--spacing-md) var(--spacing-lg);
+            font-weight: 600;
+            font-size: 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .code-header span {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .code-header i {
+            color: var(--primary-color);
+        }
+
+        textarea {
+            width: 100%;
+            height: 300px;
+            padding: var(--spacing-md);
+            border: none;
+            font-family: var(--font-mono);
+            font-size: 14px;
+            resize: vertical;
+            background: var(--background-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+            outline: none;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: var(--spacing-sm) var(--spacing-xl);
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--background-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--background-hover);
+        }
+
+        .btn-secondary.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .diff-container {
+            background: var(--background-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            min-height: 200px;
+        }
+
+        .empty-diff {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: var(--spacing-xl);
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        .empty-diff i {
+            font-size: 48px;
+            margin-bottom: var(--spacing-md);
+            opacity: 0.5;
+        }
+
+        /* Diff2Html Theme Overrides */
+        .d2h-wrapper {
+            background-color: transparent;
+        }
+        
+        [data-theme="dark"] .d2h-file-list-wrapper,
+        [data-theme="dark"] .d2h-file-header,
+        [data-theme="dark"] .d2h-file-wrapper,
+        [data-theme="dark"] .d2h-code-line,
+        [data-theme="dark"] .d2h-code-side-line {
+            background-color: var(--background-primary);
+            color: var(--text-primary);
+            border-color: var(--border-color);
+        }
+
+        [data-theme="dark"] .d2h-code-line-ctn {
+            color: var(--text-primary);
+        }
+
+        [data-theme="dark"] .d2h-del {
+            background-color: rgba(239, 68, 68, 0.2);
+        }
+
+        [data-theme="dark"] .d2h-ins {
+            background-color: rgba(16, 185, 129, 0.2);
+        }
+
+        [data-theme="dark"] .d2h-info {
+            background-color: var(--background-tertiary);
+            color: var(--text-secondary);
+            border-color: var(--border-color);
+        }
+
+        .status-message {
+            position: fixed;
+            top: var(--spacing-lg);
+            right: var(--spacing-lg);
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-radius: var(--radius-md);
+            font-weight: 500;
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .status-message.show {
+            transform: translateX(0);
+        }
+
+        .status-success { background: var(--success-color); color: white; }
+        .status-error { background: var(--error-color); color: white; }
+        .status-info { background: var(--primary-color); color: white; }
+
+        .header-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+
+        .header-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .header-btn:hover {
+            color: var(--primary-color);
+            background: var(--background-secondary);
+        }
+    </style>
+</head>
+
+<body>
+    <h1>
+        <i class="fas fa-code-compare"></i>
+        代码对比工具
+    </h1>
+
+    <div class="container">
+        <div class="editor-container">
+            <div class="code-area">
+                <div class="code-header">
+                    <span><i class="fas fa-file-code"></i> 原代码 (Old)</span>
+                    <div class="header-actions">
+                        <button class="header-btn" onclick="clearText('old')" title="清空"><i class="fas fa-trash-can"></i></button>
+                        <button class="header-btn" onclick="pasteText('old')" title="粘贴"><i class="fas fa-paste"></i></button>
+                    </div>
+                </div>
+                <textarea id="old-code" placeholder="在此粘贴原始代码..."></textarea>
+            </div>
+            <div class="code-area">
+                <div class="code-header">
+                    <span><i class="fas fa-file-medical"></i> 新代码 (New)</span>
+                    <div class="header-actions">
+                        <button class="header-btn" onclick="clearText('new')" title="清空"><i class="fas fa-trash-can"></i></button>
+                        <button class="header-btn" onclick="pasteText('new')" title="粘贴"><i class="fas fa-paste"></i></button>
+                    </div>
+                </div>
+                <textarea id="new-code" placeholder="在此粘贴新版本代码..."></textarea>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" onclick="compareCode()">
+                <i class="fas fa-sync"></i> 开始对比
+            </button>
+            <div class="btn-group" style="display: flex; gap: 1px; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border-color);">
+                <button id="side-by-side-btn" class="btn btn-secondary active" onclick="setDiffStyle('side-by-side')" style="border: none; border-radius: 0;">
+                    左右对比
+                </button>
+                <button id="line-by-line-btn" class="btn btn-secondary" onclick="setDiffStyle('line-by-line')" style="border: none; border-radius: 0;">
+                    逐行对比
+                </button>
+            </div>
+            <button class="btn btn-secondary" onclick="clearAll()">
+                <i class="fas fa-eraser"></i> 全部清空
+            </button>
+        </div>
+
+        <div class="diff-container" id="diff-output">
+            <div class="empty-diff">
+                <i class="fas fa-code-compare"></i>
+                <h3>等待对比</h3>
+                <p>在上方输入两段代码，点击“开始对比”按钮查看差异</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="status-message" class="status-message"></div>
+
+    <script src="../js/theme.js"></script>
+    <script>
+        let diffStyle = 'side-by-side';
+        let compareTimer = null;
+
+        function showStatus(message, type = 'info') {
+            const statusEl = document.getElementById('status-message');
+            statusEl.className = `status-message status-${type}`;
+            statusEl.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i> ${message}`;
+            statusEl.classList.add('show');
+            setTimeout(() => statusEl.classList.remove('show'), 3000);
+        }
+
+        // 监听输入，自动对比
+        document.getElementById('old-code').addEventListener('input', () => debounceCompare());
+        document.getElementById('new-code').addEventListener('input', () => debounceCompare());
+
+        function debounceCompare() {
+            if (compareTimer) clearTimeout(compareTimer);
+            compareTimer = setTimeout(() => {
+                const oldText = document.getElementById('old-code').value;
+                const newText = document.getElementById('new-code').value;
+                if (oldText || newText) {
+                    compareCode(true); // true 表示静默对比，不显示“对比完成”提示
+                }
+            }, 500);
+        }
+
+        async function pasteText(target) {
+            try {
+                const text = await navigator.clipboard.readText();
+                document.getElementById(`${target}-code`).value = text;
+                showStatus('已从剪贴板粘贴', 'success');
+                compareCode(true);
+            } catch (err) {
+                showStatus('无法访问剪贴板，请手动粘贴', 'error');
+            }
+        }
+
+        function clearText(target) {
+            document.getElementById(`${target}-code`).value = '';
+            debounceCompare();
+        }
+
+        function clearAll() {
+            clearText('old');
+            clearText('new');
+            document.getElementById('diff-output').innerHTML = `
+                <div class="empty-diff">
+                    <i class="fas fa-code-compare"></i>
+                    <h3>等待对比</h3>
+                    <p>在上方输入两段代码，点击“开始对比”按钮查看差异</p>
+                </div>
+            `;
+            showStatus('已清空所有内容', 'info');
+        }
+
+        function setDiffStyle(style) {
+            diffStyle = style;
+            document.getElementById('side-by-side-btn').classList.toggle('active', style === 'side-by-side');
+            document.getElementById('line-by-line-btn').classList.toggle('active', style === 'line-by-line');
+            
+            compareCode(true);
+        }
+
+        function compareCode(silent = false) {
+            const oldText = document.getElementById('old-code').value;
+            const newText = document.getElementById('new-code').value;
+
+            if (!oldText && !newText) {
+                if (!silent) showStatus('请输入要对比的内容', 'error');
+                return;
+            }
+
+            try {
+                // 使用 jsdiff 生成 unified patch 格式
+                const diffString = Diff.createPatch('file', oldText, newText, 'Old', 'New');
+                
+                const targetElement = document.getElementById('diff-output');
+                targetElement.innerHTML = ''; // 清空之前的内容
+                
+                const diff2htmlUi = new Diff2HtmlUI(targetElement, diffString, {
+                    drawFileList: false,
+                    matching: 'lines',
+                    outputFormat: diffStyle,
+                    synchronizedScroll: true,
+                    highlight: true,
+                    renderNothingWhenEmpty: false,
+                });
+
+                diff2htmlUi.draw();
+                if (!silent) showStatus('对比完成', 'success');
+            } catch (error) {
+                console.error(error);
+                if (!silent) showStatus('对比失败: ' + error.message, 'error');
+            }
+        }
+    </script>
+</body>
+
+</html>
+
