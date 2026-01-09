@@ -301,6 +301,10 @@
             <button class="function-button" data-function="O">O-添加倒序前缀</button>
             <button class="function-button" data-function="P">P-空格换行</button>
             <button class="function-button" data-function="Q">Q-合并为一行</button>
+            <button class="function-button" data-function="R">R-base64加密</button>
+            <button class="function-button" data-function="S">S-base64解密</button>
+            <button class="function-button" data-function="T">T-顺序排序</button>
+            <button class="function-button" data-function="U">U-倒序排序</button>
         </div>
 
         <div class="textarea-wrapper">
@@ -720,6 +724,54 @@
                 auxiliaryPlaceholder: '请输入分隔符（不填则直接合并）...',
                 transform: (lines, separator) => lines.join(separator),
                 example: { input: "17\nTools", auxiliary: ",", output: "17,Tools" }
+            },
+            'R': {
+                name: 'Base64加密',
+                description: '将文本转换为Base64编码 (支持UTF-8)',
+                needsAuxiliary: false,
+                transform: (lines) => lines.map(line => {
+                    try {
+                        return btoa(encodeURIComponent(line).replace(/%([0-9A-F]{2})/g, (match, p1) => 
+                            String.fromCharCode('0x' + p1)));
+                    } catch (e) {
+                        return `[加密失败: ${line}]`;
+                    }
+                }).join('\n'),
+                example: { input: "Hello\n你好", auxiliary: "", output: "SGVsbG8=\n5L2g5aW9" }
+            },
+            'S': {
+                name: 'Base64解密',
+                description: '将Base64编码还原为文本 (支持UTF-8)',
+                needsAuxiliary: false,
+                transform: (lines) => lines.map(line => {
+                    try {
+                        const trimmed = line.trim();
+                        if (!trimmed) return "";
+                        return decodeURIComponent(atob(trimmed).split('').map(c => 
+                            '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+                    } catch (e) {
+                        return `[解密失败: ${line}]`;
+                    }
+                }).join('\n'),
+                example: { input: "SGVsbG8=\n5L2g5aW9", auxiliary: "", output: "Hello\n你好" }
+            },
+            'T': {
+                name: '顺序排序',
+                description: '对每一行文本按字母/数字顺序进行正序排列',
+                needsAuxiliary: false,
+                transform: (lines) => {
+                    return [...lines].sort((a, b) => a.localeCompare(b, 'zh-Hans-CN', { numeric: true })).join('\n');
+                },
+                example: { input: "Banana\nApple\nCherry", auxiliary: "", output: "Apple\nBanana\nCherry" }
+            },
+            'U': {
+                name: '倒序排序',
+                description: '对每一行文本按字母/数字顺序进行倒序排列',
+                needsAuxiliary: false,
+                transform: (lines) => {
+                    return [...lines].sort((a, b) => b.localeCompare(a, 'zh-Hans-CN', { numeric: true })).join('\n');
+                },
+                example: { input: "Apple\nBanana\nCherry", auxiliary: "", output: "Cherry\nBanana\nApple" }
             }
         };
 
