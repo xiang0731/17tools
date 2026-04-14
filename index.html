@@ -5,6 +5,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>17Tools</title>
+    <script>
+        (function ensureBasePath() {
+            const { pathname } = window.location;
+            const lastSegment = pathname.split('/').pop() || '';
+            const basePath = pathname.endsWith('/')
+                ? pathname
+                : lastSegment.includes('.')
+                    ? pathname.replace(/[^/]*$/, '')
+                    : `${pathname}/`;
+
+            const base = document.createElement('base');
+            base.href = basePath || '/';
+            document.head.appendChild(base);
+        })();
+    </script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
@@ -635,6 +650,10 @@
                         <i class="fas fa-link"></i>
                         <span>链接清理</span>
                     </div>
+                    <div class="nav-item" data-file="Markdown.html">
+                        <i class="fab fa-markdown"></i>
+                        <span>Markdown 编辑器</span>
+                    </div>
                 </div>
 
                 <div class="nav-section">
@@ -772,16 +791,25 @@
             }
 
             syncThemeToIframe() {
+                const iframe = document.getElementById('content-frame');
+                if (!iframe) return;
+
+                // 首选：postMessage，无跨域限制
                 try {
-                    const iframe = document.getElementById('content-frame');
-                    if (iframe && iframe.contentDocument) {
-                        const frameDoc = iframe.contentDocument || iframe.contentWindow.document;
-                        frameDoc.documentElement.setAttribute('data-theme', this.currentTheme);
-                        console.log('主题已同步到iframe:', this.currentTheme);
+                    if (iframe.contentWindow) {
+                        iframe.contentWindow.postMessage(
+                            { type: '17tools-theme', theme: this.currentTheme }, '*'
+                        );
                     }
-                } catch (e) {
-                    console.log('无法同步主题到iframe，可能是跨域限制');
-                }
+                } catch (e) { }
+
+                // 兜底：直接设置 data-theme（同源时生效）
+                try {
+                    const frameDoc = iframe.contentDocument || iframe.contentWindow.document;
+                    if (frameDoc) {
+                        frameDoc.documentElement.setAttribute('data-theme', this.currentTheme);
+                    }
+                } catch (e) { }
             }
 
             applyTheme(theme) {

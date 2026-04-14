@@ -200,14 +200,21 @@
             background-color: var(--primary-hover);
         }
 
-        .btn-secondary {
-            background-color: var(--background-primary);
-            color: var(--text-primary);
-            border: 1px solid var(--border-color);
+        [data-theme="light"] .btn-primary {
+            background-color: #10b981;
         }
 
-        .btn-secondary:hover {
-            background-color: var(--background-hover);
+        [data-theme="light"] .btn-primary:hover {
+            background-color: #059669;
+        }
+
+        .btn-copy {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .btn-copy:hover {
+            background-color: #2563eb;
         }
 
         .action-button:hover {
@@ -316,17 +323,17 @@
         <textarea id="auxiliaryInput" placeholder="请输入要添加的内容..."></textarea>
 
         <div class="action-buttons">
-            <button class="action-button btn-clear" id="clearBtn">
-                <i class="fas fa-eraser"></i>
-                清除
-            </button>
             <button class="action-button btn-primary" id="submitBtn">
                 <i class="fas fa-magic"></i>
                 转换
             </button>
-            <button class="action-button btn-secondary" id="copyBtn">
+            <button class="action-button btn-copy" id="copyBtn">
                 <i class="fas fa-copy"></i>
                 复制结果
+            </button>
+            <button class="action-button btn-clear" id="clearBtn">
+                <i class="fas fa-eraser"></i>
+                清除
             </button>
         </div>
 
