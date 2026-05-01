@@ -300,6 +300,41 @@
         </header>
 
         <div class="timeline">
+            <!-- 版本 2.12.0 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 2.12.0</div>
+                    <div class="version-date">2026-05-01</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">新功能</div>
+                    <ul>
+                        <li><span class="tag new">新增</span>接口带宽计算工具：支持 Thunderbolt 3/4/5、USB4 20/40Gbps、USB4 v2 / USB 80Gbps 等接口标准，提供 TX、RX、PCIe 数据带宽占用评估</li>
+                        <li><span class="tag new">新增</span>接口带宽计算：支持添加多个负载设备，按显示器、PCIe/eGPU/SSD、网线/网卡、USB/外设、其他等类型分别配置属性并实时计算带宽</li>
+                        <li><span class="tag new">新增</span>接口带宽计算：显示器负载支持分辨率、刷新率、色深、DSC 压缩倍率等属性，自动展示计算带宽和公式过程</li>
+                        <li><span class="tag new">新增</span>接口带宽计算：网线/网卡、PCIe、USB、其他负载新增类型化带宽预设，例如 100M、1000M、2.5GbE、10GbE、PCIe Gen3 x4、USB4 40Gbps 等</li>
+                        <li><span class="tag new">新增</span>接口带宽计算：新增术语科普模块，解释 TX/RX、增强模式、PCIe 纯数据、DSC 压缩、Gbps、双向负载等概念</li>
+                    </ul>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">体验优化</div>
+                    <ul>
+                        <li><span class="tag improved">优化</span>接口带宽计算：将增强模式改为接口标准中的独立选项，选择接口后直接展示当前接口模式、TX、RX、PCIe 等关键属性</li>
+                        <li><span class="tag improved">优化</span>接口带宽计算：负载列表改为紧凑表格布局，新增负载在表格底部追加一行，减少页面占用并保留可编辑属性</li>
+                        <li><span class="tag improved">优化</span>接口带宽计算：计算摘要、统计条和计算过程统一放入“计算”模块，结果卡片突出显示发送 TX、接收 RX、PCIe 数据和整体判断</li>
+                        <li><span class="tag ux">体验</span>接口带宽计算：根据负载类型自动套用默认方向和默认带宽，例如网线/网卡默认双向、1000M，PCIe 默认接收 RX、32Gbps</li>
+                        <li><span class="tag ui">界面</span>接口带宽计算：区分固定接口能力与动态负载占用的颜色，放大计算结果和计算带宽显示，提升扫描效率</li>
+                    </ul>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">修复</div>
+                    <ul>
+                        <li><span class="tag fixed">修复</span>接口带宽计算：修复显示器等负载字段在窄布局下显示不全的问题</li>
+                        <li><span class="tag fixed">修复</span>接口带宽计算：修复负载类型从 PCIe 切换到网线/网卡、USB/外设、其他时备注不随默认类型更新的问题</li>
+                    </ul>
+                </div>
+            </div>
             <!-- 版本 2.11.0 -->
             <div class="version-entry">
                 <div class="version-dot"></div>

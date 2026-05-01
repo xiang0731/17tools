@@ -1,0 +1,1873 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>接口带宽计算</title>
+    <link rel="stylesheet" href="../css/theme.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background: var(--background-primary);
+            color: var(--text-primary);
+            font-family: var(--font-family);
+        }
+
+        body {
+            padding: var(--spacing-lg);
+            overflow-x: hidden;
+        }
+
+        .page-shell {
+            width: min(1440px, 100%);
+            margin: 0 auto;
+        }
+
+        .page-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 28px;
+            line-height: 1.2;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .header-note {
+            max-width: 680px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.7;
+            margin-top: var(--spacing-sm);
+        }
+
+        .source-links {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            font-size: 13px;
+        }
+
+        .source-links a {
+            color: var(--primary-color);
+            text-decoration: none;
+            border: 1px solid var(--border-color);
+            background: var(--background-secondary);
+            border-radius: var(--radius-md);
+            padding: 6px 10px;
+            transition: all var(--transition-fast);
+        }
+
+        .source-links a:hover {
+            background: var(--background-hover);
+            border-color: var(--primary-color);
+        }
+
+        .interface-card,
+        .panel,
+        .config-card,
+        .summary-card,
+        .process-card,
+        .glossary-card {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--background-secondary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .interface-card {
+            padding: var(--spacing-md);
+            min-height: 112px;
+        }
+
+        .interface-card.primary {
+            background: var(--background-primary);
+        }
+
+        .card-kicker {
+            color: var(--text-tertiary);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .interface-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .interface-copy {
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .metric-value {
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 26px;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .number-static {
+            color: var(--text-primary);
+        }
+
+        .number-dynamic {
+            color: var(--primary-color);
+        }
+
+        .metric-label {
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--spacing-lg);
+            align-items: start;
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--spacing-md);
+            align-items: stretch;
+        }
+
+        .interface-row {
+            display: grid;
+            grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
+            gap: var(--spacing-md);
+            align-items: end;
+            padding: var(--spacing-md);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--background-primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .interface-select-field {
+            min-width: 0;
+        }
+
+        .config-card {
+            background: var(--background-primary);
+            padding: var(--spacing-md);
+        }
+
+        .config-card-title {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-md);
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .display-config-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(120px, 1fr));
+            gap: var(--spacing-sm);
+        }
+
+        .interface-detail {
+            display: flex;
+            align-items: stretch;
+            flex-wrap: wrap;
+            gap: var(--spacing-sm);
+        }
+
+        .interface-detail-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            min-width: 150px;
+            padding: 8px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--background-secondary);
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .interface-detail-item strong {
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            text-align: right;
+        }
+
+        .display-estimate {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-md);
+            padding: var(--spacing-sm) var(--spacing-md);
+            border: 1px dashed var(--border-color);
+            border-radius: var(--radius-md);
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .display-estimate span {
+            min-width: 0;
+            word-break: break-word;
+        }
+
+        .display-estimate strong {
+            color: var(--primary-color);
+            font-family: var(--font-mono);
+            font-size: 18px;
+            white-space: nowrap;
+        }
+
+        .config-actions {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: var(--spacing-sm);
+            align-items: end;
+        }
+
+        .load-section-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--spacing-sm);
+            margin: var(--spacing-lg) 0 var(--spacing-md) 0;
+            color: var(--text-secondary);
+            font-weight: 800;
+            font-size: 14px;
+        }
+
+        .interface-strip {
+            display: grid;
+            grid-template-columns: 1.15fr repeat(3, minmax(160px, 1fr));
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .panel {
+            overflow: hidden;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            padding: var(--spacing-md) var(--spacing-lg);
+            background: var(--background-tertiary);
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 700;
+        }
+
+        .panel-header span {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .panel-body {
+            padding: var(--spacing-lg);
+        }
+
+        .form-grid {
+            display: grid;
+            gap: var(--spacing-md);
+        }
+
+        .field {
+            display: grid;
+            gap: var(--spacing-xs);
+        }
+
+        .field label {
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        select,
+        input {
+            width: 100%;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--background-primary);
+            color: var(--text-primary);
+            font: inherit;
+            min-height: 40px;
+            padding: 8px 10px;
+            transition: all var(--transition-fast);
+        }
+
+        select:focus,
+        input:focus {
+            outline: none;
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        .add-load {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: var(--spacing-sm);
+            align-items: end;
+        }
+
+        .button {
+            border: 1px solid transparent;
+            border-radius: var(--radius-md);
+            min-height: 40px;
+            padding: 0 var(--spacing-md);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+            cursor: pointer;
+            font: inherit;
+            font-weight: 700;
+            transition: all var(--transition-fast);
+            white-space: nowrap;
+        }
+
+        .button-primary {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            color: var(--text-inverse);
+        }
+
+        .button-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .toggle-line {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            color: var(--text-secondary);
+            font-size: 13px;
+            user-select: none;
+        }
+
+        .toggle-line input {
+            width: 18px;
+            min-height: 18px;
+            accent-color: var(--primary-color);
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border-color);
+            margin: var(--spacing-lg) 0;
+        }
+
+        .load-list {
+            width: 100%;
+            overflow-x: auto;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--background-primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .load-table {
+            width: 100%;
+            min-width: 1180px;
+            border-collapse: collapse;
+        }
+
+        .load-table th,
+        .load-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+
+        .load-table th {
+            background: var(--background-tertiary);
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 800;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        .load-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .load-table tfoot td {
+            background: var(--background-secondary);
+            border-bottom: none;
+            padding: var(--spacing-sm);
+        }
+
+        .load-add-row {
+            display: flex;
+            justify-content: center;
+        }
+
+        .load-table .load-row:hover {
+            background: var(--background-secondary);
+        }
+
+        .load-table input,
+        .load-table select {
+            min-height: 34px;
+            padding: 6px 8px;
+            font-size: 13px;
+        }
+
+        .load-attribute-cell {
+            min-width: 560px;
+        }
+
+        .load-remark-cell {
+            min-width: 180px;
+        }
+
+        .load-bandwidth-cell {
+            width: 140px;
+            white-space: nowrap;
+        }
+
+        .load-action-cell {
+            width: 54px;
+            text-align: center;
+        }
+
+        .load-index {
+            width: 28px;
+            height: 28px;
+            border-radius: var(--radius-md);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary-light);
+            color: var(--primary-color);
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .load-display-controls {
+            display: grid;
+            grid-template-columns: minmax(190px, 1.5fr) minmax(92px, 0.7fr) minmax(150px, 1fr) minmax(112px, 0.8fr);
+            gap: 8px;
+        }
+
+        .load-name-input {
+            min-width: 170px;
+        }
+
+        .bandwidth-input {
+            font-family: var(--font-mono);
+            max-width: 118px;
+        }
+
+        .bandwidth-inline {
+            display: inline-grid;
+            grid-template-columns: auto minmax(170px, 1fr) minmax(80px, 108px) auto auto;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .bandwidth-input[readonly] {
+            color: var(--text-secondary);
+            background: var(--background-secondary);
+            cursor: default;
+        }
+
+        .load-note {
+            color: var(--text-tertiary);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .load-auto-text {
+            color: var(--text-tertiary);
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .load-bandwidth-badge {
+            display: inline-flex;
+            align-items: baseline;
+            gap: 6px;
+            min-width: 126px;
+            padding: 7px 10px;
+            border: 1px solid var(--primary-color);
+            border-radius: var(--radius-md);
+            background: var(--primary-light);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .load-bandwidth-badge span {
+            color: var(--text-secondary);
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .load-bandwidth-badge strong {
+            color: var(--primary-color);
+            font-family: var(--font-mono);
+            font-size: 24px;
+            line-height: 1.1;
+        }
+
+        .icon-action {
+            width: 34px;
+            height: 34px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--background-secondary);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .icon-action:hover {
+            color: var(--error-color);
+            border-color: var(--error-color);
+            background: rgba(239, 68, 68, 0.08);
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .summary-card {
+            padding: var(--spacing-md);
+            background: var(--background-primary);
+        }
+
+        .summary-title {
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .summary-desc {
+            color: var(--text-tertiary);
+            font-size: 12px;
+            line-height: 1.5;
+            min-height: 34px;
+            margin: -2px 0 var(--spacing-sm) 0;
+        }
+
+        .summary-number {
+            font-family: var(--font-mono);
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--primary-color);
+        }
+
+        .summary-sub {
+            color: var(--text-tertiary);
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .summary-sub strong {
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: 0;
+            font-size: 24px;
+            font-weight: 800;
+            line-height: 1.1;
+            background: transparent;
+        }
+
+        .status-ok {
+            color: var(--success-color);
+        }
+
+        .status-warn {
+            color: var(--warning-color);
+        }
+
+        .status-danger {
+            color: var(--error-color);
+        }
+
+        .meter-group {
+            display: grid;
+            gap: var(--spacing-md);
+        }
+
+        .meter-row {
+            display: grid;
+            gap: var(--spacing-xs);
+        }
+
+        .meter-label {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .meter-values {
+            font-family: var(--font-mono);
+            text-align: right;
+        }
+
+        .meter-used {
+            color: var(--primary-color);
+        }
+
+        .meter-capacity {
+            color: var(--text-primary);
+        }
+
+        .meter-track {
+            height: 12px;
+            border-radius: var(--radius-full);
+            background: var(--background-tertiary);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .meter-fill {
+            height: 100%;
+            border-radius: var(--radius-full);
+            transition: width var(--transition-base);
+        }
+
+        .meter-fill.ok {
+            background: var(--success-color);
+        }
+
+        .meter-fill.warn {
+            background: var(--warning-color);
+        }
+
+        .meter-fill.danger {
+            background: var(--error-color);
+        }
+
+        .process-card {
+            background: var(--background-primary);
+            padding: var(--spacing-md);
+            margin-top: var(--spacing-lg);
+        }
+
+        .process-card h2,
+        .glossary-card h2 {
+            margin: 0 0 var(--spacing-sm) 0;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--spacing-sm);
+        }
+
+        .process-card h2 span:first-child {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .process-list {
+            display: grid;
+            gap: var(--spacing-sm);
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 1.7;
+            margin-top: var(--spacing-lg);
+        }
+
+        .process-item {
+            border-left: 3px solid var(--border-color);
+            padding-left: var(--spacing-sm);
+        }
+
+        .process-item strong {
+            color: var(--text-primary);
+        }
+
+        .glossary-card {
+            background: var(--background-primary);
+            padding: var(--spacing-md);
+            margin-top: var(--spacing-lg);
+        }
+
+        .glossary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: var(--spacing-sm);
+        }
+
+        .glossary-item {
+            border-left: 3px solid var(--primary-color);
+            padding: var(--spacing-xs) var(--spacing-sm);
+            background: var(--background-secondary);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
+        .glossary-term {
+            display: block;
+            color: var(--text-primary);
+            font-weight: 800;
+            margin-bottom: 2px;
+        }
+
+        .formula {
+            font-family: var(--font-mono);
+            color: var(--primary-color);
+            word-break: break-word;
+        }
+
+        .empty-state {
+            color: var(--text-tertiary);
+            text-align: center;
+            padding: var(--spacing-xl);
+            border: 1px dashed var(--border-color);
+            border-radius: var(--radius-md);
+        }
+
+        @media (max-width: 1180px) {
+            .interface-strip {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .config-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .display-config-grid {
+                grid-template-columns: repeat(2, minmax(120px, 1fr));
+            }
+
+            .load-table {
+                min-width: 1120px;
+            }
+        }
+
+        @media (max-width: 760px) {
+            body {
+                padding: var(--spacing-md);
+            }
+
+            .page-header {
+                flex-direction: column;
+            }
+
+            .source-links {
+                justify-content: flex-start;
+            }
+
+            .interface-strip,
+            .summary-grid,
+            .display-config-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .interface-row {
+                grid-template-columns: 1fr;
+                align-items: stretch;
+            }
+
+            .add-load,
+            .config-actions {
+                grid-template-columns: 1fr;
+            }
+
+            .display-estimate {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .load-table {
+                min-width: 1080px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page-shell">
+        <header class="page-header">
+            <div>
+                <h1><i class="fas fa-plug"></i> 接口带宽计算</h1>
+                <p class="header-note">
+                    选择接口并叠加显示器、网卡、SSD、eGPU 等负载，按发送方向、接收方向和 PCIe 纯数据带宽分别估算是否超出接口能力。
+                </p>
+            </div>
+            <div class="source-links" aria-label="参考资料">
+                <a href="https://www.intel.com/content/www/us/en/architecture-and-technology/thunderbolt/overview.html" target="_blank" rel="noopener">Thunderbolt</a>
+                <a href="https://www.usb.org/sites/default/files/usb4_language_product_and_packaging_guidelines_final__0.pdf" target="_blank" rel="noopener">USB4</a>
+                <a href="https://www.usb.org/sites/default/files/2022-10/USB-IF%20USB%2080Gbps%20Announcement_FINAL_v2.pdf" target="_blank" rel="noopener">USB 80Gbps</a>
+            </div>
+        </header>
+
+        <main class="main-grid">
+            <section class="panel">
+                <div class="panel-header">
+                    <span><i class="fas fa-calculator"></i> 计算</span>
+                </div>
+                <div class="panel-body">
+                    <div class="interface-row">
+                        <div class="field interface-select-field">
+                            <label for="interfaceSelect">接口标准</label>
+                            <select id="interfaceSelect"></select>
+                        </div>
+                        <div class="interface-detail" id="interfaceDetails"></div>
+                    </div>
+
+                    <div class="load-section-title"><i class="fas fa-layer-group"></i> 当前负载</div>
+                    <div class="load-list" id="loadList"></div>
+                    <div class="process-card">
+                        <h2><span><i class="fas fa-tasks"></i> 计算过程</span></h2>
+                        <div class="summary-grid" id="summaryGrid"></div>
+                        <div class="meter-group" id="meterGroup"></div>
+                        <div class="process-list" id="processList"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <span><i class="fas fa-book-open"></i> 科普</span>
+                </div>
+                <div class="panel-body">
+                    <div class="glossary-card">
+                        <h2><i class="fas fa-book-open"></i> 术语科普</h2>
+                        <div class="glossary-grid">
+                            <div class="glossary-item">
+                                <span class="glossary-term">TX 合计</span>
+                                从电脑发往外设的带宽总和。显示器视频输出通常算在 TX，所以高分辨率高刷新屏幕会明显占用这里。
+                            </div>
+                            <div class="glossary-item">
+                                <span class="glossary-term">RX 合计</span>
+                                从外设传回电脑的带宽总和。外置 SSD 读取、采集卡输入、网卡下载流量通常会占用 RX。
+                            </div>
+                            <div class="glossary-item">
+                                <span class="glossary-term">增强模式</span>
+                                雷电 5 或 USB4 v2 在高视频负载时可把链路改成非对称方向，例如发送 120 Gbps、接收 40 Gbps。
+                            </div>
+                            <div class="glossary-item">
+                                <span class="glossary-term">PCIe 纯数据</span>
+                                给 eGPU、PCIe 扩展盒、部分高速 SSD 使用的隧道带宽，不等同于接口总带宽。
+                            </div>
+                            <div class="glossary-item">
+                                <span class="glossary-term">DSC 压缩</span>
+                                Display Stream Compression，显示链路压缩。开启后同样画面占用更少带宽，常见为 2:1 或 3:1。
+                            </div>
+                            <div class="glossary-item">
+                                <span class="glossary-term">Gbps</span>
+                                每秒十亿比特。接口宣传常用 Gbps，换算成 GB/s 约需除以 8，再考虑协议开销。
+                            </div>
+                            <div class="glossary-item">
+                                <span class="glossary-term">双向负载</span>
+                                设备可能同时上传和下载时，会同时计入 TX 与 RX，例如网卡、USB 外设、部分 eGPU 场景。
+                            </div>
+                            <div class="glossary-item">
+                                <span class="glossary-term">显示器开销 1.2</span>
+                                简化估算中预留的传输开销，覆盖消隐、编码和协议损耗；不同显示协议实际值会有差异。
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="../js/theme.js"></script>
+    <script>
+        const INTERFACES = {
+            tb3: {
+                name: 'Thunderbolt 3',
+                shortName: '雷电 3',
+                mode: 'standard',
+                modeLabel: '标准模式',
+                tx: 40,
+                rx: 40,
+                pcie: 16,
+                badge: '40 Gbps',
+                intro: '40 Gbps 双向链路；PCIe 按认证下限 16 Gbps 保守估算，实际设备可能更高。',
+                display: '常见 4K/5K 显示器与中等数据负载。',
+                pcieLabel: '16 Gbps 认证下限'
+            },
+            tb4: {
+                name: 'Thunderbolt 4',
+                shortName: '雷电 4',
+                mode: 'standard',
+                modeLabel: '标准模式',
+                tx: 40,
+                rx: 40,
+                pcie: 32,
+                badge: '40 Gbps',
+                intro: '40 Gbps 双向链路；最低 PCIe 数据要求提升到 32 Gbps。',
+                display: '至少支持双 4K 60Hz 或单 8K 显示场景，取决于主机显卡与显示链路。',
+                pcieLabel: '32 Gbps'
+            },
+            tb5: {
+                name: 'Thunderbolt 5 标准模式',
+                shortName: '雷电 5',
+                mode: 'standard',
+                modeLabel: '标准模式',
+                tx: 80,
+                rx: 80,
+                pcie: 64,
+                badge: '80 Gbps',
+                intro: '标准模式 TX 80 / RX 80 Gbps，适合同时有显示输出和高速回传数据的场景。',
+                display: '适合双 8K 60Hz、超高刷显示器和更高吞吐 SSD/eGPU。',
+                pcieLabel: '64 Gbps (PCIe Gen4 x4)'
+            },
+            tb5_boost: {
+                name: 'Thunderbolt 5 增强模式',
+                shortName: '雷电 5 增强',
+                mode: 'boost',
+                modeLabel: '增强模式',
+                tx: 120,
+                rx: 40,
+                pcie: 64,
+                badge: '120 / 40 Gbps',
+                intro: '增强模式把更多链路分配给发送方向，适合高分辨率高刷新显示输出；接收方向容量降为 40 Gbps。',
+                display: '优先满足大显示带宽，需留意 SSD 读取、采集卡输入等 RX 负载。',
+                pcieLabel: '64 Gbps (PCIe Gen4 x4)'
+            },
+            usb4_20: {
+                name: 'USB4 20Gbps',
+                shortName: 'USB4 20G',
+                mode: 'standard',
+                modeLabel: '标准模式',
+                tx: 20,
+                rx: 20,
+                pcie: 0,
+                badge: '20 Gbps',
+                intro: 'USB4 基础速率之一，支持数据与显示协议共享链路；PCIe 隧道能力不作为通用保证。',
+                display: '适合轻量显示与常规 USB 数据负载。',
+                pcieLabel: '非强制，按 0 处理'
+            },
+            usb4_40: {
+                name: 'USB4 40Gbps',
+                shortName: 'USB4 40G',
+                mode: 'standard',
+                modeLabel: '标准模式',
+                tx: 40,
+                rx: 40,
+                pcie: 0,
+                badge: '40 Gbps',
+                intro: 'USB4 高速模式，最高 40 Gbps；实际能力取决于主机、线缆、扩展坞和设备标识。',
+                display: '适合 4K 显示器、扩展坞和高速 USB 设备混合负载。',
+                pcieLabel: '非强制，按 0 处理'
+            },
+            usb4v2_80: {
+                name: 'USB4 v2 / USB 80Gbps 标准模式',
+                shortName: 'USB 80G',
+                mode: 'standard',
+                modeLabel: '标准模式',
+                tx: 80,
+                rx: 80,
+                pcie: 0,
+                badge: '80 Gbps',
+                intro: 'USB4 v2 标准模式 TX 80 / RX 80 Gbps，数据与显示协议共享链路。',
+                display: '适合高分辨率高刷新显示、USB 80Gbps 扩展坞和高速存储。',
+                pcieLabel: '可支持 PCIe 隧道，但非通用保证'
+            },
+            usb4v2_boost: {
+                name: 'USB4 v2 / USB 80Gbps 非对称模式',
+                shortName: 'USB 80G 非对称',
+                mode: 'boost',
+                modeLabel: '非对称增强模式',
+                tx: 120,
+                rx: 40,
+                pcie: 0,
+                badge: '120 / 40 Gbps',
+                intro: 'USB4 v2 可在特定高性能显示场景下配置为 TX 120 / RX 40 Gbps 非对称链路。',
+                display: '适合极高显示输出负载，需留意接收方向只剩 40 Gbps。',
+                pcieLabel: '可支持 PCIe 隧道，但非通用保证'
+            }
+        };
+
+        const CATEGORY_OPTIONS = [
+            ['display', '显示器'],
+            ['pcie', 'PCIe / eGPU / SSD'],
+            ['network', '网线 / 网卡'],
+            ['usb', 'USB / 外设'],
+            ['other', '其他']
+        ];
+
+        const DIRECTION_OPTIONS = [
+            ['tx', '发送 TX'],
+            ['rx', '接收 RX'],
+            ['both', '双向']
+        ];
+
+        const DISPLAY_RESOLUTIONS = [
+            { value: '1920x1080', label: '1080p (1920 × 1080)', width: 1920, height: 1080 },
+            { value: '2560x1440', label: '2K / QHD (2560 × 1440)', width: 2560, height: 1440 },
+            { value: '3440x1440', label: 'UWQHD (3440 × 1440)', width: 3440, height: 1440 },
+            { value: '3840x2160', label: '4K UHD (3840 × 2160)', width: 3840, height: 2160 },
+            { value: '5120x2880', label: '5K (5120 × 2880)', width: 5120, height: 2880 },
+            { value: '6016x3384', label: '6K (6016 × 3384)', width: 6016, height: 3384 },
+            { value: '7680x4320', label: '8K UHD (7680 × 4320)', width: 7680, height: 4320 }
+        ];
+
+        const DISPLAY_REFRESH_RATES = [60, 75, 100, 120, 144, 165, 240];
+
+        const DISPLAY_COLOR_DEPTHS = [
+            { value: 24, label: '8-bit SDR (24bit)', suffix: 'SDR' },
+            { value: 30, label: '10-bit HDR (30bit)', suffix: 'HDR' },
+            { value: 36, label: '12-bit HDR (36bit)', suffix: 'HDR 12bit' }
+        ];
+
+        const DISPLAY_COMPRESSION = [
+            { value: 1, label: '无压缩' },
+            { value: 2, label: 'DSC 2:1' },
+            { value: 3, label: 'DSC 3:1' }
+        ];
+
+        const CATEGORY_DEFAULTS = {
+            display: { direction: 'tx', bandwidth: null, name: '显示器' },
+            network: { direction: 'both', bandwidth: 1, name: '网线 / 网卡' },
+            pcie: { direction: 'rx', bandwidth: 32, name: 'PCIe / SSD' },
+            usb: { direction: 'both', bandwidth: 10, name: 'USB / 外设' },
+            other: { direction: 'both', bandwidth: 5, name: '自定义负载' }
+        };
+
+        const BANDWIDTH_PRESETS = {
+            network: [
+                { value: 0.1, label: '100M', note: '百兆以太网' },
+                { value: 1, label: '1000M / 1GbE', note: '千兆以太网' },
+                { value: 2.5, label: '2.5GbE', note: '2.5G 网卡' },
+                { value: 5, label: '5GbE', note: '5G 网卡' },
+                { value: 10, label: '10GbE', note: '10G 网卡' }
+            ],
+            pcie: [
+                { value: 16, label: 'PCIe 认证下限 16Gbps', note: '部分 Thunderbolt 3 设备' },
+                { value: 32, label: 'PCIe Gen3 x4 / 32Gbps', note: '常见 eGPU / SSD' },
+                { value: 64, label: 'PCIe Gen4 x4 / 64Gbps', note: '雷电 5 高速 SSD / eGPU' }
+            ],
+            usb: [
+                { value: 0.48, label: 'USB 2.0 / 480M', note: '低速外设' },
+                { value: 5, label: 'USB 3.x / 5Gbps', note: '普通高速 USB' },
+                { value: 10, label: 'USB 3.x / 10Gbps', note: '常见外置 SSD' },
+                { value: 20, label: 'USB 3.2 / 20Gbps', note: '高性能 USB SSD' },
+                { value: 40, label: 'USB4 / 40Gbps', note: 'USB4 高速设备' },
+                { value: 80, label: 'USB4 v2 / 80Gbps', note: 'USB 80Gbps 设备' }
+            ],
+            other: [
+                { value: 1, label: '1Gbps', note: '轻量负载' },
+                { value: 5, label: '5Gbps', note: '中等负载' },
+                { value: 10, label: '10Gbps', note: '高速负载' },
+                { value: 20, label: '20Gbps', note: '高负载' }
+            ]
+        };
+
+        const PRESETS = [
+            {
+                key: 'display-4k60',
+                name: '显示器 4K 60Hz SDR',
+                category: 'display',
+                direction: 'tx',
+                display: { width: 3840, height: 2160, refresh: 60, bpp: 24, overhead: 1.2, compression: 1 }
+            },
+            {
+                key: 'display-4k144-hdr',
+                name: '显示器 4K 144Hz HDR',
+                category: 'display',
+                direction: 'tx',
+                display: { width: 3840, height: 2160, refresh: 144, bpp: 30, overhead: 1.2, compression: 1 }
+            },
+            {
+                key: 'display-5k60-hdr',
+                name: '显示器 5K 60Hz HDR',
+                category: 'display',
+                direction: 'tx',
+                display: { width: 5120, height: 2880, refresh: 60, bpp: 30, overhead: 1.2, compression: 1 }
+            },
+            {
+                key: 'display-6k60-hdr',
+                name: '显示器 6K 60Hz HDR',
+                category: 'display',
+                direction: 'tx',
+                display: { width: 6016, height: 3384, refresh: 60, bpp: 30, overhead: 1.2, compression: 1 }
+            },
+            {
+                key: 'display-8k60-hdr',
+                name: '显示器 8K 60Hz HDR',
+                category: 'display',
+                direction: 'tx',
+                display: { width: 7680, height: 4320, refresh: 60, bpp: 30, overhead: 1.2, compression: 1 }
+            },
+            {
+                key: 'display-8k60-dsc',
+                name: '显示器 8K 60Hz DSC 3:1',
+                category: 'display',
+                direction: 'tx',
+                display: { width: 7680, height: 4320, refresh: 60, bpp: 30, overhead: 1.2, compression: 3 }
+            },
+            { key: 'network-2-5g', name: '2.5GbE 网线 / 网卡', category: 'network', direction: 'both', bandwidth: 2.5, note: '按全双工保守估算，TX 与 RX 各计 2.5 Gbps。' },
+            { key: 'network-10g', name: '10GbE 网线 / 网卡', category: 'network', direction: 'both', bandwidth: 10, note: '按全双工保守估算，TX 与 RX 各计 10 Gbps。' },
+            { key: 'usb-10g', name: 'USB 3.2 Gen 2 设备', category: 'usb', direction: 'both', bandwidth: 10, note: '外设峰值占用，实际会受协议开销与设备能力影响。' },
+            { key: 'usb-20g', name: 'USB 3.2 Gen 2x2 SSD', category: 'usb', direction: 'both', bandwidth: 20, note: '按 20 Gbps 峰值估算。' },
+            { key: 'ssd-pcie3', name: '雷电 SSD PCIe Gen3 x4', category: 'pcie', direction: 'rx', bandwidth: 32, note: '读取外置 SSD 时主要占用 RX；写入时可改为 TX。' },
+            { key: 'ssd-pcie4', name: '雷电 5 SSD PCIe Gen4 x4', category: 'pcie', direction: 'rx', bandwidth: 64, note: 'PCIe Gen4 x4 纯数据上限，主要适用于雷电 5 设备。' },
+            { key: 'egpu-pcie3', name: 'eGPU PCIe Gen3 x4', category: 'pcie', direction: 'both', bandwidth: 32, note: 'eGPU 负载方向会随场景变化，双向估算更保守。' },
+            { key: 'egpu-pcie4', name: 'eGPU PCIe Gen4 x4', category: 'pcie', direction: 'both', bandwidth: 64, note: '雷电 5 的 PCIe 纯数据带宽级别。' },
+            { key: 'capture-4k60', name: '采集卡 4K 60Hz', category: 'usb', direction: 'rx', bandwidth: 12, note: '视频采集主要从设备进入电脑，占用 RX。' },
+            { key: 'peripherals', name: '键鼠 / 音频 / 普通外设', category: 'usb', direction: 'both', bandwidth: 1, note: '低速外设合并估算。' },
+            { key: 'custom', name: '自定义负载', category: 'other', direction: 'both', bandwidth: 5, note: '手动填写设备估算带宽。' }
+        ];
+
+        const state = {
+            loads: [],
+            nextId: 1
+        };
+
+        const interfaceSelect = document.getElementById('interfaceSelect');
+        const interfaceDetails = document.getElementById('interfaceDetails');
+        const loadList = document.getElementById('loadList');
+        const summaryGrid = document.getElementById('summaryGrid');
+        const meterGroup = document.getElementById('meterGroup');
+        const processList = document.getElementById('processList');
+
+        function init() {
+            interfaceSelect.innerHTML = Object.entries(INTERFACES).map(([key, item]) => {
+                return `<option value="${key}">${item.name}</option>`;
+            }).join('');
+            interfaceSelect.value = 'tb5';
+
+            bindEvents();
+            render();
+        }
+
+        function bindEvents() {
+            interfaceSelect.addEventListener('change', render);
+
+            loadList.addEventListener('input', updateLoadFromEvent);
+            loadList.addEventListener('change', updateLoadFromEvent);
+            loadList.addEventListener('click', (event) => {
+                const addButton = event.target.closest('[data-action="add-load"]');
+                if (addButton) {
+                    state.loads.push(createDefaultLoad());
+                    render();
+                    return;
+                }
+
+                const button = event.target.closest('[data-action="remove"]');
+                if (!button) return;
+                const id = Number(button.closest('.load-row').dataset.id);
+                state.loads = state.loads.filter(load => load.id !== id);
+                render();
+            });
+        }
+
+        function makeDisplayConfig(resolution, refresh, color, compression) {
+            return {
+                width: resolution.width,
+                height: resolution.height,
+                resolutionLabel: resolution.label.split(' ')[0],
+                refresh,
+                bpp: Number(color.value),
+                colorSuffix: color.suffix,
+                overhead: 1.2,
+                compression
+            };
+        }
+
+        function getDefaultDisplayConfig() {
+            return makeDisplayConfig(DISPLAY_RESOLUTIONS[1], 120, DISPLAY_COLOR_DEPTHS[0], 1);
+        }
+
+        function normalizeDisplayConfig(display) {
+            const fallback = getDefaultDisplayConfig();
+            const current = { ...fallback, ...(display || {}) };
+            const resolution = DISPLAY_RESOLUTIONS.find(item => item.width === current.width && item.height === current.height) || DISPLAY_RESOLUTIONS[1];
+            const color = DISPLAY_COLOR_DEPTHS.find(item => Number(item.value) === Number(current.bpp)) || DISPLAY_COLOR_DEPTHS[0];
+            return {
+                ...current,
+                width: resolution.width,
+                height: resolution.height,
+                resolutionLabel: resolution.label.split(' ')[0],
+                bpp: Number(color.value),
+                colorSuffix: color.suffix,
+                refresh: Number(current.refresh) || 60,
+                overhead: Number(current.overhead) || 1.2,
+                compression: Number(current.compression) || 1
+            };
+        }
+
+        function createDefaultLoad() {
+            return createLoadFromCategory('display');
+        }
+
+        function makeDisplayLoadName(display) {
+            const compressionName = display.compression > 1 ? ` DSC ${trimNumber(display.compression)}:1` : '';
+            return `显示器 ${display.resolutionLabel} ${display.refresh}Hz ${display.colorSuffix}${compressionName}`;
+        }
+
+        function createLoadFromCategory(category, id = state.nextId++) {
+            if (category === 'display') {
+                const display = getDefaultDisplayConfig();
+                return {
+                    id,
+                    name: makeDisplayLoadName(display),
+                    category: 'display',
+                    direction: CATEGORY_DEFAULTS.display.direction,
+                    bandwidth: calculateDisplayBandwidth(display),
+                    display,
+                    note: ''
+                };
+            }
+
+            const defaults = CATEGORY_DEFAULTS[category] || CATEGORY_DEFAULTS.other;
+            return {
+                id,
+                name: defaults.name,
+                category,
+                direction: defaults.direction,
+                bandwidth: defaults.bandwidth,
+                display: null,
+                note: ''
+            };
+        }
+
+        function createLoadFromPreset(key) {
+            const preset = PRESETS.find(item => item.key === key) || PRESETS[PRESETS.length - 1];
+            const display = preset.display ? normalizeDisplayConfig(preset.display) : null;
+            return {
+                id: state.nextId++,
+                name: preset.name,
+                category: preset.category,
+                direction: preset.direction,
+                bandwidth: display ? calculateDisplayBandwidth(display) : preset.bandwidth,
+                display,
+                note: preset.note || ''
+            };
+        }
+
+        function calculateDisplayBandwidth(display) {
+            const raw = display.width * display.height * display.refresh * display.bpp * display.overhead;
+            return raw / display.compression / 1000000000;
+        }
+
+        function updateLoadFromEvent(event) {
+            const field = event.target.dataset.field;
+            const displayField = event.target.dataset.displayField;
+            if (!field && !displayField) return;
+
+            const row = event.target.closest('.load-row');
+            const id = Number(row.dataset.id);
+            const load = state.loads.find(item => item.id === id);
+            if (!load) return;
+
+            if (displayField) {
+                updateDisplayLoad(load, displayField, event.target.value);
+            } else if (field === 'bandwidth') {
+                load.bandwidth = Math.max(0, Number(event.target.value) || 0);
+                load.display = null;
+            } else if (field === 'bandwidthPreset') {
+                load.bandwidth = Math.max(0, Number(event.target.value) || 0);
+                load.display = null;
+            } else {
+                const previousCategory = load.category;
+                load[field] = event.target.value;
+                if (field === 'category') {
+                    applyCategoryDefaults(load, event.target.value, previousCategory);
+                }
+            }
+
+            if (event.type === 'change' && field === 'bandwidthPreset') {
+                renderResultsOnly();
+                return;
+            }
+
+            if (event.type === 'change' && field === 'category') {
+                render();
+                return;
+            }
+
+            if (event.type === 'change' && field === 'direction') {
+                renderResultsOnly();
+                return;
+            }
+
+            if (field === 'bandwidthPreset') {
+                const badgeValue = row.querySelector('.load-bandwidth-badge strong');
+                if (badgeValue) {
+                    badgeValue.textContent = formatGbps(load.bandwidth);
+                }
+                renderResultsOnly();
+                return;
+            }
+
+            if (displayField && event.type === 'change') {
+                render();
+                return;
+            }
+
+            if (event.type === 'input') {
+                const badgeValue = row.querySelector('.load-bandwidth-badge strong');
+                if (badgeValue) {
+                    badgeValue.textContent = formatGbps(load.bandwidth);
+                }
+                renderResultsOnly();
+            } else {
+                render();
+            }
+        }
+
+        function applyCategoryDefaults(load, category, previousCategory) {
+            const defaults = CATEGORY_DEFAULTS[category] || CATEGORY_DEFAULTS.other;
+            const previousDefaultName = getDefaultName(previousCategory);
+
+            if (category === 'display') {
+                load.display = normalizeDisplayConfig(load.display);
+                load.bandwidth = calculateDisplayBandwidth(load.display);
+                load.direction = defaults.direction;
+                if (!load.name || load.name === previousDefaultName || previousCategory !== 'display') {
+                    load.name = makeDisplayLoadName(load.display);
+                }
+                return;
+            }
+
+            load.display = null;
+            load.direction = defaults.direction;
+            load.bandwidth = defaults.bandwidth;
+
+            if (!load.name || load.name === previousDefaultName || previousCategory === 'display') {
+                load.name = defaults.name;
+            }
+        }
+
+        function updateDisplayLoad(load, field, value) {
+            const display = normalizeDisplayConfig(load.display);
+            if (field === 'resolution') {
+                const resolution = DISPLAY_RESOLUTIONS.find(item => item.value === value) || DISPLAY_RESOLUTIONS[1];
+                display.width = resolution.width;
+                display.height = resolution.height;
+                display.resolutionLabel = resolution.label.split(' ')[0];
+            } else if (field === 'refresh') {
+                display.refresh = Number(value) || 60;
+            } else if (field === 'bpp') {
+                const color = DISPLAY_COLOR_DEPTHS.find(item => String(item.value) === String(value)) || DISPLAY_COLOR_DEPTHS[0];
+                display.bpp = Number(color.value);
+                display.colorSuffix = color.suffix;
+            } else if (field === 'compression') {
+                display.compression = Number(value) || 1;
+            }
+
+            load.display = normalizeDisplayConfig(display);
+            load.bandwidth = calculateDisplayBandwidth(load.display);
+        }
+
+        function render() {
+            const iface = INTERFACES[interfaceSelect.value];
+            const calc = calculate(iface);
+            renderInterfaceDetails(iface);
+            renderLoadList();
+            renderSummary(calc);
+            renderMeters(calc);
+            renderProcess(calc);
+        }
+
+        function renderResultsOnly() {
+            const iface = INTERFACES[interfaceSelect.value];
+            const calc = calculate(iface);
+            renderInterfaceDetails(iface);
+            renderSummary(calc);
+            renderMeters(calc);
+            renderProcess(calc);
+        }
+
+        function calculate(iface) {
+            const totals = {
+                tx: 0,
+                rx: 0,
+                displayTx: 0,
+                pcie: 0,
+                txParts: [],
+                rxParts: [],
+                pcieParts: [],
+                displayParts: []
+            };
+
+            state.loads.forEach(load => {
+                const bandwidth = normalizeBandwidth(load.bandwidth);
+                if (load.direction === 'tx' || load.direction === 'both') {
+                    totals.tx += bandwidth;
+                    totals.txParts.push(`${load.name} ${formatGbps(bandwidth)}`);
+                }
+                if (load.direction === 'rx' || load.direction === 'both') {
+                    totals.rx += bandwidth;
+                    totals.rxParts.push(`${load.name} ${formatGbps(bandwidth)}`);
+                }
+                if (load.category === 'display' && (load.direction === 'tx' || load.direction === 'both')) {
+                    totals.displayTx += bandwidth;
+                    totals.displayParts.push(`${load.name} ${formatGbps(bandwidth)}`);
+                }
+                if (load.category === 'pcie') {
+                    totals.pcie += bandwidth;
+                    totals.pcieParts.push(`${load.name} ${formatGbps(bandwidth)}`);
+                }
+            });
+
+            let mode = iface.mode || 'standard';
+            let txCapacity = iface.tx;
+            let rxCapacity = iface.rx;
+            const modeNote = mode === 'boost'
+                ? '已选择增强/非对称模式，发送方向容量更高，但接收方向容量会降低。'
+                : '已选择标准对称模式，发送与接收方向容量相同。';
+
+            const txStatus = getUsageStatus(totals.tx, txCapacity);
+            const rxStatus = getUsageStatus(totals.rx, rxCapacity);
+            const pcieStatus = getUsageStatus(totals.pcie, iface.pcie);
+            const overall = getOverallStatus([txStatus, rxStatus, pcieStatus]);
+
+            return {
+                iface,
+                mode,
+                txCapacity,
+                rxCapacity,
+                modeNote,
+                totals,
+                txStatus,
+                rxStatus,
+                pcieStatus,
+                overall
+            };
+        }
+
+        function renderInterfaceDetails(iface) {
+            interfaceDetails.innerHTML = `
+                <div class="interface-detail-item">
+                    <span>当前模式</span>
+                    <strong>${iface.modeLabel}</strong>
+                </div>
+                <div class="interface-detail-item">
+                    <span>发送 TX</span>
+                    <strong>${formatGbps(iface.tx)}</strong>
+                </div>
+                <div class="interface-detail-item">
+                    <span>接收 RX</span>
+                    <strong>${formatGbps(iface.rx)}</strong>
+                </div>
+                <div class="interface-detail-item">
+                    <span>PCIe 纯数据</span>
+                    <strong>${iface.pcie > 0 ? formatGbps(iface.pcie) : '非通用保证'}</strong>
+                </div>
+            `;
+        }
+
+        function renderLoadList() {
+            loadList.innerHTML = `
+                <table class="load-table">
+                    <colgroup>
+                        <col style="width: 44px;">
+                        <col style="width: 150px;">
+                        <col style="width: 130px;">
+                        <col>
+                        <col style="width: 190px;">
+                        <col style="width: 142px;">
+                        <col style="width: 56px;">
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>类型</th>
+                            <th>方向</th>
+                            <th>属性</th>
+                            <th>备注</th>
+                            <th>计算带宽</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${state.loads.length === 0 ? `
+                            <tr>
+                                <td colspan="7">
+                                    <div class="empty-state">
+                                        <i class="fas fa-inbox"></i>
+                                        <div>暂无负载设备，点击下方“添加负载”开始计算</div>
+                                    </div>
+                                </td>
+                            </tr>
+                        ` : state.loads.map((load, index) => `
+                            <tr class="load-row" data-id="${load.id}">
+                                <td><span class="load-index">${index + 1}</span></td>
+                                <td>
+                                    <select data-field="category">
+                                        ${renderOptions(CATEGORY_OPTIONS, load.category)}
+                                    </select>
+                                </td>
+                                <td>
+                                    <select data-field="direction">
+                                        ${renderOptions(DIRECTION_OPTIONS, load.direction)}
+                                    </select>
+                                </td>
+                                <td class="load-attribute-cell">${renderLoadAttributeCell(load)}</td>
+                                <td class="load-remark-cell">
+                                    <input class="load-name-input" data-field="name" value="${escapeAttribute(load.name)}" placeholder="备注">
+                                </td>
+                                <td class="load-bandwidth-cell">
+                                    <div class="load-bandwidth-badge">
+                                        <span>计算</span>
+                                        <strong>${formatGbps(load.bandwidth)}</strong>
+                                    </div>
+                                </td>
+                                <td class="load-action-cell">
+                                    <button class="icon-action" type="button" data-action="remove" aria-label="删除负载">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="7">
+                                <div class="load-add-row">
+                                    <button class="button button-primary" type="button" data-action="add-load">
+                                        <i class="fas fa-plus"></i> 添加负载
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            `;
+        }
+
+        function renderLoadAttributeCell(load) {
+            if (load.category !== 'display') {
+                return renderBandwidthAttribute(load);
+            }
+
+            const display = normalizeDisplayConfig(load.display);
+            const resolutionValue = `${display.width}x${display.height}`;
+
+            return `
+                <div class="load-display-controls">
+                    <select data-display-field="resolution" aria-label="分辨率">
+                        ${renderDisplayResolutionOptions(resolutionValue)}
+                    </select>
+                    <select data-display-field="refresh" aria-label="刷新率">
+                        ${renderNumberOptions(DISPLAY_REFRESH_RATES, display.refresh, ' Hz')}
+                    </select>
+                    <select data-display-field="bpp" aria-label="色深">
+                        ${renderObjectOptions(DISPLAY_COLOR_DEPTHS, display.bpp, item => item.value, item => item.label)}
+                    </select>
+                    <select data-display-field="compression" aria-label="压缩">
+                        ${renderObjectOptions(DISPLAY_COMPRESSION, display.compression, item => item.value, item => item.label)}
+                    </select>
+                </div>
+            `;
+        }
+
+        function renderBandwidthAttribute(load) {
+            const presets = BANDWIDTH_PRESETS[load.category] || BANDWIDTH_PRESETS.other;
+            const hasPreset = presets.some(item => Number(item.value) === Number(load.bandwidth));
+
+            return `
+                <div class="bandwidth-inline">
+                    <span>带宽</span>
+                    <select data-field="bandwidthPreset" aria-label="带宽预设">
+                        ${renderBandwidthPresetOptions(presets, load.bandwidth)}
+                    </select>
+                    <input class="bandwidth-input" type="number" min="0" step="0.1" data-field="bandwidth" value="${formatInputNumber(load.bandwidth)}" aria-label="手动带宽">
+                    <span>Gbps</span>
+                    ${hasPreset ? '' : '<span class="load-note">自定义</span>'}
+                </div>
+            `;
+        }
+
+        function renderSummary(calc) {
+            const modeLabel = calc.mode === 'boost' ? '增强模式' : '标准模式';
+
+            summaryGrid.innerHTML = `
+                <div class="summary-card">
+                    <div class="summary-title"><i class="fas fa-arrow-up"></i> 发送 TX</div>
+                    <div class="summary-desc">电脑输出到设备的总带宽；显示器画面通常占这里。</div>
+                    <div class="summary-number number-dynamic">${formatGbps(calc.totals.tx)}</div>
+                    <div class="summary-sub">容量 <strong>${formatGbps(calc.txCapacity)}</strong>，${modeLabel}</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-title"><i class="fas fa-arrow-down"></i> 接收 RX</div>
+                    <div class="summary-desc">设备回传到电脑的总带宽；读取 SSD、采集、下载会占这里。</div>
+                    <div class="summary-number number-dynamic">${formatGbps(calc.totals.rx)}</div>
+                    <div class="summary-sub">容量 <strong>${formatGbps(calc.rxCapacity)}</strong>，${modeLabel}</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-title"><i class="fas fa-microchip"></i> PCIe 数据</div>
+                    <div class="summary-desc">eGPU、PCIe 扩展盒和部分高速 SSD 使用的隧道带宽。</div>
+                    <div class="summary-number number-dynamic">${formatGbps(calc.totals.pcie)}</div>
+                    <div class="summary-sub">容量 <strong>${formatGbps(calc.iface.pcie)}</strong></div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-title"><i class="fas fa-clipboard-check"></i> 计算结果</div>
+                    <div class="summary-desc">综合 TX、RX 和 PCIe 三项负载后得到的整体判断。</div>
+                    <div id="overallStatus" class="summary-number status-pill ${statusClass(calc.overall)}">${statusIcon(calc.overall)} ${statusText(calc.overall)}</div>
+                    <div class="summary-sub">按当前接口与负载列表实时计算</div>
+                </div>
+            `;
+        }
+
+        function renderMeters(calc) {
+            meterGroup.innerHTML = [
+                renderMeter('发送方向 TX', calc.totals.tx, calc.txCapacity, calc.txStatus),
+                renderMeter('接收方向 RX', calc.totals.rx, calc.rxCapacity, calc.rxStatus),
+                renderMeter('PCIe 纯数据', calc.totals.pcie, calc.iface.pcie, calc.pcieStatus)
+            ].join('');
+        }
+
+        function renderProcess(calc) {
+            const txText = calc.totals.txParts.length ? calc.totals.txParts.join(' + ') : '0';
+            const rxText = calc.totals.rxParts.length ? calc.totals.rxParts.join(' + ') : '0';
+            const pcieText = calc.totals.pcieParts.length ? calc.totals.pcieParts.join(' + ') : '0';
+            const displayText = calc.totals.displayParts.length ? calc.totals.displayParts.join(' + ') : '0';
+
+            const loadItems = state.loads.map(load => `
+                <div class="process-item">
+                    <strong>${escapeHtml(load.name)}</strong>：
+                    ${renderLoadFormula(load)}
+                </div>
+            `).join('');
+
+            processList.innerHTML = `
+                <div class="process-item">
+                    <strong>接口容量</strong>：${calc.iface.name} 当前按 ${calc.mode === 'boost' ? '增强模式' : '标准模式'} 计算；
+                    TX ${formatGbps(calc.txCapacity)}，RX ${formatGbps(calc.rxCapacity)}，PCIe ${formatGbps(calc.iface.pcie)}。
+                    ${calc.modeNote}
+                </div>
+                <div class="process-item">
+                    <strong>显示器负载</strong>：${displayText} = <span class="formula">${formatGbps(calc.totals.displayTx)}</span>。
+                </div>
+                <div class="process-item">
+                    <strong>TX 合计</strong>：${txText} = <span class="formula">${formatGbps(calc.totals.tx)}</span>；
+                    对比容量 ${formatGbps(calc.txCapacity)}，${statusText(calc.txStatus)}。
+                </div>
+                <div class="process-item">
+                    <strong>RX 合计</strong>：${rxText} = <span class="formula">${formatGbps(calc.totals.rx)}</span>；
+                    对比容量 ${formatGbps(calc.rxCapacity)}，${statusText(calc.rxStatus)}。
+                </div>
+                <div class="process-item">
+                    <strong>PCIe 合计</strong>：${pcieText} = <span class="formula">${formatGbps(calc.totals.pcie)}</span>；
+                    对比容量 ${formatGbps(calc.iface.pcie)}，${statusText(calc.pcieStatus)}。
+                </div>
+                ${loadItems}
+            `;
+        }
+
+        function renderMeter(label, used, capacity, status) {
+            const percent = capacity > 0 ? Math.min(100, used / capacity * 100) : (used > 0 ? 100 : 0);
+            const ratioText = capacity > 0
+                ? `(${(used / capacity * 100).toFixed(0)}%)`
+                : (used > 0 ? '(不支持)' : '(无占用)');
+            return `
+                <div class="meter-row">
+                    <div class="meter-label">
+                        <span>${label}</span>
+                        <strong class="meter-values">
+                            <span class="meter-used">${formatGbps(used)}</span>
+                            <span class="meter-capacity">/ ${formatGbps(capacity)} ${ratioText}</span>
+                        </strong>
+                    </div>
+                    <div class="meter-track">
+                        <div class="meter-fill ${status}" style="width: ${percent}%"></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderLoadMeta(load) {
+            const directionText = directionLabel(load.direction);
+            if (load.display) {
+                return `显示器估算：${displayFormula(load.display, load.bandwidth)}；方向：${directionText}`;
+            }
+            return `${escapeHtml(load.note || '手动估算负载。')}；方向：${directionText}`;
+        }
+
+        function renderLoadFormula(load) {
+            const bandwidth = formatGbps(normalizeBandwidth(load.bandwidth));
+            if (load.display) {
+                return `<span class="formula">${displayFormula(load.display, load.bandwidth)}</span>，计入 ${directionLabel(load.direction)}。`;
+            }
+            if (load.direction === 'both') {
+                return `<span class="formula">${bandwidth}</span>，按双向负载计入 TX 与 RX。`;
+            }
+            return `<span class="formula">${bandwidth}</span>，计入 ${directionLabel(load.direction)}。`;
+        }
+
+        function displayFormula(display, bandwidth) {
+            const compression = display.compression > 1 ? ` ÷ ${trimNumber(display.compression)}` : '';
+            return `${display.width} × ${display.height} × ${display.refresh}Hz × ${display.bpp}bit × ${trimNumber(display.overhead)}${compression} ÷ 10^9 = ${formatGbps(bandwidth)}`;
+        }
+
+        function renderOptions(options, currentValue) {
+            return options.map(([value, label]) => {
+                const selected = value === currentValue ? 'selected' : '';
+                return `<option value="${value}" ${selected}>${label}</option>`;
+            }).join('');
+        }
+
+        function getCategoryLabel(value) {
+            const option = CATEGORY_OPTIONS.find(([key]) => key === value);
+            return option ? option[1] : '自定义负载';
+        }
+
+        function getDefaultName(category) {
+            if (category === 'display') return null;
+            const defaults = CATEGORY_DEFAULTS[category] || CATEGORY_DEFAULTS.other;
+            return defaults.name;
+        }
+
+        function renderDisplayResolutionOptions(currentValue) {
+            return DISPLAY_RESOLUTIONS.map(item => {
+                const selected = item.value === currentValue ? 'selected' : '';
+                return `<option value="${item.value}" ${selected}>${item.label}</option>`;
+            }).join('');
+        }
+
+        function renderNumberOptions(options, currentValue, suffix = '') {
+            return options.map(value => {
+                const selected = Number(value) === Number(currentValue) ? 'selected' : '';
+                return `<option value="${value}" ${selected}>${value}${suffix}</option>`;
+            }).join('');
+        }
+
+        function renderObjectOptions(options, currentValue, getValue, getLabel) {
+            return options.map(item => {
+                const value = getValue(item);
+                const selected = Number(value) === Number(currentValue) ? 'selected' : '';
+                return `<option value="${value}" ${selected}>${getLabel(item)}</option>`;
+            }).join('');
+        }
+
+        function renderBandwidthPresetOptions(options, currentValue) {
+            const hasPreset = options.some(item => Number(item.value) === Number(currentValue));
+            const customOption = hasPreset ? '' : `<option value="${formatInputNumber(currentValue)}" selected>自定义 ${formatGbps(currentValue)}</option>`;
+            return customOption + options.map(item => {
+                const selected = Number(item.value) === Number(currentValue) ? 'selected' : '';
+                return `<option value="${item.value}" ${selected}>${item.label}</option>`;
+            }).join('');
+        }
+
+        function getUsageStatus(used, capacity) {
+            if (capacity <= 0) return used > 0 ? 'danger' : 'ok';
+            const ratio = used / capacity;
+            if (ratio > 1) return 'danger';
+            if (ratio >= 0.9) return 'warn';
+            return 'ok';
+        }
+
+        function getOverallStatus(statuses) {
+            if (statuses.includes('danger')) return 'danger';
+            if (statuses.includes('warn')) return 'warn';
+            return 'ok';
+        }
+
+        function statusText(status) {
+            if (status === 'danger') return '超出上限';
+            if (status === 'warn') return '接近上限';
+            return '可以承受';
+        }
+
+        function statusIcon(status) {
+            if (status === 'danger') return '<i class="fas fa-times-circle"></i>';
+            if (status === 'warn') return '<i class="fas fa-exclamation-triangle"></i>';
+            return '<i class="fas fa-check-circle"></i>';
+        }
+
+        function statusClass(status) {
+            if (status === 'danger') return 'status-danger';
+            if (status === 'warn') return 'status-warn';
+            return 'status-ok';
+        }
+
+        function directionLabel(direction) {
+            if (direction === 'tx') return '发送 TX';
+            if (direction === 'rx') return '接收 RX';
+            return '双向 TX/RX';
+        }
+
+        function normalizeBandwidth(value) {
+            const number = Number(value);
+            return Number.isFinite(number) && number > 0 ? number : 0;
+        }
+
+        function formatGbps(value) {
+            const number = normalizeBandwidth(value);
+            const formatted = number >= 10 || Number.isInteger(number)
+                ? number.toFixed(number % 1 === 0 ? 0 : 1)
+                : number.toFixed(2);
+            return `${formatted} Gbps`;
+        }
+
+        function formatInputNumber(value) {
+            const number = normalizeBandwidth(value);
+            return Number.isInteger(number) ? String(number) : number.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+        }
+
+        function trimNumber(value) {
+            return Number(value).toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function escapeAttribute(value) {
+            return escapeHtml(value);
+        }
+
+        init();
+    </script>
+</body>
+
+</html>
