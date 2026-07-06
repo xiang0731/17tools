@@ -153,6 +153,10 @@
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
+        .update-list + .update-list {
+            margin-top: var(--spacing-md);
+        }
+
         .update-list:hover {
             transform: translateY(-2px);
             box-shadow: var(--shadow-lg);
@@ -300,6 +304,61 @@
         </header>
 
         <div class="timeline">
+            <!-- 版本 2.13.1 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 2.13.1</div>
+                    <div class="version-date">2026-07-06</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">界面修复</div>
+                    <ul>
+                        <li><span class="tag fixed">修复</span>侧栏菜单：修复工具分组 DOM 结构错位导致分组间距不一致的问题</li>
+                        <li><span class="tag fixed">修复</span>更新历史：修复连续更新卡片之间缺少间距的问题</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 版本 2.13.0 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 2.13.0</div>
+                    <div class="version-date">2026-06-09</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">安全修复</div>
+                    <ul>
+                        <li><span class="tag fixed">修复</span>Markdown 编辑器：预览、复制和导出 HTML 统一使用安全净化后的渲染结果，过滤危险标签、事件属性和不安全链接协议</li>
+                        <li><span class="tag fixed">修复</span>链接清理工具：历史记录改用 DOM 节点和文本写入方式渲染，避免恶意链接造成 HTML 注入</li>
+                        <li><span class="tag fixed">修复</span>链接清理工具：历史复制按钮改为显式事件绑定，不再依赖 inline onclick 和全局 event</li>
+                        <li><span class="tag improved">优化</span>主题同步：父窗口主题监听增加同源和 DOM 节点有效性判断，避免异常环境下 MutationObserver 报错</li>
+                        <li><span class="tag improved">优化</span>主题同步：iframe 主题消息发送改为计算目标 origin，不再使用通配 origin</li>
+                    </ul>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">功能修复</div>
+                    <ul>
+                        <li><span class="tag fixed">修复</span>世界时间：时差说明改为动态计算当前时区偏移，正确处理夏令时和时区政策变化</li>
+                        <li><span class="tag fixed">修复</span>世界时间：修正 A/B 时差“早/晚”方向，默认上海与纽约显示为 A 比 B 早 12 小时</li>
+                        <li><span class="tag fixed">修复</span>万年历：节气改为按年份动态计算，不再使用固定日期表</li>
+                        <li><span class="tag fixed">修复</span>万年历：农历数据访问增加 1900-2100 年范围保护，避免越界年份导致错误结果或渲染异常</li>
+                        <li><span class="tag fixed">修复</span>时间计算：纯日期输入改用本地日期解析和格式化，避免 UTC 转换导致跨时区日期偏移</li>
+                        <li><span class="tag fixed">修复</span>极速计算：使用内置表达式解析器替代动态代码执行，保留括号、小数、正负号、四则运算和幂运算支持</li>
+                    </ul>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">体验与文档</div>
+                    <ul>
+                        <li><span class="tag fixed">修复</span>极速计算、WiFi 二维码、优惠计算器、链接清理工具补齐 UTF-8 声明和页面语言，避免独立访问时中文乱码</li>
+                        <li><span class="tag improved">优化</span>代码格式化：输出区滚动同步监听改为初始化时单次绑定，避免多次格式化后重复监听</li>
+                        <li><span class="tag improved">优化</span>Welcome 页和版本管理脚本同步到当前版本，工具数量更新为 17 个实用工具</li>
+                        <li><span class="tag improved">优化</span>README 更新为当前导航结构和完整工具清单，补充接口带宽计算、正则工具、Markdown 编辑器、链接清理工具、代码对比工具、万年历和时间计算等说明</li>
+                        <li><span class="tag improved">优化</span>新增 issues 修复回归检查和修复报告，覆盖本次安全、日期、时区、主题和文档同步改动</li>
+                    </ul>
+                </div>
+            </div>
             <!-- 版本 2.12.0 -->
             <div class="version-entry">
                 <div class="version-dot"></div>

@@ -1,0 +1,2410 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>正则表达式工具</title>
+    <link rel="stylesheet" href="../css/theme.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            min-height: 100vh;
+            padding: var(--spacing-lg);
+            background-color: var(--background-primary);
+            color: var(--text-primary);
+            font-family: var(--font-family);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-lg);
+        }
+
+        /* 标题样式 */
+        h1 {
+            text-align: center;
+            color: var(--text-primary);
+            margin: 0 0 var(--spacing-xs) 0;
+            font-size: 28px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+        }
+
+        h1::before {
+            content: "\f069"; /* Asterisk icon */
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            color: var(--primary-color);
+        }
+
+        /* Card container */
+        .card {
+            background: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+            transition: all var(--transition-base);
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--spacing-sm);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: var(--spacing-sm);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        /* Mode Tabs Control */
+        .mode-tabs {
+            display: flex;
+            border-bottom: 2px solid var(--border-color);
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-xs);
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--text-secondary);
+            padding: var(--spacing-sm) var(--spacing-md);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            margin-bottom: -2px;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .tab-btn.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+
+        /* Segment Row Styles */
+        .segments-container {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+        }
+
+        @keyframes fadeInRow {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .segment-row {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            background: var(--background-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            transition: all var(--transition-base);
+            flex-wrap: wrap;
+            position: relative;
+            animation: fadeInRow 0.25s ease-out;
+        }
+
+        .segment-row:hover {
+            box-shadow: var(--shadow-sm);
+            border-color: var(--primary-color);
+        }
+
+        .segment-index {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            border-radius: var(--radius-full);
+            background-color: var(--primary-light);
+            color: var(--primary-color);
+            font-weight: 700;
+            font-size: 12px;
+        }
+
+        .segment-fields {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            flex: 1;
+            flex-wrap: wrap;
+        }
+
+        .form-select,
+        .form-input {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background-color: var(--background-primary);
+            color: var(--text-primary);
+            font-size: 14px;
+            min-height: 38px;
+            outline: none;
+            transition: all var(--transition-fast);
+        }
+
+        .form-select:focus,
+        .form-input:focus {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        /* For inputs that only appear sometimes */
+        .hidden-field {
+            display: none !important;
+        }
+
+        .quantity-range-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .quantity-range-wrapper span {
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .input-number {
+            width: 76px;
+            text-align: center;
+        }
+
+        .input-text-custom {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .btn-delete {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: var(--radius-sm);
+            transition: all var(--transition-fast);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-delete:hover {
+            color: var(--error-color);
+            background-color: rgba(239, 68, 68, 0.1);
+        }
+
+        /* Add Segment Button */
+        .btn-add-segment {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-md);
+            background: transparent;
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius-md);
+            color: var(--text-secondary);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-base);
+            width: 100%;
+        }
+
+        .btn-add-segment:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            background-color: var(--primary-light);
+            transform: translateY(-1px);
+        }
+
+        .btn-add-segment:active {
+            transform: scale(0.99);
+        }
+
+        /* Flags inline container */
+        .flags-container {
+            display: flex;
+            gap: var(--spacing-lg);
+            flex-wrap: wrap;
+            padding: var(--spacing-sm) 0;
+            border-top: 1px dashed var(--border-color);
+            padding-top: var(--spacing-md);
+        }
+
+        .flag-checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .flag-checkbox-label input {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--primary-color);
+        }
+
+        /* Result Display Styles */
+        .result-regex-container {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            background-color: var(--background-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 10px var(--spacing-md);
+            overflow: hidden;
+        }
+
+        .regex-slash {
+            font-family: var(--font-mono);
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-tertiary);
+            user-select: none;
+        }
+
+        .result-regex-input {
+            flex: 1;
+            font-family: var(--font-mono);
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary-color);
+            background: transparent;
+            border: none;
+            outline: none;
+            padding: 0;
+            min-height: auto;
+            border-bottom: 1px dashed transparent;
+            transition: border-bottom-color var(--transition-fast);
+        }
+
+        .result-regex-input:focus {
+            border-bottom-color: var(--primary-color);
+            box-shadow: none;
+        }
+
+        .result-regex-flags {
+            font-family: var(--font-mono);
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary-color);
+            padding-left: 2px;
+            user-select: none;
+        }
+
+        .btn-action-copy {
+            background-color: var(--primary-color);
+            color: var(--text-inverse);
+            border: none;
+            border-radius: var(--radius-md);
+            padding: 8px 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            white-space: nowrap;
+        }
+
+        .btn-action-copy:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-action-copy:active {
+            transform: scale(0.97);
+        }
+
+        .btn-action-reset {
+            background-color: var(--background-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 8px 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            white-space: nowrap;
+        }
+
+        .btn-action-reset:hover {
+            background-color: var(--background-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-action-reset:active {
+            transform: scale(0.97);
+        }
+
+        /* Explanation Box */
+        .explanation-box {
+            background-color: var(--background-tertiary);
+            border-left: 4px solid var(--primary-color);
+            padding: var(--spacing-md);
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            transition: all var(--transition-base);
+        }
+
+        .explanation-title {
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .explanation-item {
+            color: var(--text-secondary);
+            margin-left: 20px;
+        }
+
+
+
+        /* Split layouts */
+        .testing-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-lg);
+        }
+
+        .testing-pane {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
+        }
+
+        .pane-title {
+            font-weight: 700;
+            color: var(--text-secondary);
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .badge-matches {
+            background-color: var(--primary-light);
+            color: var(--primary-color);
+            padding: 2px 8px;
+            border-radius: var(--radius-full);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        textarea.testing-textarea {
+            width: 100%;
+            height: 220px;
+            resize: none;
+            font-family: var(--font-mono);
+            font-size: 14px;
+            line-height: 1.5;
+            padding: var(--spacing-md);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background-color: var(--background-primary);
+            color: var(--text-primary);
+            outline: none;
+            transition: all var(--transition-fast);
+        }
+
+        textarea.testing-textarea:focus {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        .highlight-output-container {
+            width: 100%;
+            height: 220px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background-color: var(--background-primary);
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 14px;
+            line-height: 1.5;
+            padding: var(--spacing-md);
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        /* Matching Highlights styles */
+        .match-highlight {
+            border-radius: 4px;
+            padding: 1px 2px;
+            margin: 0 1px;
+            font-weight: 600;
+        }
+
+        .match-blue {
+            background-color: rgba(59, 130, 246, 0.2);
+            border-bottom: 2px solid #3b82f6;
+            color: #2563eb;
+        }
+
+        [data-theme="dark"] .match-blue {
+            background-color: rgba(59, 130, 246, 0.35);
+            color: #93c5fd;
+        }
+
+        .match-green {
+            background-color: rgba(16, 185, 129, 0.2);
+            border-bottom: 2px solid #10b981;
+            color: #059669;
+        }
+
+        [data-theme="dark"] .match-green {
+            background-color: rgba(16, 185, 129, 0.35);
+            color: #6ee7b7;
+        }
+
+        .match-zerowidth {
+            border-left: 2px dashed #f59e0b;
+            margin: 0 1px;
+            height: 1.2em;
+            display: inline-block;
+            vertical-align: middle;
+            background-color: rgba(245, 158, 11, 0.1);
+        }
+
+        .empty-preview {
+            color: var(--text-tertiary);
+            font-style: italic;
+        }
+
+        .error-message {
+            background-color: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--error-color);
+            color: var(--error-color);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            font-size: 14px;
+            font-weight: 500;
+            display: none;
+        }
+
+        /* Tester Tab Layout */
+        .tester-layout {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: var(--spacing-lg);
+        }
+
+        .tester-inputs {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+        }
+
+        .tester-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+        }
+
+        .status-text {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .status-text.success {
+            color: var(--success-color);
+        }
+
+        .status-text.error {
+            color: var(--error-color);
+        }
+
+        /* Match items inside sidebars */
+        .match-list-container {
+            height: 220px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-sm);
+            background-color: var(--background-primary);
+        }
+
+        .match-item {
+            padding: 8px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 13px;
+        }
+
+        .match-item:last-child {
+            border-bottom: none;
+        }
+
+        .match-item-head {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .match-item code {
+            font-family: var(--font-mono);
+            background-color: var(--background-tertiary);
+            padding: 2px 4px;
+            border-radius: var(--radius-sm);
+            word-break: break-all;
+        }
+
+        .match-groups {
+            margin-top: 4px;
+            font-size: 11px;
+            color: var(--text-tertiary);
+            padding-left: 8px;
+            border-left: 2px solid var(--border-color);
+        }
+
+        /* Quick References styles */
+        .reference-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-md);
+        }
+
+        .ref-section h3 {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            border-left: 3px solid var(--primary-color);
+            padding-left: 6px;
+        }
+
+        .ref-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .ref-table td {
+            padding: 6px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .ref-table td:first-child {
+            font-family: var(--font-mono);
+            font-weight: bold;
+            color: var(--primary-color);
+            width: 30%;
+        }
+
+        .token-btn {
+            background-color: var(--background-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 2px 6px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            display: inline-block;
+            margin: 2px;
+        }
+
+        .token-btn:hover {
+            border-color: var(--primary-color);
+            background-color: var(--primary-light);
+        }
+
+        /* Guide list styles */
+        .guide-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .guide-list li {
+            margin-left: 20px;
+        }
+
+        /* Badge details */
+        .badge-warning {
+            background-color: rgba(245, 158, 11, 0.15);
+            color: var(--warning-color);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: var(--radius-full);
+            font-weight: 600;
+        }
+
+        /* Override tooltip styles for a premium, non-abrupt look */
+        .tooltip {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .tooltip::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 140%;
+            left: 50%;
+            transform: translate(-50%, 8px);
+            width: 240px;
+            padding: 8px 12px;
+            background-color: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 500;
+            line-height: 1.5;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            white-space: normal;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: left;
+        }
+
+        .tooltip::before {
+            content: "";
+            position: absolute;
+            bottom: 140%;
+            left: 50%;
+            transform: translate(-50%, 8px) rotate(45deg);
+            width: 8px;
+            height: 8px;
+            background-color: var(--background-secondary);
+            border-right: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-bottom: -4px;
+        }
+
+        .tooltip:hover::after {
+            opacity: 1 !important;
+            transform: translate(-50%, 0) !important;
+            background-color: var(--background-secondary) !important;
+            color: var(--text-secondary) !important;
+            border: 1px solid var(--border-color) !important;
+            white-space: normal !important;
+            width: 240px !important;
+            bottom: 140% !important;
+        }
+
+        .tooltip:hover::before {
+            opacity: 1 !important;
+            transform: translate(-50%, 0) rotate(45deg) !important;
+            bottom: 140% !important;
+        }
+
+        /* Responsive styling */
+        @media (max-width: 768px) {
+            .testing-layout,
+            .tester-layout,
+            .reference-grid {
+                grid-template-columns: 1fr;
+            }
+
+            body {
+                padding: var(--spacing-md);
+            }
+
+            .segment-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .segment-fields {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .input-number {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>正则表达式生成器</h1>
+
+        <!-- Modes Tabs -->
+        <div class="mode-tabs">
+            <button class="tab-btn active" data-tab="visual">
+                <i class="fas fa-cubes"></i> 可视化生成器
+            </button>
+            <button class="tab-btn" data-tab="manual-tab">
+                <i class="fas fa-flask"></i> 自由测试 & 替换 (Tester)
+            </button>
+            <button class="tab-btn" data-tab="reference-tab">
+                <i class="fas fa-book"></i> 语法参考 & 指南
+            </button>
+        </div>
+
+        <!-- 1. Visual Generator Tab Content -->
+        <div id="tab-visual" class="tab-content">
+            <div style="display: flex; flex-direction: column; gap: var(--spacing-lg);">
+                <!-- Combined Config & Result Card -->
+                <div class="card">
+                    <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                        <span><i class="fas fa-cog"></i> 生成选项配置</span>
+                        <div class="preset-dropdown-wrapper" style="display: flex; align-items: center; gap: 8px;">
+                            <label for="visualPresetSelect" class="text-xs text-secondary font-semibold" style="display: flex; align-items: center; gap: 4px; margin: 0; white-space: nowrap;">
+                                <i class="fas fa-star" style="color: var(--warning-color);"></i> 载入常用预设：
+                            </label>
+                            <select class="form-select" id="visualPresetSelect" style="padding: 4px 8px; min-height: 30px; height: 30px; font-size: 13px; font-weight: normal; width: 160px; border-radius: var(--radius-sm);">
+                                <option value="">-- 选择预设模板 --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: var(--spacing-md);">
+                        
+                        <!-- Anchors Constraint (starts with / ends with) -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md);">
+                            <div>
+                                <label class="font-semibold text-secondary text-sm" style="display: flex; align-items: center; gap: 4px; margin-bottom: 6px;">
+                                    匹配位置约束 (锚点)
+                                    <span class="tooltip" data-tooltip="用 ^ 和 $ 约束匹配起点与终点。例如完全匹配常用于手机号、邮箱等格式校验。">
+                                        <i class="fas fa-question-circle text-tertiary" style="cursor: help;"></i>
+                                    </span>
+                                </label>
+                                <select class="form-select" id="selectAnchorMode" style="width: 100%;">
+                                    <option value="none">无约束 (文本中任意位置匹配)</option>
+                                    <option value="start">匹配开头 (以这些规则开始) [^]</option>
+                                    <option value="end">匹配结尾 (以这些规则结束) [$]</option>
+                                    <option value="both" selected>完全匹配 (整段文本完全符合格式) [^...$]</option>
+                                </select>
+                            </div>
+
+                            <!-- Length Constraint Option -->
+                            <div style="display: flex; flex-direction: column; justify-content: flex-end;">
+                                <div style="display: flex; align-items: center; gap: var(--spacing-md); flex-wrap: wrap; height: 38px; margin-top: 24px;">
+                                    <label class="flag-checkbox-label" style="display: flex; align-items: center; gap: 4px;">
+                                        <input type="checkbox" id="chkLimitLength"> 限制总字符数
+                                        <span class="tooltip" data-tooltip="限制匹配结果的字符数范围。开启后可设定最小与最大匹配长度。">
+                                            <i class="fas fa-question-circle text-tertiary" style="cursor: help;"></i>
+                                        </span>
+                                    </label>
+                                    <div id="lengthLimitInputs" class="quantity-range-wrapper hidden-field">
+                                        <input type="number" class="form-input input-number" id="inputMinLength" placeholder="最少" min="0" value="6">
+                                        <span>到</span>
+                                        <input type="number" class="form-input input-number" id="inputMaxLength" placeholder="最多" min="1" value="20">
+                                        <span>位字符</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Rule Segments List -->
+                        <div>
+                            <div style="margin-bottom: 12px;">
+                                <label class="font-semibold text-secondary text-sm" style="margin: 0;">规则片段 (Segments)</label>
+                            </div>
+                            <div class="segments-container" id="segmentsContainer">
+                                <!-- Rows will be injected here by JS -->
+                            </div>
+                            <button type="button" class="btn-add-segment" id="btnAddSegment" style="margin-top: 8px;">
+                                <i class="fas fa-plus"></i> 添加匹配片段
+                            </button>
+                        </div>
+
+                        <!-- 片段逻辑关系 (Segment Logical Relationship) -->
+                        <div style="border-top: 1px dashed var(--border-color); padding-top: var(--spacing-md); margin-top: var(--spacing-md); display: flex; align-items: center; gap: var(--spacing-sm); flex-wrap: wrap;">
+                            <label for="inputSegmentsLogic" class="text-sm text-secondary font-bold" style="display: flex; align-items: center; gap: 4px; margin: 0; white-space: nowrap;">
+                                片段逻辑关系：
+                                <span class="tooltip" data-tooltip="用序号和 AND/OR 表达各片段的关系。例如：1 AND 2 表示顺序匹配，(1 OR 2) AND 3 表示前两者之一接第三者。默认为 AND 顺序连接。">
+                                    <i class="fas fa-question-circle text-tertiary" style="cursor: help;"></i>
+                                </span>
+                            </label>
+                            <input type="text" class="form-input" id="inputSegmentsLogic" placeholder="例如: 1 AND (2 OR 3)" style="padding: 6px 12px; min-height: 34px; height: 34px; font-size: 13px; width: 300px; border-radius: var(--radius-md);">
+                        </div>
+
+                        <!-- Global Modifiers (Flags) and Reset/Regenerate Buttons on the same row -->
+                        <div class="flags-container" style="display: flex; align-items: center; justify-content: space-between; margin-top: var(--spacing-md); flex-wrap: wrap; gap: var(--spacing-md);">
+                            <!-- Checkboxes -->
+                            <div style="display: flex; gap: var(--spacing-lg); flex-wrap: wrap;">
+                                <label class="flag-checkbox-label" style="display: flex; align-items: center; gap: 4px;">
+                                    <input type="checkbox" id="genFlagGlobal" checked> 全局匹配 (g)
+                                    <span class="tooltip" data-tooltip="查找并高亮所有匹配项。如果不勾选，则只匹配第一个符合条件的项。">
+                                        <i class="fas fa-question-circle text-tertiary" style="cursor: help;"></i>
+                                    </span>
+                                </label>
+                                <label class="flag-checkbox-label" style="display: flex; align-items: center; gap: 4px;">
+                                    <input type="checkbox" id="genFlagIgnoreCase"> 忽略大小写 (i)
+                                    <span class="tooltip" data-tooltip="匹配时忽略英文字母大小写（如 A 和 a 视为相同）。">
+                                        <i class="fas fa-question-circle text-tertiary" style="cursor: help;"></i>
+                                    </span>
+                                </label>
+                                <label class="flag-checkbox-label" style="display: flex; align-items: center; gap: 4px;">
+                                    <input type="checkbox" id="genFlagMultiline"> 多行匹配 (m)
+                                    <span class="tooltip" data-tooltip="使 ^ 和 $ 能匹配每一行的开头与结尾，而不仅仅是整段文本的首尾。">
+                                        <i class="fas fa-question-circle text-tertiary" style="cursor: help;"></i>
+                                    </span>
+                                </label>
+                            </div>
+                            <!-- Reset & Regenerate Buttons (Far Right) -->
+                            <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                                <button type="button" class="btn-action-reset hidden-field" id="btnRegenerate" style="background-color: var(--primary-light); color: var(--primary-color); border-color: var(--primary-color); padding: 6px 12px; font-size: 13px;">
+                                    <i class="fas fa-arrows-rotate"></i> 重新生成
+                                </button>
+                                <button type="button" class="btn-action-reset" id="btnResetAll" style="padding: 6px 12px; font-size: 13px;">
+                                    <i class="fas fa-rotate-left"></i> 重置生成器
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Generated regex and explanations (inside the same card) -->
+                        <div style="border-top: 1px solid var(--border-color); margin-top: var(--spacing-xs); padding-top: var(--spacing-md); display: flex; flex-direction: column; gap: var(--spacing-md);">
+                            <div class="error-message" id="genErrorMessage"></div>
+
+                            <div style="display: flex; gap: var(--spacing-md); align-items: center;">
+                                <div class="result-regex-container" style="flex: 1; margin: 0;">
+                                    <span class="regex-slash">/</span>
+                                    <input type="text" class="result-regex-input" id="resultRegexInput" value="...">
+                                    <span class="regex-slash">/</span>
+                                    <span class="result-regex-flags" id="resultRegexFlags">g</span>
+                                </div>
+                                <button type="button" class="btn-action-copy" id="btnCopyRegex" style="height: 38px;">
+                                    <i class="fas fa-copy"></i> 复制表达式
+                                </button>
+                                <span id="manualEditBadge" class="badge-warning hidden-field" style="height: 38px; display: inline-flex; align-items: center; gap: 4px;">
+                                    <i class="fas fa-edit"></i> 已手动修改
+                                </span>
+                            </div>
+
+                            <div class="explanation-box" style="margin-top: 4px;">
+                                <div class="explanation-title"><i class="fas fa-info-circle"></i> 规则解释</div>
+                                <div id="explanationContent">未配置任何片段</div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Live Test Card -->
+                <div class="card">
+                    <div class="card-title">
+                        <span><i class="fas fa-flask"></i> 测试与验证</span>
+                    </div>
+                    <div class="testing-layout">
+                        <div class="testing-pane">
+                            <div class="pane-title">输入测试文本</div>
+                            <textarea class="testing-textarea" id="genTestTextInput" placeholder="在此输入需要测试的文本..."></textarea>
+                        </div>
+                        <div class="testing-pane">
+                            <div class="pane-title">
+                                <span>匹配结果预览 (交替高亮)</span>
+                                <span class="badge-matches" id="genMatchBadge">共 0 处匹配</span>
+                            </div>
+                            <div class="highlight-output-container" id="genHighlightOutput">
+                                <span class="empty-preview">输入测试文本后在此展示匹配高亮</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Manual Tester Tab Content (Exposes IDs required by automated tests) -->
+        <div id="tab-manual-tab" class="tab-content hidden-field">
+            <div style="display: flex; flex-direction: column; gap: var(--spacing-lg);">
+                <div class="card">
+                    <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                        <span><i class="fas fa-edit"></i> 自由测试与文本替换</span>
+                        <div style="display: flex; align-items: center; gap: var(--spacing-md);">
+                            <div class="preset-dropdown-wrapper" style="display: flex; align-items: center; gap: 8px;">
+                                <label for="manualPresetSelect" class="text-xs text-secondary font-semibold" style="display: flex; align-items: center; gap: 4px; margin: 0; white-space: nowrap;">
+                                    <i class="fas fa-star" style="color: var(--warning-color);"></i> 载入常用预设：
+                                </label>
+                                <select class="form-select" id="manualPresetSelect" style="padding: 4px 8px; min-height: 30px; height: 30px; font-size: 13px; font-weight: normal; width: 160px; border-radius: var(--radius-sm);">
+                                    <option value="">-- 选择预设模板 --</option>
+                                </select>
+                            </div>
+                            <span id="statusText" class="status-text">就绪</span>
+                        </div>
+                    </div>
+
+                    <div class="tester-layout">
+                        <!-- Left Side Inputs -->
+                        <div class="tester-inputs">
+                            <div>
+                                <label class="font-semibold text-secondary text-sm" style="display: block; margin-bottom: 6px;">正则表达式 (斜杠内输入，不加标志)</label>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-family: var(--font-mono); font-size: 20px; color: var(--text-tertiary);">/</span>
+                                    <input type="text" id="regexInput" class="form-input" style="flex: 1; font-family: var(--font-mono);" placeholder="输入匹配表达式，如 \d+">
+                                    <span style="font-family: var(--font-mono); font-size: 20px; color: var(--text-tertiary);">/</span>
+                                    
+                                    <!-- Flags Panel with data-flag attributes -->
+                                    <div id="flagsPanel" style="display: flex; gap: 6px;">
+                                        <label class="flag-checkbox-label" style="border: 1px solid var(--border-color); padding: 6px 10px; border-radius: var(--radius-md);">
+                                            <input type="checkbox" data-flag="g" checked> g
+                                        </label>
+                                        <label class="flag-checkbox-label" style="border: 1px solid var(--border-color); padding: 6px 10px; border-radius: var(--radius-md);">
+                                            <input type="checkbox" data-flag="i"> i
+                                        </label>
+                                        <label class="flag-checkbox-label" style="border: 1px solid var(--border-color); padding: 6px 10px; border-radius: var(--radius-md);">
+                                            <input type="checkbox" data-flag="m"> m
+                                        </label>
+                                    </div>
+                                    <button type="button" class="btn-action-copy" id="copyRegexBtn" style="padding: 8px 12px; height: 38px;" title="复制正则表达式">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="pane-title" style="margin-bottom: 6px;">
+                                    <span>输入测试文本</span>
+                                </div>
+                                <textarea class="testing-textarea" id="testTextInput" placeholder="在此输入测试的文本段落..."></textarea>
+                            </div>
+
+                            <div>
+                                <div class="pane-title" style="margin-bottom: 6px;">匹配结果高亮预览</div>
+                                <div class="highlight-output-container" id="highlightedText">
+                                    <span class="empty-preview">输入测试文本后在此展示高亮</span>
+                                </div>
+                            </div>
+
+                            <!-- Replace Text area -->
+                            <div style="display: flex; flex-direction: column; gap: var(--spacing-sm); border-top: 1px dashed var(--border-color); padding-top: var(--spacing-md);">
+                                <label class="font-semibold text-secondary text-sm">文本替换功能</label>
+                                <div style="display: flex; gap: var(--spacing-md);">
+                                    <input type="text" id="replaceInput" class="form-input" style="flex: 1;" placeholder="替换为的内容... ($1, $2 代表捕获组)">
+                                    <button type="button" class="btn-action-copy" id="copyReplaceBtn">复制替换结果</button>
+                                </div>
+                                <textarea class="testing-textarea" id="replaceOutput" readonly placeholder="替换后的文本会在此处显示..." style="height: 120px; background-color: var(--background-tertiary);"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Right Side Sidebars -->
+                        <div class="tester-sidebar">
+                            <div>
+                                <div class="pane-title" style="margin-bottom: 6px;">
+                                    <span>匹配概要</span>
+                                    <span id="matchSummary" class="badge-matches">0 个匹配</span>
+                                </div>
+                                <div class="match-list-container" id="matchList">
+                                    <div class="empty-state">暂无匹配结果</div>
+                                </div>
+                                <button type="button" class="btn-action-reset" id="copyMatchesBtn" style="margin-top: 8px; width: 100%; justify-content: center;">
+                                    <i class="fas fa-copy"></i> 复制匹配列表
+                                </button>
+                            </div>
+
+                            <div>
+                                <div class="pane-title" style="margin-bottom: 6px;">中文分析</div>
+                                <div class="explanation-box" id="explanationList" style="max-height: 250px; overflow-y: auto;">
+                                    <div class="empty-state">在左侧输入正则表达式以解析含义</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Cheat Sheet & Guide Content -->
+        <div id="tab-reference-tab" class="tab-content hidden-field">
+            <div style="display: flex; flex-direction: column; gap: var(--spacing-lg);">
+                <!-- Quick Reference -->
+                <div class="card" id="quickReference">
+                    <div class="card-title">
+                        <span><i class="fas fa-table"></i> 常用正则字符快捷参考</span>
+                    </div>
+                    <div class="reference-grid">
+                        <div class="ref-section">
+                            <h3>元字符 & 简写</h3>
+                            <table class="ref-table">
+                                <tr><td>.</td><td>匹配除换行符以外的任意字符 <button class="token-btn" data-insert-token=".">插入</button></td></tr>
+                                <tr><td>\d</td><td>匹配任意一个数字，等同于 [0-9] <button class="token-btn" data-insert-token="\d">插入</button></td></tr>
+                                <tr><td>\D</td><td>匹配任意一个非数字字符 <button class="token-btn" data-insert-token="\D">插入</button></td></tr>
+                                <tr><td>\w</td><td>匹配字母、数字、下划线 <button class="token-btn" data-insert-token="\w">插入</button></td></tr>
+                                <tr><td>\s</td><td>匹配空白字符（空格、制表符等） <button class="token-btn" data-insert-token="\s">插入</button></td></tr>
+                            </table>
+                        </div>
+                        <div class="ref-section">
+                            <h3>量词 & 边界</h3>
+                            <table class="ref-table">
+                                <tr><td>*</td><td>匹配 0 次或多次 <button class="token-btn" data-insert-token="*">插入</button></td></tr>
+                                <tr><td>+</td><td>匹配 1 次或多次（至少1次） <button class="token-btn" data-insert-token="+">插入</button></td></tr>
+                                <tr><td>?</td><td>匹配 0 次或 1 次（可选） <button class="token-btn" data-insert-token="?">插入</button></td></tr>
+                                <tr><td>{n}</td><td>精确匹配 n 次 <button class="token-btn" data-insert-token="{3}">插入</button></td></tr>
+                                <tr><td>^ / $</td><td>匹配行首 / 行尾位置 <button class="token-btn" data-insert-token="^">插入</button></td></tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Common Patterns -->
+                <div class="card" id="commonPatterns">
+                    <div class="card-title">
+                        <span><i class="fas fa-folder-open"></i> 复杂场景正则构建建议</span>
+                    </div>
+                    <div style="font-size: 14px; color: var(--text-secondary); display: flex; flex-direction: column; gap: 8px;">
+                        <p><strong>1. 密码复杂度校验：</strong> 常用 <code>^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$</code> (表示至少8位，且必须包含字母和数字)。</p>
+                        <p><strong>2. 排除特定字符：</strong> 使用排除字符组 <code>[^abc]</code> 可以匹配任何不是 a, b, c 的字符。</p>
+                        <p><strong>3. 捕获组引用：</strong> 使用括号 <code>(pattern)</code> 创建捕获组，在替换中可用 <code>$1</code> 引用第一个捕获内容。</p>
+                    </div>
+                </div>
+
+                <!-- Learning Guide -->
+                <div class="card" id="regexLearningGuide">
+                    <div class="card-title">
+                        <span><i class="fas fa-graduation-cap"></i> 正则表达式学习步骤</span>
+                    </div>
+                    <ul class="guide-list">
+                        <li><strong>第一步：元字符。</strong> 认识 <code>\d</code>、<code>\w</code>、<code>\s</code> 等，掌握匹配基本类型。</li>
+                        <li><strong>第二步：量词。</strong> 掌握 <code>*</code>、<code>+</code>、<code>?</code>、<code>{m,n}</code> 的意义，控制匹配长度。</li>
+                        <li><strong>第三步：字符集合。</strong> 学习使用中括号 <code>[...]</code> 划定匹配范围（例如 <code>[a-z]</code> 表示所有小写字母）。</li>
+                        <li><strong>第四步：边界与分组。</strong> 理解首尾定位 <code>^</code>、<code>$</code> 和分组 <code>(...)</code>。</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Theme management and original tester JS core -->
+    <script src="../js/theme.js"></script>
+    <script src="../js/regex-tool.js"></script>
+    <script>
+        // Preset regex data
+        const PRESETS = [
+            {
+                name: "手机号码",
+                pattern: "^1[3-9]\\d{9}$",
+                desc: "匹配中国大陆11位手机号码，支持13-19开头的号码格式",
+                test: "13812345678\n18900001111\n12345678901\n19988887777\n1381234567"
+            },
+            {
+                name: "电子邮箱",
+                pattern: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
+                desc: "匹配标准的电子邮件地址，包括二级域名等格式",
+                test: "hello@world.com\nuser.name+tag@company.co.uk\ninvalid_email@domain\nregular-user@gmail.com"
+            },
+            {
+                name: "身份证号 (18位)",
+                pattern: "^[1-9]\\d{5}(18|19|20)\\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])\\d{3}[\\dxX]$",
+                desc: "校验中国大陆第二代18位身份证号，支持最后一位校验码 x/X",
+                test: "110101199003072345\n11010119951231888X\n110101199003072\n440301202001019999"
+            },
+            {
+                name: "IP 地址 (IPv4)",
+                pattern: "^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$",
+                desc: "匹配标准的 IPv4 网络地址格式（0.0.0.0 到 255.255.255.255）",
+                test: "192.168.1.1\n8.8.8.8\n256.0.0.1\n127.0.0.1\n300.400.500.600"
+            },
+            {
+                name: "日期 (YYYY-MM-DD)",
+                pattern: "^\\d{4}-\\d{2}-\\d{2}$",
+                desc: "匹配常规日期，支持4位年份-2位月份-2位日期格式",
+                test: "2026-06-06\n2020-12-31\n1999/01/01\n2025-13-45"
+            },
+            {
+                name: "纯数字",
+                pattern: "^\\d+$",
+                desc: "匹配一个或多个连续数字字符（不含负号和小数点）",
+                test: "123456789\n0\nabc123\n99.9"
+            },
+            {
+                name: "中文字符",
+                pattern: "^[\\u4e00-\\u9fa5]+$",
+                desc: "匹配纯中文字符串，不包含数字、字母及其他符号",
+                test: "你好世界\nHello世界\n测试数据123\n中文字符串"
+            },
+            {
+                name: "URL 网址",
+                pattern: "^https?:\\/\\/(www\\.)?[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}\\b([-a-zA-Z0-9()@:%_\\+.~#?&//=]*)$",
+                desc: "匹配以 http:// 或 https:// 开头的网络网址路径",
+                test: "https://www.google.com\nhttp://github.com/xiang0731/17tools\nftp://invalid-url.com\nhttps://demo.api/v1/users?id=12"
+            }
+        ];
+
+        // State variables
+        let segmentCounter = 0;
+        let isManuallyModified = false; // Tracks if result regex has been edited manually
+        let isLogicCustomized = false; // Tracks if segment logic has been custom edited by user
+        let currentPresetName = '';
+        let currentPresetDesc = '';
+
+        // Elements (Visual generator)
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const segmentsContainer = document.getElementById('segmentsContainer');
+        const inputSegmentsLogic = document.getElementById('inputSegmentsLogic');
+        const btnAddSegment = document.getElementById('btnAddSegment');
+        
+        const selectAnchorMode = document.getElementById('selectAnchorMode');
+        const chkLimitLength = document.getElementById('chkLimitLength');
+        const lengthLimitInputs = document.getElementById('lengthLimitInputs');
+        const inputMinLength = document.getElementById('inputMinLength');
+        const inputMaxLength = document.getElementById('inputMaxLength');
+        
+        const genFlagGlobal = document.getElementById('genFlagGlobal');
+        const genFlagIgnoreCase = document.getElementById('genFlagIgnoreCase');
+        const genFlagMultiline = document.getElementById('genFlagMultiline');
+        
+        const resultRegexInput = document.getElementById('resultRegexInput');
+        const resultRegexFlags = document.getElementById('resultRegexFlags');
+        const btnCopyRegex = document.getElementById('btnCopyRegex');
+        const btnResetAll = document.getElementById('btnResetAll');
+        const btnRegenerate = document.getElementById('btnRegenerate');
+        const manualEditBadge = document.getElementById('manualEditBadge');
+        const explanationContent = document.getElementById('explanationContent');
+        
+        const genTestTextInput = document.getElementById('genTestTextInput');
+        const genHighlightOutput = document.getElementById('genHighlightOutput');
+        const genMatchBadge = document.getElementById('genMatchBadge');
+        const genErrorMessage = document.getElementById('genErrorMessage');
+
+        // Regex characters escape helper
+        function escapeRegExp(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        // Regex character class escape helper (for exclude mode in custom input)
+        function escapeCharClass(string) {
+            return string.replace(/[\\\]\-^]/g, '\\$&');
+        }
+
+        // Logical OR choice parser
+        function parseChoice(choice) {
+            choice = choice.trim();
+            if (!choice) return '';
+            // If it's a standard shorthand or character class or group, keep it raw
+            if (/^(\\\w|\[[^\]]+\]|\([^)]+\))[?*+]*$/.test(choice)) {
+                return choice;
+            }
+            return escapeRegExp(choice);
+        }
+
+        // Logical AND choice parser
+        function parseAndChoice(choice) {
+            choice = choice.trim();
+            if (!choice) return '';
+            
+            // Friendly keyword translations
+            const friendlyMap = {
+                '数字': '\\d',
+                '包含数字': '\\d',
+                '小写字母': '[a-z]',
+                '包含小写字母': '[a-z]',
+                '大写字母': '[A-Z]',
+                '包含大写字母': '[A-Z]',
+                '字母': '[a-zA-Z]',
+                '包含字母': '[a-zA-Z]',
+                '字母与数字': '[0-9a-zA-Z]',
+                '包含字母与数字': '[0-9a-zA-Z]',
+                '空白': '\\s',
+                '包含空白': '\\s'
+            };
+            
+            if (friendlyMap[choice]) {
+                return `.*${friendlyMap[choice]}`;
+            }
+            
+            // If it already starts with .*, we keep it
+            if (choice.startsWith('.*')) {
+                return choice;
+            }
+            
+            // Check if it is a shorthand regex
+            if (/^(\\\w|\[[^\]]+\]|\([^)]+\))[?*+]*$/.test(choice)) {
+                return `.*${choice}`;
+            }
+            
+            // Otherwise, treat as literal and escape
+            return `.*${escapeRegExp(choice)}`;
+        }
+
+        // HTML escape helper
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // HTML attribute escape helper
+        function escapeHtmlAttr(str) {
+            return escapeHtml(str);
+        }
+
+        // Visual Presets Mapping Configuration
+        const VISUAL_PRESETS_CONFIG = [
+            {
+                // 1. 手机号码
+                anchorMode: "both",
+                limitLength: false,
+                flags: { global: true, ignoreCase: false, multiline: false },
+                logic: "1 AND 2 AND 3",
+                segments: [
+                    { status: 'include', type: 'custom', customValue: '1', quantifier: 'exactly' },
+                    { status: 'include', type: 'regex', customValue: '[3-9]', quantifier: 'exactly' },
+                    { status: 'include', type: 'digit', quantifier: 'n-times', nValue: 9 }
+                ]
+            },
+            {
+                // 2. 电子邮箱
+                anchorMode: "both",
+                limitLength: false,
+                flags: { global: true, ignoreCase: false, multiline: false },
+                logic: "",
+                segments: [
+                    { status: 'include', type: 'regex', customValue: '[a-zA-Z0-9._%+-]', quantifier: 'one-or-more' },
+                    { status: 'include', type: 'custom', customValue: '@', quantifier: 'exactly' },
+                    { status: 'include', type: 'regex', customValue: '[a-zA-Z0-9.-]', quantifier: 'one-or-more' },
+                    { status: 'include', type: 'custom', customValue: '.', quantifier: 'exactly' },
+                    { status: 'include', type: 'regex', customValue: '[a-zA-Z]', quantifier: 'range', minValue: 2, maxValue: '' }
+                ]
+            },
+            {
+                // 3. 身份证号 (18位)
+                anchorMode: "both",
+                limitLength: false,
+                flags: { global: true, ignoreCase: false, multiline: false },
+                logic: "",
+                segments: [
+                    { status: 'include', type: 'regex', customValue: '[1-9]', quantifier: 'exactly' },
+                    { status: 'include', type: 'digit', quantifier: 'n-times', nValue: 5 },
+                    { status: 'include', type: 'regex', customValue: '(?:18|19|20)', quantifier: 'exactly' },
+                    { status: 'include', type: 'digit', quantifier: 'n-times', nValue: 2 },
+                    { status: 'include', type: 'regex', customValue: '(?:0[1-9]|1[0-2])', quantifier: 'exactly' },
+                    { status: 'include', type: 'regex', customValue: '(?:0[1-9]|[12]\\d|3[01])', quantifier: 'exactly' },
+                    { status: 'include', type: 'digit', quantifier: 'n-times', nValue: 3 },
+                    { status: 'include', type: 'regex', customValue: '[\\dxX]', quantifier: 'exactly' }
+                ]
+            },
+            {
+                // 4. IP 地址 (IPv4)
+                anchorMode: "both",
+                limitLength: false,
+                flags: { global: true, ignoreCase: false, multiline: false },
+                logic: "",
+                segments: [
+                    { status: 'include', type: 'regex', customValue: '(?:(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.)', quantifier: 'n-times', nValue: 3 },
+                    { status: 'include', type: 'regex', customValue: '(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)', quantifier: 'exactly' }
+                ]
+            },
+            {
+                // 5. 日期 (YYYY-MM-DD)
+                anchorMode: "both",
+                limitLength: false,
+                flags: { global: true, ignoreCase: false, multiline: false },
+                logic: "",
+                segments: [
+                    { status: 'include', type: 'digit', quantifier: 'n-times', nValue: 4 },
+                    { status: 'include', type: 'custom', customValue: '-', quantifier: 'exactly' },
+                    { status: 'include', type: 'digit', quantifier: 'n-times', nValue: 2 },
+                    { status: 'include', type: 'custom', customValue: '-', quantifier: 'exactly' },
+                    { status: 'include', type: 'digit', quantifier: 'n-times', nValue: 2 }
+                ]
+            },
+            {
+                // 6. 纯数字
+                anchorMode: "both",
+                limitLength: false,
+                flags: { global: true, ignoreCase: false, multiline: false },
+                logic: "",
+                segments: [
+                    { status: 'include', type: 'digit', quantifier: 'one-or-more' }
+                ]
+            },
+            {
+                // 7. 中文字符
+                anchorMode: "both",
+                limitLength: false,
+                flags: { global: true, ignoreCase: false, multiline: false },
+                logic: "",
+                segments: [
+                    { status: 'include', type: 'regex', customValue: '[\\u4e00-\\u9fa5]', quantifier: 'one-or-more' }
+                ]
+            },
+            {
+                // 8. URL 网址
+                anchorMode: "both",
+                limitLength: false,
+                flags: { global: true, ignoreCase: false, multiline: false },
+                logic: "",
+                segments: [
+                    { status: 'include', type: 'regex', customValue: 'https?', quantifier: 'exactly' },
+                    { status: 'include', type: 'custom', customValue: '://', quantifier: 'exactly' },
+                    { status: 'include', type: 'regex', customValue: 'www\\.', quantifier: 'optional' },
+                    { status: 'include', type: 'regex', customValue: '[-a-zA-Z0-9@:%._\\+~#=]', quantifier: 'range', minValue: 1, maxValue: 256 },
+                    { status: 'include', type: 'custom', customValue: '.', quantifier: 'exactly' },
+                    { status: 'include', type: 'regex', customValue: '[a-zA-Z0-9()]', quantifier: 'range', minValue: 1, maxValue: 6 },
+                    { status: 'include', type: 'regex', customValue: '\\b', quantifier: 'exactly' },
+                    { status: 'include', type: 'regex', customValue: '[-a-zA-Z0-9()@:%_\\+.~#?&//=]', quantifier: 'zero-or-more' }
+                ]
+            }
+        ];
+
+        // Initialize visual builder & presets
+        function initApp() {
+            window.PRESETS = PRESETS; // Expose presets globally for other files
+            
+            // Populate select dropdowns
+            const visualPresetSelect = document.getElementById('visualPresetSelect');
+            const manualPresetSelect = document.getElementById('manualPresetSelect');
+            
+            const optionsHtml = PRESETS.map((p, idx) => `<option value="${idx}">${escapeHtml(p.name)}</option>`).join('');
+            
+            if (visualPresetSelect) {
+                visualPresetSelect.innerHTML = `<option value="">-- 选择预设模板 --</option>` + optionsHtml;
+            }
+            if (manualPresetSelect) {
+                manualPresetSelect.innerHTML = `<option value="">-- 选择预设模板 --</option>` + optionsHtml;
+            }
+
+            bindTabEvents();
+            bindGeneratorEvents();
+            
+            // Add initial segment row
+            addSegmentRow({ status: 'include', type: 'digit', quantifier: 'one-or-more' });
+            generateRegex();
+
+            // Safely initialize tester UI if DOMContentLoaded already fired
+            if (window.RegexToolUi && typeof window.RegexToolUi.initRegexTool === 'function') {
+                window.RegexToolUi.initRegexTool();
+            }
+        }
+
+        // Tab selection management
+        function bindTabEvents() {
+            tabButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const tabName = btn.dataset.tab;
+                    
+                    // Update active button
+                    tabButtons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+
+                    // Toggle visibility of contents
+                    tabContents.forEach(content => {
+                        if (content.id === `tab-${tabName}`) {
+                            content.classList.remove('hidden-field');
+                        } else {
+                            content.classList.add('hidden-field');
+                        }
+                    });
+                });
+            });
+
+            // Expose quick references buttons inside ref tab to insert tokens into manual tester
+            document.querySelectorAll('[data-insert-token]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const token = btn.dataset.insertToken;
+                    const rInput = document.getElementById('regexInput');
+                    if (rInput) {
+                        // Switch to tester tab
+                        const testerTabBtn = document.querySelector('[data-tab="manual-tab"]');
+                        if (testerTabBtn) testerTabBtn.click();
+                        
+                        // Insert character at cursor
+                        const start = rInput.selectionStart || 0;
+                        const end = rInput.selectionEnd || 0;
+                        rInput.value = rInput.value.slice(0, start) + token + rInput.value.slice(end);
+                        rInput.focus();
+                        rInput.selectionStart = rInput.selectionEnd = start + token.length;
+                        rInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                });
+            });
+        }
+
+        // Bind generator actions
+        function bindGeneratorEvents() {
+            function clearPresetState() {
+                currentPresetName = '';
+                currentPresetDesc = '';
+                if (visualPresetSelect) visualPresetSelect.value = '';
+            }
+
+            // visualPresetSelect dropdown select
+            const visualPresetSelect = document.getElementById('visualPresetSelect');
+            if (visualPresetSelect) {
+                visualPresetSelect.addEventListener('change', () => {
+                    const idx = visualPresetSelect.value;
+                    if (idx === '') return;
+                    
+                    const preset = PRESETS[idx];
+                    const config = VISUAL_PRESETS_CONFIG[idx];
+                    if (!config) return;
+                    
+                    // Clear current segments
+                    segmentsContainer.innerHTML = '';
+                    segmentCounter = 0;
+                    isManuallyModified = false;
+                    manualEditBadge.classList.add('hidden-field');
+                    btnRegenerate.classList.add('hidden-field');
+                    
+                    // Load general configuration
+                    selectAnchorMode.value = config.anchorMode || 'both';
+                    if (inputSegmentsLogic) {
+                        inputSegmentsLogic.value = config.logic || '';
+                        isLogicCustomized = !!config.logic;
+                    }
+                    chkLimitLength.checked = !!config.limitLength;
+                    if (config.limitLength) {
+                        lengthLimitInputs.classList.remove('hidden-field');
+                        inputMinLength.value = config.minLength || 0;
+                        inputMaxLength.value = config.maxLength || '';
+                    } else {
+                        lengthLimitInputs.classList.add('hidden-field');
+                    }
+                    
+                    genFlagGlobal.checked = config.flags?.global !== false;
+                    genFlagIgnoreCase.checked = !!config.flags?.ignoreCase;
+                    genFlagMultiline.checked = !!config.flags?.multiline;
+                    
+                    // Load segments
+                    config.segments.forEach(seg => {
+                        addSegmentRow(seg);
+                    });
+                    
+                    currentPresetName = preset.name;
+                    currentPresetDesc = preset.desc;
+                    
+                    // Generate
+                    generateRegex();
+                    
+                    showToast(`已成功载入预设：“${preset.name}”`, 'success');
+                });
+            }
+
+            // Anchor select
+            selectAnchorMode.addEventListener('change', () => {
+                clearPresetState();
+                if (!isManuallyModified) generateRegex();
+            });
+
+            // Length limits checkboxes & inputs
+            chkLimitLength.addEventListener('change', () => {
+                clearPresetState();
+                if (chkLimitLength.checked) {
+                    lengthLimitInputs.classList.remove('hidden-field');
+                } else {
+                    lengthLimitInputs.classList.add('hidden-field');
+                }
+                if (!isManuallyModified) generateRegex();
+            });
+
+            [inputMinLength, inputMaxLength].forEach(input => {
+                input.addEventListener('input', () => {
+                    clearPresetState();
+                    if (!isManuallyModified) generateRegex();
+                });
+            });
+
+            // Add segment row
+            btnAddSegment.addEventListener('click', () => {
+                clearPresetState();
+                addSegmentRow();
+                if (!isManuallyModified) generateRegex();
+            });
+
+            // Segment logic input listener
+            if (inputSegmentsLogic) {
+                inputSegmentsLogic.addEventListener('input', () => {
+                    if (inputSegmentsLogic.value.trim() === '') {
+                        isLogicCustomized = false;
+                        updateDefaultLogic();
+                    } else {
+                        isLogicCustomized = true;
+                    }
+                    clearPresetState();
+                    if (!isManuallyModified) generateRegex();
+                });
+            }
+
+            // Segment row interaction via event delegation
+            segmentsContainer.addEventListener('change', (e) => {
+                const target = e.target;
+                const row = target.closest('.segment-row');
+                if (!row) return;
+
+                clearPresetState();
+
+                if (target.classList.contains('select-type')) {
+                    const customInput = row.querySelector('.input-text-custom');
+                    if (['custom', 'regex'].includes(target.value)) {
+                        customInput.classList.remove('hidden-field');
+                        if (target.value === 'regex') {
+                            customInput.placeholder = '输入正则表达式，如: [a-z0-9] 或 (?:abc|def)';
+                        } else {
+                            customInput.placeholder = '匹配的特定内容...';
+                        }
+                    } else {
+                        customInput.classList.add('hidden-field');
+                    }
+                } else if (target.classList.contains('select-quantifier')) {
+                    const nTimesInput = row.querySelector('.quantity-n');
+                    const rangeWrapper = row.querySelector('.quantity-range');
+                    
+                    if (target.value === 'n-times') {
+                        nTimesInput.classList.remove('hidden-field');
+                        rangeWrapper.classList.add('hidden-field');
+                    } else if (target.value === 'range') {
+                        nTimesInput.classList.add('hidden-field');
+                        rangeWrapper.classList.remove('hidden-field');
+                    } else {
+                        nTimesInput.classList.add('hidden-field');
+                        rangeWrapper.classList.add('hidden-field');
+                    }
+                }
+
+                if (!isManuallyModified) generateRegex();
+            });
+
+            segmentsContainer.addEventListener('input', (e) => {
+                const target = e.target;
+                const row = target.closest('.segment-row');
+                if (!row) return;
+
+                clearPresetState();
+
+                if (target.classList.contains('input-text-custom') || 
+                    target.classList.contains('quantity-n') || 
+                    target.classList.contains('quantity-min') || 
+                    target.classList.contains('quantity-max')) {
+                    if (!isManuallyModified) generateRegex();
+                }
+            });
+
+            segmentsContainer.addEventListener('click', (e) => {
+                const btn = e.target.closest('.btn-delete');
+                if (!btn) return;
+
+                const row = btn.closest('.segment-row');
+                if (row) {
+                    clearPresetState();
+                    // Smooth slide out animation before removing
+                    row.style.transition = 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)';
+                    row.style.opacity = '0';
+                    row.style.transform = 'translateY(-8px)';
+                    setTimeout(() => {
+                        row.remove();
+                        updateRowIndices();
+                        if (!isManuallyModified) generateRegex();
+                    }, 200);
+                }
+            });
+
+            // Modifier flags
+            [genFlagGlobal, genFlagIgnoreCase, genFlagMultiline].forEach(cb => {
+                cb.addEventListener('change', () => {
+                    clearPresetState();
+                    // Sync flags
+                    resultRegexFlags.textContent = (genFlagGlobal.checked ? 'g' : '') + 
+                                                   (genFlagIgnoreCase.checked ? 'i' : '') + 
+                                                   (genFlagMultiline.checked ? 'm' : '');
+                    if (!isManuallyModified) {
+                        generateRegex();
+                    } else {
+                        evaluateGenMatches();
+                    }
+                });
+            });
+
+            // Test input in generator
+            genTestTextInput.addEventListener('input', evaluateGenMatches);
+            genTestTextInput.addEventListener('scroll', () => {
+                genHighlightOutput.scrollTop = genTestTextInput.scrollTop;
+            });
+
+            // Result input field manual edit detection
+            resultRegexInput.addEventListener('input', () => {
+                isManuallyModified = true;
+                clearPresetState();
+                manualEditBadge.classList.remove('hidden-field');
+                btnRegenerate.classList.remove('hidden-field');
+                
+                // Show temporary notice inside explanations box
+                explanationContent.innerHTML = `
+                    <p class="font-semibold text-primary mb-2">已手动修改正则表达式：</p>
+                    <p class="text-secondary text-sm">在此状态下，可视化生成器配置暂时失效，匹配校验已按照您修改后的正则表达式实时更新。您可以继续修改、测试和复制。</p>
+                    <p class="text-tertiary text-sm mt-2">提示：点击配置区域下方的“重新生成”按钮可恢复积木块自动配置。</p>
+                `;
+
+                evaluateGenMatches();
+            });
+
+            // Regenerate button
+            btnRegenerate.addEventListener('click', () => {
+                isManuallyModified = false;
+                clearPresetState();
+                manualEditBadge.classList.add('hidden-field');
+                btnRegenerate.classList.add('hidden-field');
+                generateRegex();
+                showToast("已恢复自动生成表达式", "success");
+            });
+
+            // Copy button
+            btnCopyRegex.addEventListener('click', () => {
+                const text = `/${resultRegexInput.value}/${resultRegexFlags.textContent}`;
+                copyToClipboard(text);
+            });
+
+            // Reset button
+            btnResetAll.addEventListener('click', resetGenerator);
+        }
+
+        // Segments rendering and list interactions
+        function addSegmentRow(data = {}) {
+            segmentCounter++;
+            const rowHTML = createSegmentRowHTML(segmentCounter, data);
+            segmentsContainer.insertAdjacentHTML('beforeend', rowHTML);
+            updateRowIndices();
+        }
+
+        function createSegmentRowHTML(id, data = {}) {
+            const status = data.status || 'include';
+            const type = data.type || 'digit';
+            const customValue = data.customValue || '';
+            const quantifier = data.quantifier || 'exactly';
+            const nValue = data.nValue !== undefined ? data.nValue : 1;
+            const minValue = data.minValue !== undefined ? data.minValue : 1;
+            const maxValue = data.maxValue !== undefined ? data.maxValue : '';
+
+            const customHidden = ['custom', 'regex'].includes(type) ? '' : 'hidden-field';
+            const nTimesHidden = quantifier === 'n-times' ? '' : 'hidden-field';
+            const rangeHidden = quantifier === 'range' ? '' : 'hidden-field';
+
+            let placeholderText = '匹配的特定内容...';
+            if (type === 'regex') {
+                placeholderText = '输入正则表达式，如: [a-z0-9] 或 (?:abc|def)';
+            }
+
+            return `
+                <div class="segment-row" data-id="${id}">
+                    <div class="segment-index">${id}</div>
+                    <div class="segment-fields">
+                        <!-- Include/Exclude match status dropdown -->
+                        <select class="form-select select-status" style="width: 106px;">
+                            <option value="include" ${status === 'include' ? 'selected' : ''}>匹配 (包含)</option>
+                            <option value="exclude" ${status === 'exclude' ? 'selected' : ''}>排除 (不包含)</option>
+                        </select>
+ 
+                        <select class="form-select select-type">
+                            <option value="digit" ${type === 'digit' ? 'selected' : ''}>数字 [0-9]</option>
+                            <option value="lower" ${type === 'lower' ? 'selected' : ''}>小写字母 [a-z]</option>
+                            <option value="upper" ${type === 'upper' ? 'selected' : ''}>大写字母 [A-Z]</option>
+                            <option value="letter" ${type === 'letter' ? 'selected' : ''}>英文字母 [a-zA-Z]</option>
+                            <option value="alphanumeric" ${type === 'alphanumeric' ? 'selected' : ''}>字母与数字 [0-9a-zA-Z]</option>
+                            <option value="whitespace" ${type === 'whitespace' ? 'selected' : ''}>空白字符 [\\s]</option>
+                            <option value="any" ${type === 'any' ? 'selected' : ''}>任意单个字符 [.]</option>
+                            <option value="custom" ${type === 'custom' ? 'selected' : ''}>自定义文本 (转义)</option>
+                            <option value="regex" ${type === 'regex' ? 'selected' : ''}>自定义正则 (不转义)</option>
+                        </select>
+ 
+                        <input type="text" class="form-input input-text-custom ${customHidden}" 
+                               placeholder="${placeholderText}" value="${escapeHtmlAttr(customValue)}">
+ 
+                        <select class="form-select select-quantifier">
+                            <option value="exactly" ${quantifier === 'exactly' ? 'selected' : ''}>出现 1 次</option>
+                            <option value="optional" ${quantifier === 'optional' ? 'selected' : ''}>可选 (0 或 1 次) [?]</option>
+                            <option value="one-or-more" ${quantifier === 'one-or-more' ? 'selected' : ''}>至少 1 次 (1 或多次) [+]</option>
+                            <option value="zero-or-more" ${quantifier === 'zero-or-more' ? 'selected' : ''}>任意次 (0 或多次) [*]</option>
+                            <option value="n-times" ${quantifier === 'n-times' ? 'selected' : ''}>精确出现 N 次</option>
+                            <option value="range" ${quantifier === 'range' ? 'selected' : ''}>出现 M 到 N 次</option>
+                        </select>
+ 
+                        <input type="number" class="form-input input-number quantity-n ${nTimesHidden}" 
+                               placeholder="次数" min="1" value="${nValue}">
+ 
+                        <div class="quantity-range-wrapper quantity-range ${rangeHidden}">
+                            <input type="number" class="form-input input-number quantity-min" 
+                                   placeholder="最少" min="0" value="${minValue}">
+                            <span>到</span>
+                            <input type="number" class="form-input input-number quantity-max" 
+                                   placeholder="最多" min="1" value="${maxValue}">
+                            <span>次</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-delete" title="删除此片段">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            `;
+        }
+
+        // Helper to update default logic expression
+        function updateDefaultLogic() {
+            if (isLogicCustomized) return;
+            const rows = document.querySelectorAll('#segmentsContainer .segment-row');
+            const indices = [];
+            for (let i = 1; i <= rows.length; i++) {
+                indices.push(i);
+            }
+            if (inputSegmentsLogic) {
+                inputSegmentsLogic.value = indices.join(' AND ');
+            }
+        }
+
+        function updateRowIndices() {
+            const rows = document.querySelectorAll('#segmentsContainer .segment-row');
+            rows.forEach((row, index) => {
+                row.querySelector('.segment-index').textContent = index + 1;
+            });
+
+            // Show/hide delete buttons
+            const deleteButtons = document.querySelectorAll('#segmentsContainer .btn-delete');
+            if (deleteButtons.length <= 1) {
+                deleteButtons.forEach(btn => btn.style.display = 'none');
+            } else {
+                deleteButtons.forEach(btn => btn.style.display = 'flex');
+            }
+
+            // Sync logical relationship default expression
+            updateDefaultLogic();
+        }
+
+        // Logical expression parser for rule segments
+        function parseLogicExpression(expr, segmentPatterns) {
+            const normalized = expr.replace(/（/g, '(').replace(/）/g, ')');
+            const invalidCharMatch = normalized.replace(/\s+/g, '')
+                                               .replace(/\d+/g, '')
+                                               .replace(/\(/g, '')
+                                               .replace(/\)/g, '')
+                                               .replace(/AND/gi, '')
+                                               .replace(/OR/gi, '');
+            if (invalidCharMatch.length > 0) {
+                throw new Error(`含有无效字符: "${invalidCharMatch[0]}"`);
+            }
+
+            const tokens = normalized.replace(/\(/g, ' ( ')
+                                     .replace(/\)/g, ' ) ')
+                                     .replace(/AND/gi, ' & ')
+                                     .replace(/OR/gi, ' | ')
+                                     .trim()
+                                     .split(/\s+/)
+                                     .filter(Boolean);
+
+            const outputQueue = [];
+            const operatorStack = [];
+            
+            const precedence = {
+                '|': 1, // OR has lower precedence
+                '&': 2  // AND has higher precedence
+            };
+            
+            for (let token of tokens) {
+                if (/^\d+$/.test(token)) {
+                    outputQueue.push(token);
+                } else if (token === '(') {
+                    operatorStack.push(token);
+                } else if (token === ')') {
+                    while (operatorStack.length > 0 && operatorStack[operatorStack.length - 1] !== '(') {
+                        outputQueue.push(operatorStack.pop());
+                    }
+                    if (operatorStack.length === 0) {
+                        throw new Error("括号不匹配");
+                    }
+                    operatorStack.pop(); // Pop the '('
+                } else if (token === '&' || token === '|') {
+                    while (operatorStack.length > 0 && operatorStack[operatorStack.length - 1] !== '(') {
+                        const topOp = operatorStack[operatorStack.length - 1];
+                        if (precedence[topOp] >= precedence[token]) {
+                            outputQueue.push(operatorStack.pop());
+                        } else {
+                            break;
+                        }
+                    }
+                    operatorStack.push(token);
+                } else {
+                    throw new Error(`未知的分隔词: "${token}"`);
+                }
+            }
+            
+            while (operatorStack.length > 0) {
+                const topOp = operatorStack[operatorStack.length - 1];
+                if (topOp === '(' || topOp === ')') {
+                    throw new Error("括号不匹配");
+                }
+                outputQueue.push(operatorStack.pop());
+            }
+            
+            const stack = [];
+            for (let token of outputQueue) {
+                if (/^\d+$/.test(token)) {
+                    const idx = parseInt(token, 10) - 1;
+                    if (idx < 0 || idx >= segmentPatterns.length) {
+                        throw new Error(`无效的片段序号: ${token}`);
+                    }
+                    stack.push({
+                        pattern: segmentPatterns[idx],
+                        type: 'operand'
+                    });
+                } else if (token === '&') {
+                    if (stack.length < 2) {
+                        throw new Error("逻辑运算符 'AND' 缺少操作数");
+                    }
+                    const b = stack.pop();
+                    const a = stack.pop();
+                    stack.push({
+                        pattern: a.pattern + b.pattern,
+                        type: 'concat'
+                    });
+                } else if (token === '|') {
+                    if (stack.length < 2) {
+                        throw new Error("逻辑运算符 'OR' 缺少操作数");
+                    }
+                    const b = stack.pop();
+                    const a = stack.pop();
+                    stack.push({
+                        pattern: `(?:${a.pattern}|${b.pattern})`,
+                        type: 'or'
+                    });
+                }
+            }
+            
+            if (stack.length === 0) {
+                return '';
+            }
+            if (stack.length !== 1) {
+                throw new Error("逻辑表达式不完整");
+            }
+            
+            return stack[0].pattern;
+        }
+
+        // Core Regex compilation
+        function generateRegex() {
+            if (isManuallyModified) return; // Prevent overwriting manual edits
+
+            genErrorMessage.style.display = 'none';
+            genErrorMessage.textContent = '';
+            
+            const rows = document.querySelectorAll('#segmentsContainer .segment-row');
+            let patternParts = [];
+            let segmentExplanations = [];
+
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const status = row.querySelector('.select-status').value;
+                const type = row.querySelector('.select-type').value;
+                const customVal = row.querySelector('.input-text-custom').value;
+                const quantifier = row.querySelector('.select-quantifier').value;
+                
+                const nValue = Math.max(1, parseInt(row.querySelector('.quantity-n').value, 10) || 1);
+                const minValue = Math.max(0, parseInt(row.querySelector('.quantity-min').value, 10) || 0);
+                const maxValueInput = row.querySelector('.quantity-max').value;
+                const maxValue = maxValueInput !== '' ? Math.max(1, parseInt(maxValueInput, 10) || 1) : '';
+
+                if (quantifier === 'range') {
+                    if (maxValue !== '' && minValue > maxValue) {
+                        genErrorMessage.style.display = 'block';
+                        genErrorMessage.innerHTML = `<i class="fas fa-exclamation-triangle"></i> 规则片段 ${i + 1} 配置错误：<b>最少出现次数</b>不能大于<b>最多出现次数</b>。`;
+                        resultRegexInput.value = '';
+                        explanationContent.innerHTML = `<span style="color: var(--error-color);">配置错误：片段 ${i + 1} 的出现次数范围无效（最少次数不应大于最多次数）。</span>`;
+                        genHighlightOutput.innerHTML = `<span class="empty-preview" style="color: var(--error-color);">配置错误，无法进行测试匹配</span>`;
+                        return;
+                    }
+                }
+
+                const isExclude = (status === 'exclude');
+
+                // 1. Get segment base pattern & description
+                let basePattern = '';
+                let contentDesc = '';
+                switch (type) {
+                    case 'digit':
+                        basePattern = isExclude ? '\\D' : '\\d';
+                        contentDesc = isExclude ? '非数字字符' : '数字字符 (0-9)';
+                        break;
+                    case 'lower':
+                        basePattern = isExclude ? '[^a-z]' : '[a-z]';
+                        contentDesc = isExclude ? '非小写英文字母' : '小写英文字母 (a-z)';
+                        break;
+                    case 'upper':
+                        basePattern = isExclude ? '[^A-Z]' : '[A-Z]';
+                        contentDesc = isExclude ? '非大写英文字母' : '大写英文字母 (A-Z)';
+                        break;
+                    case 'letter':
+                        basePattern = isExclude ? '[^a-zA-Z]' : '[a-zA-Z]';
+                        contentDesc = isExclude ? '非英文字母' : '英文字母 (a-zA-Z)';
+                        break;
+                    case 'alphanumeric':
+                        basePattern = isExclude ? '[^a-zA-Z0-9]' : '[a-zA-Z0-9]';
+                        contentDesc = isExclude ? '非英文字母及数字' : '英文字母或数字';
+                        break;
+                    case 'whitespace':
+                        basePattern = isExclude ? '\\S' : '\\s';
+                        contentDesc = isExclude ? '非空白字符' : '空白字符 (如空格/制表符/换行)';
+                        break;
+                    case 'any':
+                        basePattern = isExclude ? '[^\\s\\S]' : '.';
+                        contentDesc = isExclude ? '排除任意字符 (匹配空)' : '任意单个字符 (除了换行符)';
+                        break;
+                    case 'custom':
+                        if (isExclude) {
+                            basePattern = customVal ? `[^${escapeCharClass(customVal)}]` : '[^\\s\\S]';
+                            contentDesc = customVal ? `非 "${customVal}" 中的任意字符` : '空文本';
+                        } else {
+                            basePattern = escapeRegExp(customVal);
+                            contentDesc = customVal ? `字面量文本 "${customVal}"` : '空文本';
+                        }
+                        break;
+                    case 'regex':
+                        basePattern = customVal || '';
+                        contentDesc = customVal ? `正则模式 "${customVal}"` : '空正则';
+                        if (isExclude) {
+                            basePattern = `(?!${basePattern})`;
+                            contentDesc = `排除${contentDesc}`;
+                        }
+                        break;
+                }
+
+                // 2. Get segment quantifier
+                let qSymbol = '';
+                let qDesc = '';
+                switch (quantifier) {
+                    case 'exactly':
+                        qSymbol = '';
+                        qDesc = '，出现过正好 1 次';
+                        break;
+                    case 'optional':
+                        qSymbol = '?';
+                        qDesc = '，出现过 0 次或 1 次（可选）';
+                        break;
+                    case 'one-or-more':
+                        qSymbol = '+';
+                        qDesc = '，出现过 1 次或多次（至少 1 次）';
+                        break;
+                    case 'zero-or-more':
+                        qSymbol = '*';
+                        qDesc = '，出现过 0 次或多次';
+                        break;
+                    case 'n-times':
+                        qSymbol = `{${nValue}}`;
+                        qDesc = `，出现过正好 ${nValue} 次`;
+                        break;
+                    case 'range':
+                        if (minValue !== '' && maxValue !== '') {
+                            qSymbol = `{${minValue},${maxValue}}`;
+                            qDesc = `，出现过 ${minValue} 到 ${maxValue} 次`;
+                        } else if (minValue !== '') {
+                            qSymbol = `{${minValue},}`;
+                            qDesc = `，出现过至少 ${minValue} 次`;
+                        } else if (maxValue !== '') {
+                            qSymbol = `{0,${maxValue}}`;
+                            qDesc = `，出现过最多 ${maxValue} 次`;
+                        } else {
+                            qSymbol = '';
+                            qDesc = '，出现过正好 1 次';
+                        }
+                        break;
+                }
+
+                // Wrap multi-character custom patterns in a non-capturing group if they have quantifier
+                let finalSegmentPattern = basePattern;
+                if (qSymbol !== '') {
+                    if (basePattern.length > 1) {
+                        const isCharacterClass = basePattern.startsWith('[') && basePattern.endsWith(']');
+                        const isEscapeSequence = basePattern.startsWith('\\') && basePattern.length === 2;
+                        const isAlreadyGrouped = basePattern.startsWith('(') && basePattern.endsWith(')');
+                        if (!isCharacterClass && !isEscapeSequence && !isAlreadyGrouped) {
+                            finalSegmentPattern = `(?:${basePattern})`;
+                        }
+                    }
+                }
+                finalSegmentPattern = finalSegmentPattern + qSymbol;
+
+                patternParts.push(finalSegmentPattern);
+                segmentExplanations.push({
+                    contentDesc,
+                    qDesc
+                });
+            }
+
+            // 3. Compile Anchors and Lookahead Constraints
+            const anchorMode = selectAnchorMode.value;
+            let lengthLookahead = '';
+            
+            if (chkLimitLength.checked) {
+                const min = Math.max(0, parseInt(inputMinLength.value, 10) || 0);
+                const maxInput = inputMaxLength.value;
+                const max = maxInput !== '' ? Math.max(1, parseInt(maxInput, 10) || 1) : '';
+                
+                if (max !== '' && min > max) {
+                    genErrorMessage.style.display = 'block';
+                    genErrorMessage.innerHTML = `<i class="fas fa-exclamation-triangle"></i> 限制总字符数错误：<b>最少字符数</b>不能大于<b>最多字符数</b>。`;
+                    resultRegexInput.value = '';
+                    explanationContent.innerHTML = `<span style="color: var(--error-color);">配置错误：总字符数字数限制范围无效（最少字符数不应大于最多字符数）。</span>`;
+                    genHighlightOutput.innerHTML = `<span class="empty-preview" style="color: var(--error-color);">配置错误，无法进行测试匹配</span>`;
+                    return;
+                }
+                
+                let range = '';
+                if (min !== '' && max !== '') {
+                    range = `{${min},${max}}`;
+                } else if (min !== '') {
+                    range = `{${min},}`;
+                } else if (max !== '') {
+                    range = `{0,${max}}`;
+                }
+                
+                if (range) {
+                    const endAnchor = (anchorMode === 'both' || anchorMode === 'end') ? '$' : '';
+                    lengthLookahead = `(?=.${range}${endAnchor})`;
+                }
+            }
+
+            // Apply segment logic relation expression
+            let compiledPattern = '';
+            const logicExpr = inputSegmentsLogic ? inputSegmentsLogic.value.trim() : '';
+            
+            try {
+                if (logicExpr) {
+                    compiledPattern = parseLogicExpression(logicExpr, patternParts);
+                } else {
+                    // Default logic: concatenate all sequentially
+                    compiledPattern = patternParts.join('');
+                }
+            } catch (err) {
+                genErrorMessage.style.display = 'block';
+                genErrorMessage.innerHTML = `<i class="fas fa-exclamation-triangle"></i> 逻辑关系配置错误: <code>${escapeHtml(err.message)}</code>`;
+                resultRegexInput.value = '';
+                explanationContent.innerHTML = `<span style="color: var(--error-color);">逻辑配置错误：${escapeHtml(err.message)}</span>`;
+                genHighlightOutput.innerHTML = `<span class="empty-preview" style="color: var(--error-color);">逻辑配置错误，无法进行测试匹配</span>`;
+                return;
+            }
+            
+            if (anchorMode === 'both') {
+                compiledPattern = `^${lengthLookahead}${compiledPattern}$`;
+            } else if (anchorMode === 'start') {
+                compiledPattern = `^${lengthLookahead}${compiledPattern}`;
+            } else if (anchorMode === 'end') {
+                compiledPattern = `${lengthLookahead}${compiledPattern}$`;
+            } else {
+                compiledPattern = `${lengthLookahead}${compiledPattern}`;
+            }
+
+            // Compile Flags
+            resultRegexInput.value = compiledPattern;
+            resultRegexFlags.textContent = (genFlagGlobal.checked ? 'g' : '') + 
+                                           (genFlagIgnoreCase.checked ? 'i' : '') + 
+                                           (genFlagMultiline.checked ? 'm' : '');
+
+            // Build Chinese explanations
+            renderGenExplanation(segmentExplanations, logicExpr);
+
+            // Trigger match highlights
+            evaluateGenMatches();
+        }
+
+        function renderGenExplanation(explanations, logicExpr) {
+            const anchorMode = selectAnchorMode.value;
+            let prefix = '在文本中任意位置匹配以下规则：';
+            if (anchorMode === 'start') prefix = '匹配文本开头位置，且后续符合以下规则：';
+            if (anchorMode === 'end') prefix = '匹配以符合以下规则的内容结尾的文本：';
+            if (anchorMode === 'both') prefix = '校验整段文本是否完全符合以下格式要求：';
+
+            let flagsDesc = [];
+            if (genFlagGlobal.checked) flagsDesc.push('全局匹配所有符合条件的项');
+            if (genFlagIgnoreCase.checked) flagsDesc.push('忽略大小写限制');
+            if (genFlagMultiline.checked) flagsDesc.push('支持多行校验');
+            
+            const settingsText = flagsDesc.length > 0 ? flagsDesc.join('，') : '精确区分大小写，且仅查找第一个匹配项';
+
+            // Preset description banner
+            let presetDescHTML = '';
+            if (currentPresetName && currentPresetDesc) {
+                presetDescHTML = `
+                    <div style="background-color: var(--primary-light); border: 1px solid var(--primary-color); border-radius: var(--radius-md); padding: var(--spacing-sm) var(--spacing-md); margin-bottom: var(--spacing-md); color: var(--primary-color); display: flex; align-items: flex-start; gap: var(--spacing-sm);">
+                        <i class="fas fa-star" style="margin-top: 3px; color: var(--warning-color);"></i>
+                        <div>
+                            <strong style="display: block; font-size: 14px; margin-bottom: 2px; color: var(--primary-color);">常用预设提示：${currentPresetName}</strong>
+                            <span style="font-size: 13px; opacity: 0.95;">${currentPresetDesc}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Overall length constraint description
+            let lengthDescHTML = '';
+            if (chkLimitLength.checked) {
+                const min = inputMinLength.value || 0;
+                const max = inputMaxLength.value || '';
+                const lengthRange = max !== '' ? `${min} 到 ${max}` : `至少 ${min}`;
+                lengthDescHTML = `<p class="font-semibold" style="color: var(--warning-color); margin-bottom: 8px;"><i class="fas fa-arrows-left-right"></i> 字符总长度限制：必须在 ${lengthRange} 个字符以内。</p>`;
+            }
+
+            // Logic relationship description
+            let logicDescHTML = '';
+            if (logicExpr) {
+                logicDescHTML = `<p class="font-semibold text-primary mb-2" style="color: var(--primary-color); margin-bottom: 8px;"><i class="fas fa-project-diagram"></i> 片段逻辑关系：<code>${escapeHtml(logicExpr)}</code></p>`;
+            }
+
+            let itemsHTML = explanations.map((seg, i) => `
+                <div class="explanation-item" style="padding: 2px 0;">
+                    <strong>片段 ${i + 1}：</strong>
+                    <span>匹配${seg.contentDesc}${seg.qDesc}</span>
+                </div>
+            `).join('');
+
+            explanationContent.innerHTML = `
+                ${presetDescHTML}
+                ${lengthDescHTML}
+                ${logicDescHTML}
+                <p class="font-semibold text-primary mb-2">${prefix}</p>
+                <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px;">
+                    ${itemsHTML}
+                </div>
+                <p class="text-tertiary text-sm" style="border-top: 1px solid var(--border-color); padding-top: 8px; margin-top: 8px;">
+                    <strong>匹配设置：</strong>${settingsText}。
+                </p>
+            `;
+        }
+
+        // Gen Tab Matching Highlights Evaluator
+        function evaluateGenMatches() {
+            const text = genTestTextInput.value;
+            genHighlightOutput.innerHTML = '';
+            genMatchBadge.textContent = '共 0 处匹配';
+            
+            const pattern = resultRegexInput.value;
+            const flags = resultRegexFlags.textContent;
+
+            if (!pattern) {
+                genHighlightOutput.innerHTML = `<span class="empty-preview">输入测试文本后在此展示匹配高亮</span>`;
+                return;
+            }
+
+            try {
+                const regex = new RegExp(pattern, flags);
+                
+                if (!text) {
+                    genHighlightOutput.innerHTML = `<span class="empty-preview">输入测试文本后在此展示匹配高亮</span>`;
+                    return;
+                }
+
+                let matches = [];
+                let match;
+                let guard = 0;
+
+                if (regex.global) {
+                    regex.lastIndex = 0;
+                    while ((match = regex.exec(text)) !== null) {
+                        matches.push({
+                            index: match.index,
+                            endIndex: match.index + match[0].length,
+                            text: match[0]
+                        });
+                        
+                        if (match[0] === '') {
+                            regex.lastIndex += 1;
+                        }
+                        
+                        guard++;
+                        if (guard > 5000) {
+                            showToast("匹配项过多，已截断显示以防系统卡顿", "error");
+                            break;
+                        }
+                    }
+                } else {
+                    match = regex.exec(text);
+                    if (match) {
+                        matches.push({
+                            index: match.index,
+                            endIndex: match.index + match[0].length,
+                            text: match[0]
+                        });
+                    }
+                }
+
+                genMatchBadge.textContent = `共 ${matches.length} 处匹配`;
+
+                if (matches.length === 0) {
+                    genHighlightOutput.textContent = text;
+                    return;
+                }
+
+                let highlightedHTML = '';
+                let lastIndex = 0;
+                let colorCounter = 0;
+
+                for (let i = 0; i < matches.length; i++) {
+                    const m = matches[i];
+                    
+                    if (m.index < lastIndex) continue;
+
+                    highlightedHTML += escapeHtml(text.slice(lastIndex, m.index));
+
+                    if (m.index === m.endIndex) {
+                        highlightedHTML += `<span class="match-zerowidth" title="零宽匹配"></span>`;
+                        lastIndex = m.index;
+                    } else {
+                        const colorClass = (colorCounter % 2 === 0) ? 'match-blue' : 'match-green';
+                        highlightedHTML += `<span class="match-highlight ${colorClass}">${escapeHtml(m.text)}</span>`;
+                        lastIndex = m.endIndex;
+                        colorCounter++;
+                    }
+                }
+                
+                highlightedHTML += escapeHtml(text.slice(lastIndex));
+                genHighlightOutput.innerHTML = highlightedHTML;
+
+            } catch (err) {
+                genErrorMessage.style.display = 'block';
+                genErrorMessage.innerHTML = `<i class="fas fa-exclamation-triangle"></i> 正则表达式语法错误: <code>${escapeHtml(err.message)}</code>`;
+                genHighlightOutput.innerHTML = `<span class="empty-preview" style="color: var(--error-color);">当前的正则表达式无效，无法进行测试匹配</span>`;
+            }
+        }
+
+        // Reset generator to defaults
+        function resetGenerator() {
+            if (confirm("确定要重置当前所有的可视化匹配片段和输入吗？")) {
+                segmentsContainer.innerHTML = '';
+                segmentCounter = 0;
+                isManuallyModified = false;
+                currentPresetName = '';
+                currentPresetDesc = '';
+                
+                manualEditBadge.classList.add('hidden-field');
+                btnRegenerate.classList.add('hidden-field');
+                
+                selectAnchorMode.value = 'both';
+                isLogicCustomized = false;
+                if (inputSegmentsLogic) inputSegmentsLogic.value = '';
+                chkLimitLength.checked = false;
+                lengthLimitInputs.classList.add('hidden-field');
+                inputMinLength.value = 6;
+                inputMaxLength.value = 20;
+
+                genFlagGlobal.checked = true;
+                genFlagIgnoreCase.checked = false;
+                genFlagMultiline.checked = false;
+                
+                genTestTextInput.value = '';
+                
+                addSegmentRow({ status: 'include', type: 'digit', quantifier: 'one-or-more' });
+                generateRegex();
+                
+                showToast("生成器已重置", "success");
+            }
+        }
+
+        // Toast message utility
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.style.position = 'fixed';
+            toast.style.bottom = '20px';
+            toast.style.left = '50%';
+            toast.style.transform = 'translateX(-50%)';
+            toast.style.padding = '10px 20px';
+            toast.style.borderRadius = '8px';
+            toast.style.color = 'white';
+            toast.style.zIndex = '1000';
+            toast.style.boxShadow = 'var(--shadow-md)';
+            toast.style.transition = 'all 0.3s ease';
+            toast.style.fontWeight = '500';
+            toast.style.fontSize = '14px';
+
+            if (type === 'error') {
+                toast.style.backgroundColor = 'var(--error-color)';
+            } else if (type === 'success') {
+                toast.style.backgroundColor = 'var(--success-color)';
+            } else {
+                toast.style.backgroundColor = 'var(--primary-color)';
+            }
+
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translate(-50%, 20px)';
+                setTimeout(() => document.body.removeChild(toast), 300);
+            }, 3000);
+        }
+
+        async function copyToClipboard(text) {
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(text);
+                    showToast("已成功复制到剪贴板！", "success");
+                } else {
+                    const textarea = document.createElement('textarea');
+                    textarea.value = text;
+                    textarea.style.position = 'fixed';
+                    textarea.style.opacity = '0';
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    textarea.remove();
+                    showToast("已成功复制到剪贴板！", "success");
+                }
+            } catch (err) {
+                showToast("复制失败，请手动选择复制。", "error");
+            }
+        }
+
+        window.showToast = showToast;
+
+        // Start App with state-based loader to prevent missed DOMContentLoaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initApp);
+        } else {
+            initApp();
+        }
+    </script>
+</body>
+
+</html>

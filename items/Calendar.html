@@ -672,19 +672,18 @@
                 '12-24': '平安夜', '12-25': '圣诞节'
             };
 
-            static SOLAR_TERMS = [
-                { month: 2, day: 4, name: '立春' }, { month: 2, day: 19, name: '雨水' },
-                { month: 3, day: 6, name: '惊蛰' }, { month: 3, day: 21, name: '春分' },
-                { month: 4, day: 5, name: '清明' }, { month: 4, day: 20, name: '谷雨' },
-                { month: 5, day: 6, name: '立夏' }, { month: 5, day: 21, name: '小满' },
-                { month: 6, day: 6, name: '芒种' }, { month: 6, day: 21, name: '夏至' },
-                { month: 7, day: 7, name: '小暑' }, { month: 7, day: 23, name: '大暑' },
-                { month: 8, day: 8, name: '立秋' }, { month: 8, day: 23, name: '处暑' },
-                { month: 9, day: 8, name: '白露' }, { month: 9, day: 23, name: '秋分' },
-                { month: 10, day: 8, name: '寒露' }, { month: 10, day: 24, name: '霜降' },
-                { month: 11, day: 8, name: '立冬' }, { month: 11, day: 22, name: '小雪' },
-                { month: 12, day: 7, name: '大雪' }, { month: 12, day: 22, name: '冬至' },
-                { month: 1, day: 6, name: '小寒' }, { month: 1, day: 20, name: '大寒' }
+            static SOLAR_TERM_NAMES = [
+                '小寒', '大寒', '立春', '雨水', '惊蛰', '春分',
+                '清明', '谷雨', '立夏', '小满', '芒种', '夏至',
+                '小暑', '大暑', '立秋', '处暑', '白露', '秋分',
+                '寒露', '霜降', '立冬', '小雪', '大雪', '冬至'
+            ];
+
+            static SOLAR_TERM_INFO = [
+                0, 21208, 42467, 63836, 85337, 107014,
+                128867, 150921, 173149, 195551, 218072, 240693,
+                263343, 285989, 308563, 331033, 353350, 375494,
+                397447, 419210, 440795, 462224, 483532, 504758
             ];
 
             constructor() {
@@ -1009,6 +1008,10 @@
                 // 基础日期：1900年1月31日是正月初一
                 const baseDate = new Date(1900, 0, 31);
                 const objDate = new Date(iYear, iMonth - 1, iDay);
+                this.assertSupportedLunarYear(iYear);
+                if (objDate < baseDate) {
+                    throw new RangeError('农历转换仅支持1900年1月31日至2100年范围');
+                }
                 let offset = Math.floor((objDate.getTime() - baseDate.getTime()) / 86400000);
 
                 let i, temp = 0;
@@ -1022,6 +1025,7 @@
                     offset -= temp;
                 }
                 lunarYear = i;
+                this.assertSupportedLunarYear(lunarYear);
 
                 // 找闰月
                 const leapMonth = this.getLunarLeapMonth(lunarYear);
@@ -1054,11 +1058,26 @@
                 };
             }
 
+            assertSupportedLunarYear(year) {
+                const iYear = Number(year);
+                const index = iYear - 1900;
+                if (!Number.isInteger(iYear) || index < 0 || index >= Calendar.LUNAR_DATA.length) {
+                    throw new RangeError('农历数据仅支持1900-2100年');
+                }
+                return iYear;
+            }
+
+            getLunarYearData(year) {
+                const iYear = this.assertSupportedLunarYear(year);
+                return Calendar.LUNAR_DATA[iYear - 1900];
+            }
+
             // 获取农历年总天数
             getLunarYearDays(year) {
                 let i, sum = 348;
+                const yearData = this.getLunarYearData(year);
                 for (i = 0x8000; i > 0x8; i >>= 1) {
-                    sum += (Calendar.LUNAR_DATA[year - 1900] & i) ? 1 : 0;
+                    sum += (yearData & i) ? 1 : 0;
                 }
                 return sum + this.getLunarLeapDays(year);
             }
@@ -1066,19 +1085,20 @@
             // 获取农历闰月天数
             getLunarLeapDays(year) {
                 if (this.getLunarLeapMonth(year)) {
-                    return (Calendar.LUNAR_DATA[year - 1900] & 0x10000) ? 30 : 29;
+                    return (this.getLunarYearData(year) & 0x10000) ? 30 : 29;
                 }
                 return 0;
             }
 
             // 获取农历闰哪个月
             getLunarLeapMonth(year) {
-                return Calendar.LUNAR_DATA[year - 1900] & 0xf;
+                return this.getLunarYearData(year) & 0xf;
             }
 
             // 获取农历某月天数
             getLunarMonthDays(year, month) {
-                return (Calendar.LUNAR_DATA[year - 1900] & (0x10000 >> month)) ? 30 : 29;
+                this.assertSupportedLunarYear(year);
+                return (this.getLunarYearData(year) & (0x10000 >> month)) ? 30 : 29;
             }
 
             // 获取节日信息
@@ -1092,20 +1112,22 @@
                 // 2. 固定公历节日
                 if (Calendar.HOLIDAYS[key]) return Calendar.HOLIDAYS[key];
 
-                // 3. 农历节日 (使用精准算法)
-                const lunar = this.solarToLunar(date.getFullYear(), date.getMonth() + 1, date.getDate());
-                if (lunar && !lunar.isLeap) { // 闰月通常不过节
-                    const lunarKey = `${lunar.month}-${lunar.day}`;
-                    if (Calendar.LUNAR_HOLIDAYS[lunarKey]) return Calendar.LUNAR_HOLIDAYS[lunarKey];
+                try {
+                    // 3. 农历节日 (使用精准算法)
+                    const lunar = this.solarToLunar(date.getFullYear(), date.getMonth() + 1, date.getDate());
+                    if (lunar && !lunar.isLeap) { // 闰月通常不过节
+                        const lunarKey = `${lunar.month}-${lunar.day}`;
+                        if (Calendar.LUNAR_HOLIDAYS[lunarKey]) return Calendar.LUNAR_HOLIDAYS[lunarKey];
 
-                    // 特殊处理：除夕
-                    if (lunar.month === 12) {
-                        const monthDays = this.getLunarMonthDays(lunar.year, 12);
-                        if (lunar.day === monthDays) {
-                            return '除夕';
+                        // 特殊处理：除夕
+                        if (lunar.month === 12) {
+                            const monthDays = this.getLunarMonthDays(lunar.year, 12);
+                            if (lunar.day === monthDays) {
+                                return '除夕';
+                            }
                         }
                     }
-                }
+                } catch (e) { }
 
                 return null;
             }
@@ -1129,11 +1151,31 @@
             }
 
             // 获取节气信息
+            getSolarTermDay(year, index) {
+                this.assertSupportedLunarYear(year);
+                const termDate = new Date(
+                    Date.UTC(1900, 0, 6, 2, 5) +
+                    31556925974.7 * (year - 1900) +
+                    Calendar.SOLAR_TERM_INFO[index] * 60000
+                );
+                return termDate.getUTCDate();
+            }
+
             getSolarTerm(date) {
-                const month = date.getMonth() + 1;
-                const day = date.getDate();
-                const term = Calendar.SOLAR_TERMS.find(t => t.month === month && t.day === day);
-                return term ? term.name : null;
+                try {
+                    const year = date.getFullYear();
+                    const month = date.getMonth() + 1;
+                    const day = date.getDate();
+                    const firstIndex = (month - 1) * 2;
+
+                    for (const index of [firstIndex, firstIndex + 1]) {
+                        if (day === this.getSolarTermDay(year, index)) {
+                            return Calendar.SOLAR_TERM_NAMES[index];
+                        }
+                    }
+                } catch (e) { }
+
+                return null;
             }
 
             // 更新选中日期信息

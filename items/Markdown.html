@@ -926,7 +926,8 @@
 
         function detectTheme() {
             try {
-                const parentTheme = window.parent.document.documentElement.getAttribute('data-theme');
+                const parentRoot = getSafeParentDocumentElement();
+                const parentTheme = parentRoot ? parentRoot.getAttribute('data-theme') : null;
                 if (parentTheme) return parentTheme;
             } catch (e) { }
             try {
@@ -934,6 +935,17 @@
                 if (stored) return stored;
             } catch (e) { }
             return null;
+        }
+
+        function getSafeParentDocumentElement() {
+            try {
+                if (window.parent === window) return null;
+                const parentDoc = window.parent && window.parent.document;
+                const parentRoot = parentDoc && parentDoc.documentElement;
+                return parentRoot instanceof Node ? parentRoot : null;
+            } catch (e) {
+                return null;
+            }
         }
 
         // 初始化时读取一次
@@ -954,8 +966,11 @@
 
         // 兜底：监听父页面 data-theme 变化（同源时生效）
         try {
-            new MutationObserver(() => applyThemeByName(detectTheme()))
-                .observe(window.parent.document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+            const parentRoot = getSafeParentDocumentElement();
+            if (parentRoot) {
+                new MutationObserver(() => applyThemeByName(detectTheme()))
+                    .observe(parentRoot, { attributes: true, attributeFilter: ['data-theme'] });
+            }
         } catch (e) { }
 
         // --- Marked 配置 ---
@@ -996,6 +1011,86 @@
             }
         });
 
+        const ALLOWED_MARKDOWN_TAGS = new Set([
+            'A', 'ABBR', 'B', 'BLOCKQUOTE', 'BR', 'CODE', 'DEL', 'DETAILS', 'DIV',
+            'EM', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'HR', 'I', 'IMG', 'INPUT',
+            'KBD', 'LI', 'MARK', 'OL', 'P', 'PRE', 'S', 'SPAN', 'STRONG', 'SUB',
+            'SUMMARY', 'SUP', 'TABLE', 'TBODY', 'TD', 'TH', 'THEAD', 'TR', 'UL'
+        ]);
+        const GLOBAL_MARKDOWN_ATTRIBUTES = new Set(['class', 'title', 'aria-label', 'aria-hidden']);
+        const TAG_MARKDOWN_ATTRIBUTES = {
+            A: new Set(['href', 'target', 'rel']),
+            IMG: new Set(['src', 'alt', 'width', 'height', 'loading']),
+            INPUT: new Set(['type', 'checked', 'disabled'])
+        };
+        const SAFE_URL_PATTERN = /^(https?:|mailto:|tel:|#|\/|\.\/|\.\.\/)/i;
+        const SAFE_IMAGE_PATTERN = /^(https?:|data:image\/(?:png|gif|jpe?g|webp);base64,|#|\/|\.\/|\.\.\/)/i;
+
+        function sanitizeMarkdownHtml(html) {
+            const template = document.createElement('template');
+            template.innerHTML = html;
+
+            const sanitizeNode = (node) => {
+                if (node.nodeType === Node.COMMENT_NODE) {
+                    node.remove();
+                    return;
+                }
+
+                if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+                const tagName = node.tagName;
+                if (!ALLOWED_MARKDOWN_TAGS.has(tagName)) {
+                    node.replaceWith(...Array.from(node.childNodes));
+                    return;
+                }
+
+                Array.from(node.attributes).forEach((attr) => {
+                    const name = attr.name.toLowerCase();
+                    const value = attr.value.trim();
+                    const tagAllowed = TAG_MARKDOWN_ATTRIBUTES[tagName] && TAG_MARKDOWN_ATTRIBUTES[tagName].has(name);
+                    const globalAllowed = GLOBAL_MARKDOWN_ATTRIBUTES.has(name);
+
+                    if (name.startsWith('on') || name === 'style' || (!tagAllowed && !globalAllowed)) {
+                        node.removeAttribute(attr.name);
+                        return;
+                    }
+
+                    if (tagName === 'A' && name === 'href' && !SAFE_URL_PATTERN.test(value)) {
+                        node.removeAttribute(attr.name);
+                    }
+
+                    if (tagName === 'IMG' && name === 'src' && !SAFE_IMAGE_PATTERN.test(value)) {
+                        node.removeAttribute(attr.name);
+                    }
+                });
+
+                if (tagName === 'A' && node.hasAttribute('target')) {
+                    node.setAttribute('rel', 'noopener noreferrer');
+                }
+
+                if (tagName === 'INPUT') {
+                    node.setAttribute('disabled', '');
+                    if (node.getAttribute('type') !== 'checkbox') {
+                        node.setAttribute('type', 'checkbox');
+                    }
+                }
+            };
+
+            const walk = (root) => {
+                Array.from(root.childNodes).forEach((child) => {
+                    sanitizeNode(child);
+                    if (child.parentNode) walk(child);
+                });
+            };
+
+            walk(template.content);
+            return template.innerHTML;
+        }
+
+        function getSanitizedPreviewHtml() {
+            return sanitizeMarkdownHtml(preview.innerHTML);
+        }
+
         // --- 实时预览 ---
         function updatePreview() {
             const val = input.value;
@@ -1007,9 +1102,13 @@
                 previewEmpty.style.display = 'none';
                 preview.style.display = 'block';
                 try {
-                    preview.innerHTML = marked.parse(val);
+                    preview.innerHTML = sanitizeMarkdownHtml(marked.parse(val));
                 } catch (e) {
-                    preview.innerHTML = '<p style="color:var(--error-color)">解析出错：' + e.message + '</p>';
+                    preview.innerHTML = '';
+                    const errorMessage = document.createElement('p');
+                    errorMessage.style.color = 'var(--error-color)';
+                    errorMessage.textContent = '解析出错：' + e.message;
+                    preview.appendChild(errorMessage);
                 }
             }
             updateStats(val);
@@ -1252,7 +1351,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>${currentFileName.replace(/\.\w+$/, '')}</title>
+<title>${sanitizeMarkdownHtml(currentFileName.replace(/\.\w+$/, ''))}</title>
 <style>
 body { max-width: 800px; margin: 40px auto; padding: 0 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.8; color: #1f2937; }
 h1,h2,h3,h4,h5,h6 { margin-top: 1.2em; margin-bottom: 0.4em; }
@@ -1272,7 +1371,7 @@ hr { border: none; border-top: 2px solid #e5e7eb; margin: 1.5em 0; }
 </style>
 </head>
 <body>
-${preview.innerHTML}
+${getSanitizedPreviewHtml()}
 </body>
 </html>`;
             const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
@@ -1291,7 +1390,7 @@ ${preview.innerHTML}
         document.getElementById('btn-save-md').addEventListener('click', saveMD);
         document.getElementById('btn-save-html').addEventListener('click', saveHTML);
         document.getElementById('btn-copy-html').addEventListener('click', () => {
-            navigator.clipboard.writeText(preview.innerHTML).then(() => {
+            navigator.clipboard.writeText(getSanitizedPreviewHtml()).then(() => {
                 showToast('HTML 源码已复制到剪贴板');
             }).catch(() => {
                 showToast('复制失败，请手动复制');
@@ -1334,7 +1433,7 @@ ${preview.innerHTML}
         document.getElementById('btn-preview-copy').addEventListener('click', () => {
             const text = preview.innerText;
             if (!text.trim()) { showToast('预览内容为空'); return; }
-            const htmlBlob = new Blob([preview.innerHTML], { type: 'text/html' });
+            const htmlBlob = new Blob([getSanitizedPreviewHtml()], { type: 'text/html' });
             const textBlob = new Blob([text], { type: 'text/plain' });
             const item = new ClipboardItem({
                 'text/html': htmlBlob,

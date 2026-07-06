@@ -25,8 +25,9 @@ class ThemeManager {
     detectParentTheme() {
         try {
             // 尝试从父窗口获取主题
-            if (parent && parent.document && parent.window !== window) {
-                const parentTheme = parent.document.documentElement.getAttribute('data-theme');
+            const parentRoot = this.getSafeParentDocumentElement();
+            if (parentRoot) {
+                const parentTheme = parentRoot.getAttribute('data-theme');
                 if (parentTheme) {
                     this.applyTheme(parentTheme);
                     return;
@@ -76,11 +77,12 @@ class ThemeManager {
      */
     watchParentThemeChanges() {
         try {
-            if (parent && parent.document && parent.window !== window) {
+            const parentRoot = this.getSafeParentDocumentElement();
+            if (parentRoot) {
                 const observer = new MutationObserver((mutations) => {
                     mutations.forEach((mutation) => {
                         if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
-                            const parentTheme = parent.document.documentElement.getAttribute('data-theme');
+                            const parentTheme = parentRoot.getAttribute('data-theme');
                             if (parentTheme !== this.currentTheme) {
                                 this.applyTheme(parentTheme);
                             }
@@ -88,7 +90,7 @@ class ThemeManager {
                     });
                 });
 
-                observer.observe(parent.document.documentElement, {
+                observer.observe(parentRoot, {
                     attributes: true,
                     attributeFilter: ['data-theme']
                 });
@@ -97,6 +99,17 @@ class ThemeManager {
             }
         } catch (e) {
             console.log('无法监听父窗口主题变化，使用本地主题管理');
+        }
+    }
+
+    getSafeParentDocumentElement() {
+        try {
+            if (window.parent === window) return null;
+            const parentDoc = window.parent && window.parent.document;
+            const parentRoot = parentDoc && parentDoc.documentElement;
+            return parentRoot instanceof Node ? parentRoot : null;
+        } catch (e) {
+            return null;
         }
     }
 

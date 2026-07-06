@@ -1878,8 +1878,20 @@
                 });
 
                 // 应用主题（与主页面保持一致）
+                function getSafeParentDocumentElement() {
+                    try {
+                        if (window.parent === window) return null;
+                        const parentDoc = window.parent && window.parent.document;
+                        const parentRoot = parentDoc && parentDoc.documentElement;
+                        return parentRoot instanceof Node ? parentRoot : null;
+                    } catch (e) {
+                        return null;
+                    }
+                }
+
                 function applyTheme() {
-                    const parentTheme = window.parent?.document?.documentElement?.getAttribute('data-theme');
+                    const parentRoot = getSafeParentDocumentElement();
+                    const parentTheme = parentRoot?.getAttribute('data-theme');
                     if (parentTheme) {
                         document.documentElement.setAttribute('data-theme', parentTheme);
                     }
@@ -1890,8 +1902,9 @@
                     applyTheme();
                 });
 
-                if (window.parent?.document?.documentElement) {
-                    observer.observe(window.parent.document.documentElement, {
+                const parentRoot = getSafeParentDocumentElement();
+                if (parentRoot) {
+                    observer.observe(parentRoot, {
                         attributes: true,
                         attributeFilter: ['data-theme']
                     });

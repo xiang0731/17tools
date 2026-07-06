@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 
 <head>
+    <meta charset="UTF-8">
     <title>链接清理工具</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="../css/theme.css">
@@ -868,75 +869,136 @@ https://shop.example.com/product/123?fbclid=abc123&gclid=def456&utm_term=keyword
             const statsContent = document.getElementById('statsContent');
             const uniqueRemovedParams = [...new Set(cleaningStats.removedParams)];
 
-            statsContent.innerHTML = `
-                <div class="stat-item">
-                    <span class="stat-label">处理链接数</span>
-                    <span class="stat-value">${cleaningStats.totalLinks}</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">清理成功数</span>
-                    <span class="stat-value">${cleaningStats.cleanedLinks}</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">移除参数数</span>
-                    <span class="stat-value">${cleaningStats.removedParams.length}</span>
-                </div>
-                ${uniqueRemovedParams.length > 0 ? `
-                <div class="removed-params">
-                    <div style="margin-bottom: var(--spacing-sm); font-weight: 500; color: var(--text-secondary);">
-                        <i class="fas fa-tags"></i> 移除的参数:
-                    </div>
-                    ${uniqueRemovedParams.map(param => {
-                const description = paramDescriptions[param] || '追踪参数';
-                return `<span class="param-tag">${param}<span class="param-description">(${description})</span></span>`;
-            }).join('')}
-                </div>
-                ` : ''}
-            `;
+            clearElement(statsContent);
+            statsContent.appendChild(createStatItem('处理链接数', cleaningStats.totalLinks));
+            statsContent.appendChild(createStatItem('清理成功数', cleaningStats.cleanedLinks));
+            statsContent.appendChild(createStatItem('移除参数数', cleaningStats.removedParams.length));
+
+            if (uniqueRemovedParams.length > 0) {
+                const removedParams = document.createElement('div');
+                removedParams.className = 'removed-params';
+
+                const title = document.createElement('div');
+                title.style.marginBottom = 'var(--spacing-sm)';
+                title.style.fontWeight = '500';
+                title.style.color = 'var(--text-secondary)';
+                appendIcon(title, 'fas fa-tags');
+                title.append(' 移除的参数:');
+                removedParams.appendChild(title);
+
+                uniqueRemovedParams.forEach(param => {
+                    const tag = document.createElement('span');
+                    tag.className = 'param-tag';
+                    tag.append(param);
+
+                    const description = document.createElement('span');
+                    description.className = 'param-description';
+                    description.textContent = `(${paramDescriptions[param] || '追踪参数'})`;
+                    tag.appendChild(description);
+                    removedParams.appendChild(tag);
+                });
+
+                statsContent.appendChild(removedParams);
+            }
         }
 
         function updateHistory() {
             const historyContent = document.getElementById('historyContent');
             const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+            clearElement(historyContent);
 
             if (cleaningHistory.length === 0) {
-                historyContent.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-clock"></i><br>
-                        暂无清理历史
-                    </div>
-                `;
+                const emptyState = document.createElement('div');
+                emptyState.className = 'empty-state';
+                appendIcon(emptyState, 'fas fa-clock');
+                emptyState.appendChild(document.createElement('br'));
+                emptyState.append('暂无清理历史');
+                historyContent.appendChild(emptyState);
                 clearHistoryBtn.style.display = 'none';
                 return;
             }
 
             clearHistoryBtn.style.display = 'flex';
-            historyContent.innerHTML = cleaningHistory.map((item, index) => `
-                <div class="history-item">
-                    <div class="history-time">
-                        <i class="fas fa-clock"></i> ${item.timestamp}
-                    </div>
-                    <div class="history-urls">
-                        <div class="history-url original">
-                            <strong>原链接:</strong> ${item.original}
-                        </div>
-                        <div class="history-url cleaned">
-                            <strong>清理后:</strong> ${item.cleaned}
-                        </div>
-                    </div>
-                    <div class="history-actions">
-                        <button class="history-btn restore" onclick="restoreLink('${item.original.replace(/'/g, "\\'")}')">
-                            <i class="fas fa-undo"></i> 还原
-                        </button>
-                        <button class="history-btn copy" onclick="copyHistoryLink('${item.original.replace(/'/g, "\\'")}', 'original')">
-                            <i class="fas fa-copy"></i> 复制原链接
-                        </button>
-                        <button class="history-btn copy" onclick="copyHistoryLink('${item.cleaned.replace(/'/g, "\\'")}', 'cleaned')">
-                            <i class="fas fa-copy"></i> 复制新链接
-                        </button>
-                    </div>
-                </div>
-            `).join('');
+            cleaningHistory.forEach(item => {
+                historyContent.appendChild(createHistoryItem(item));
+            });
+        }
+
+        function clearElement(element) {
+            while (element.firstChild) {
+                element.removeChild(element.firstChild);
+            }
+        }
+
+        function appendIcon(parent, className) {
+            const icon = document.createElement('i');
+            icon.className = className;
+            parent.appendChild(icon);
+            return icon;
+        }
+
+        function createStatItem(label, value) {
+            const item = document.createElement('div');
+            item.className = 'stat-item';
+
+            const labelEl = document.createElement('span');
+            labelEl.className = 'stat-label';
+            labelEl.textContent = label;
+
+            const valueEl = document.createElement('span');
+            valueEl.className = 'stat-value';
+            valueEl.textContent = value;
+
+            item.append(labelEl, valueEl);
+            return item;
+        }
+
+        function createHistoryItem(item) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'history-item';
+
+            const time = document.createElement('div');
+            time.className = 'history-time';
+            appendIcon(time, 'fas fa-clock');
+            time.append(` ${item.timestamp}`);
+
+            const urls = document.createElement('div');
+            urls.className = 'history-urls';
+            urls.append(
+                createHistoryUrl('original', '原链接:', item.original),
+                createHistoryUrl('cleaned', '清理后:', item.cleaned)
+            );
+
+            const actions = document.createElement('div');
+            actions.className = 'history-actions';
+            actions.append(
+                createHistoryButton('restore', 'fas fa-undo', '还原', () => restoreLink(item.original)),
+                createHistoryButton('copy', 'fas fa-copy', '复制原链接', (button) => copyHistoryLink(item.original, 'original', button)),
+                createHistoryButton('copy', 'fas fa-copy', '复制新链接', (button) => copyHistoryLink(item.cleaned, 'cleaned', button))
+            );
+
+            wrapper.append(time, urls, actions);
+            return wrapper;
+        }
+
+        function createHistoryUrl(type, label, value) {
+            const row = document.createElement('div');
+            row.className = `history-url ${type}`;
+
+            const strong = document.createElement('strong');
+            strong.textContent = label;
+            row.append(strong, ` ${value}`);
+            return row;
+        }
+
+        function createHistoryButton(type, iconClass, label, handler) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = `history-btn ${type}`;
+            appendIcon(button, iconClass);
+            button.append(` ${label}`);
+            button.addEventListener('click', () => handler(button));
+            return button;
         }
 
         function restoreLink(originalUrl) {
@@ -982,10 +1044,9 @@ https://shop.example.com/product/123?fbclid=abc123&gclid=def456&utm_term=keyword
             });
         }
 
-        function copyHistoryLink(url, type) {
+        function copyHistoryLink(url, type, button) {
             navigator.clipboard.writeText(url).then(() => {
                 // 临时显示成功提示
-                const button = event.target.closest('.history-btn');
                 const originalHTML = button.innerHTML;
                 const typeText = type === 'original' ? '原链接' : '新链接';
                 button.innerHTML = `<i class="fas fa-check"></i> 已复制${typeText}`;

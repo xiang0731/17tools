@@ -758,7 +758,11 @@
             document.getElementById('isLeapMonth').checked = false;
 
             try {
-                const date = new Date(solarDate);
+                const date = parseDateInput(solarDate);
+                if (!date) {
+                    showResult('请输入有效的公历日期！', 'error');
+                    return;
+                }
                 const year = date.getFullYear();
                 const month = date.getMonth() + 1;
                 const day = date.getDate();
@@ -936,6 +940,33 @@
             return `${year}-${month}-${day}T${hours}:${minutes}`;
         }
 
+        function parseDateInput(value) {
+            const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+            if (!match) return null;
+
+            const year = Number(match[1]);
+            const month = Number(match[2]);
+            const day = Number(match[3]);
+            const date = new Date(year, month - 1, day);
+
+            if (
+                date.getFullYear() !== year ||
+                date.getMonth() !== month - 1 ||
+                date.getDate() !== day
+            ) {
+                return null;
+            }
+
+            return date;
+        }
+
+        function formatDateInput(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
         // 设置指定输入框为今天
         function setToday(inputId) {
             document.getElementById(inputId).value = getTodayString();
@@ -1061,7 +1092,11 @@
                     return;
                 }
 
-                const date = new Date(startDate);
+                const date = parseDateInput(startDate);
+                if (!date) {
+                    alert('请输入有效的日期！');
+                    return;
+                }
                 switch (timeUnit) {
                     case 'days':
                         date.setDate(date.getDate() + timeValue);
@@ -1080,7 +1115,7 @@
                         break;
                 }
 
-                const resultDate = date.toISOString().split('T')[0];
+                const resultDate = formatDateInput(date);
                 const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
                 const weekday = weekdays[date.getDay()];
 
@@ -1114,8 +1149,12 @@
                     return;
                 }
 
-                const d1 = new Date(date1);
-                const d2 = new Date(date2);
+                const d1 = parseDateInput(date1);
+                const d2 = parseDateInput(date2);
+                if (!d1 || !d2) {
+                    alert('请输入有效的日期！');
+                    return;
+                }
                 const timeDiff = Math.abs(d2.getTime() - d1.getTime());
                 const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
 
@@ -1182,7 +1221,10 @@
                 }
 
                 const calculateOffsetDate = (baseDateStr, value, unit) => {
-                    const date = new Date(baseDateStr);
+                    const date = parseDateInput(baseDateStr);
+                    if (!date) {
+                        throw new Error('请输入有效的基准日期！');
+                    }
                     switch (unit) {
                         case 'days': date.setDate(date.getDate() + value); break;
                         case 'weeks': date.setDate(date.getDate() + value * 7); break;
@@ -1196,8 +1238,8 @@
                 const date1 = calculateOffsetDate(startDate, val1, unit1);
                 const date2 = calculateOffsetDate(startDate, val2, unit2);
 
-                const res1 = date1.toISOString().split('T')[0];
-                const res2 = date2.toISOString().split('T')[0];
+                const res1 = formatDateInput(date1);
+                const res2 = formatDateInput(date2);
                 const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
                 const w1 = weekdays[date1.getDay()];
                 const w2 = weekdays[date2.getDay()];

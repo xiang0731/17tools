@@ -475,10 +475,52 @@
                 updateDiff();
             }
 
+            function getTimeZoneOffsetHours(timeZone, date = new Date()) {
+                try {
+                    const parts = new Intl.DateTimeFormat('en-US', {
+                        timeZone,
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hourCycle: 'h23'
+                    }).formatToParts(date);
+
+                    const values = {};
+                    parts.forEach(part => {
+                        if (part.type !== 'literal') {
+                            values[part.type] = part.value;
+                        }
+                    });
+
+                    const zonedAsUtc = Date.UTC(
+                        Number(values.year),
+                        Number(values.month) - 1,
+                        Number(values.day),
+                        Number(values.hour),
+                        Number(values.minute),
+                        Number(values.second)
+                    );
+
+                    return (zonedAsUtc - date.getTime()) / 3600000;
+                } catch (e) {
+                    return timezoneData[timeZone]?.offset || 0;
+                }
+            }
+
+            function formatOffsetHours(hours) {
+                return Number.isInteger(hours) ? String(hours) : hours.toFixed(1).replace(/\.0$/, '');
+            }
+
             function updateDiff() {
-                const diff = timezoneData[state.right.tz].offset - timezoneData[state.left.tz].offset;
+                const now = new Date();
+                const leftOffset = getTimeZoneOffsetHours(state.left.tz, now);
+                const rightOffset = getTimeZoneOffsetHours(state.right.tz, now);
+                const diff = leftOffset - rightOffset;
                 const abs = Math.abs(diff);
-                dom.diff.textContent = diff === 0 ? "A 与 B 时间相同" : `A 比 B ${diff > 0 ? '早' : '晚'} ${abs} 小时`;
+                dom.diff.textContent = diff === 0 ? "A 与 B 时间相同" : `A 比 B ${diff > 0 ? '早' : '晚'} ${formatOffsetHours(abs)} 小时`;
             }
 
             function tick() {

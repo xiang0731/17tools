@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 
 <head>
+    <meta charset="UTF-8">
     <title>简单计算器</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="../css/theme.css">
@@ -528,44 +529,162 @@
             numbersInput.focus();
         }
 
+        class ExpressionParser {
+            constructor(expr) {
+                this.expr = expr.replace(/x/gi, '*');
+                this.index = 0;
+            }
+
+            parse() {
+                const value = this.parseExpression();
+                this.skipWhitespace();
+                if (!this.isAtEnd()) {
+                    throw new Error('算式不完整');
+                }
+                return value;
+            }
+
+            parseExpression() {
+                let value = this.parseTerm();
+                while (true) {
+                    this.skipWhitespace();
+                    if (this.match('+')) {
+                        value += this.parseTerm();
+                    } else if (this.match('-')) {
+                        value -= this.parseTerm();
+                    } else {
+                        return value;
+                    }
+                }
+            }
+
+            parseTerm() {
+                let value = this.parsePower();
+                while (true) {
+                    this.skipWhitespace();
+                    if (this.match('*')) {
+                        if (this.peek() === '*') {
+                            this.index--;
+                            return value;
+                        }
+                        value *= this.parsePower();
+                    } else if (this.match('/')) {
+                        const divisor = this.parsePower();
+                        if (divisor === 0) {
+                            throw new Error('除数不能为0');
+                        }
+                        value /= divisor;
+                    } else {
+                        return value;
+                    }
+                }
+            }
+
+            parsePower() {
+                let value = this.parseUnary();
+                this.skipWhitespace();
+                if (this.match('**')) {
+                    value = value ** this.parsePower();
+                }
+                return value;
+            }
+
+            parseUnary() {
+                this.skipWhitespace();
+                if (this.match('+')) return this.parseUnary();
+                if (this.match('-')) return -this.parseUnary();
+                return this.parsePrimary();
+            }
+
+            parsePrimary() {
+                this.skipWhitespace();
+
+                if (this.match('(')) {
+                    const value = this.parseExpression();
+                    this.skipWhitespace();
+                    if (!this.match(')')) {
+                        throw new Error('括号未闭合');
+                    }
+                    return value;
+                }
+
+                return this.parseNumber();
+            }
+
+            parseNumber() {
+                this.skipWhitespace();
+                const start = this.index;
+                let hasDigit = false;
+                let hasDot = false;
+
+                while (!this.isAtEnd()) {
+                    const char = this.peek();
+                    if (char >= '0' && char <= '9') {
+                        hasDigit = true;
+                        this.index++;
+                    } else if (char === '.' && !hasDot) {
+                        hasDot = true;
+                        this.index++;
+                    } else {
+                        break;
+                    }
+                }
+
+                if (!hasDigit) {
+                    throw new Error('算式不完整');
+                }
+
+                return Number(this.expr.slice(start, this.index));
+            }
+
+            match(token) {
+                if (this.expr.slice(this.index, this.index + token.length) === token) {
+                    this.index += token.length;
+                    return true;
+                }
+                return false;
+            }
+
+            peek() {
+                return this.expr[this.index] || '';
+            }
+
+            isAtEnd() {
+                return this.index >= this.expr.length;
+            }
+
+            skipWhitespace() {
+                while (/\s/.test(this.peek())) {
+                    this.index++;
+                }
+            }
+        }
+
         // 安全地计算单个表达式
         function evaluateExpression(expr) {
+            const trimmed = expr.trim();
+            if (!trimmed) return { value: 0, error: null };
+
             try {
-                // 将 x 或 X 替换为 *
-                const normalizedExpr = expr.replace(/x/gi, '*');
-                // 清理表达式，移除危险字符
-                const cleanExpr = normalizedExpr.replace(/[^0-9+\-*/().\s]/g, '');
-                const trimmed = cleanExpr.trim();
-
-                if (!trimmed) return { value: 0, error: null };
-
-                // 预检：检查是否以运算符开头（除了正负号）
-                if (/^[*/]/.test(trimmed)) {
-                    return { value: 0, error: '算式不完整' };
+                if (/[^0-9+\-*/xX().\s]/.test(trimmed)) {
+                    return { value: 0, error: '非法字符' };
                 }
 
-                // 使用Function构造器执行表达式，添加严格模式
-                const result = Function('"use strict";return (' + cleanExpr + ')')();
+                const result = new ExpressionParser(trimmed).parse();
 
-                // 检查计算结果
-                if (result === Infinity || result === -Infinity) {
-                    return { value: 0, error: '除数不能为0' };
-                }
-                if (isNaN(result)) {
+                if (!Number.isFinite(result)) {
                     return { value: 0, error: '非法计算' };
                 }
 
                 return { value: result || 0, error: null };
             } catch (e) {
-                let errorMsg = '算式不完整';
-                const rawExpr = expr.trim();
+                let errorMsg = e.message || '算式不完整';
 
-                // 括号检查
-                const openCount = (rawExpr.match(/\(/g) || []).length;
-                const closeCount = (rawExpr.match(/\)/g) || []).length;
+                const openCount = (trimmed.match(/\(/g) || []).length;
+                const closeCount = (trimmed.match(/\)/g) || []).length;
                 if (openCount !== closeCount) {
                     errorMsg = '括号未闭合';
-                } else if (/[+\-*/]$/.test(rawExpr)) {
+                } else if (/[+\-*/xX]$/.test(trimmed)) {
                     errorMsg = '运算符结尾';
                 }
 

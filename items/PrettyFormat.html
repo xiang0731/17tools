@@ -770,6 +770,13 @@
         let lastDetectedLanguage = '';
         let isFormatting = false;
 
+        function syncOutputScroll() {
+            const outputCode = document.getElementById('output-code');
+            const outputLineNumbers = document.getElementById('output-line-numbers');
+            const codeOutput = outputCode.parentElement;
+            outputLineNumbers.scrollTop = codeOutput.scrollTop;
+        }
+
         // 事件监听器
         document.addEventListener('DOMContentLoaded', function () {
             const inputCode = document.getElementById('input-code');
@@ -780,6 +787,7 @@
             const downloadBtn = document.getElementById('download-btn');
             const downloadInputBtn = document.getElementById('download-input-btn');
             const clearBtn = document.getElementById('clear-btn');
+            const outputCode = document.getElementById('output-code');
 
             // 绑定事件
             formatBtn.addEventListener('click', formatCode);
@@ -794,6 +802,7 @@
             inputCode.addEventListener('input', debounce(handleInputChange, 300));
             inputCode.addEventListener('scroll', syncInputScroll);
             inputCode.addEventListener('input', updateInputLineNumbers);
+            outputCode.parentElement.addEventListener('scroll', syncOutputScroll);
 
             // 语言选择变化
             languageSelect.addEventListener('change', () => {
@@ -1049,11 +1058,7 @@
             // 应用语法高亮
             hljs.highlightElement(codeElement);
 
-            // 同步滚动
-            const codeOutput = outputCode.parentElement;
-            codeOutput.addEventListener('scroll', function () {
-                outputLineNumbers.scrollTop = codeOutput.scrollTop;
-            });
+            syncOutputScroll();
         }
 
         // 复制功能

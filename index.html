@@ -625,40 +625,43 @@
                         <i class="fas fa-bolt"></i>
                         <span>接口带宽计算</span>
                     </div>
-
-                </div>
-            </div>
-
-            <div class="nav-section">
-                <div class="nav-section-title">文本工具</div>
-                <div class="nav-item" data-file="Transformer.html">
-                    <i class="fas fa-magic"></i>
-                    <span>文本转换</span>
-                </div>
-                <div class="nav-item" data-file="Replacer.html">
-                    <i class="fas fa-exchange-alt"></i>
-                    <span>文本替换</span>
+                    <div class="nav-item" data-file="Regex.html">
+                        <i class="fas fa-asterisk"></i>
+                        <span>正则表达式</span>
+                    </div>
                 </div>
 
-                <div class="nav-item" data-file="Divider.html">
-                    <i class="fas fa-columns"></i>
-                    <span>文本分割</span>
-                </div>
-                <div class="nav-item" data-file="LinkCleaner.html">
-                    <i class="fas fa-link"></i>
-                    <span>链接清理</span>
-                </div>
-                <div class="nav-item" data-file="Markdown.html">
-                    <i class="fab fa-markdown"></i>
-                    <span>Markdown 编辑器</span>
-                </div>
-                <div class="nav-item" data-file="PrettyFormat.html">
-                    <i class="fas fa-code"></i>
-                    <span>代码格式化</span>
-                </div>
-                <div class="nav-item" data-file="CodeDiff.html">
-                    <i class="fas fa-code-compare"></i>
-                    <span>代码对比</span>
+                <div class="nav-section">
+                    <div class="nav-section-title">文本工具</div>
+                    <div class="nav-item" data-file="Transformer.html">
+                        <i class="fas fa-magic"></i>
+                        <span>文本转换</span>
+                    </div>
+                    <div class="nav-item" data-file="Replacer.html">
+                        <i class="fas fa-exchange-alt"></i>
+                        <span>文本替换</span>
+                    </div>
+
+                    <div class="nav-item" data-file="Divider.html">
+                        <i class="fas fa-columns"></i>
+                        <span>文本分割</span>
+                    </div>
+                    <div class="nav-item" data-file="LinkCleaner.html">
+                        <i class="fas fa-link"></i>
+                        <span>链接清理</span>
+                    </div>
+                    <div class="nav-item" data-file="Markdown.html">
+                        <i class="fab fa-markdown"></i>
+                        <span>Markdown 编辑器</span>
+                    </div>
+                    <div class="nav-item" data-file="PrettyFormat.html">
+                        <i class="fas fa-code"></i>
+                        <span>代码格式化</span>
+                    </div>
+                    <div class="nav-item" data-file="CodeDiff.html">
+                        <i class="fas fa-code-compare"></i>
+                        <span>代码对比</span>
+                    </div>
                 </div>
 
                 <div class="nav-section">
@@ -799,11 +802,20 @@
                 const iframe = document.getElementById('content-frame');
                 if (!iframe) return;
 
+                const getIframeTargetOrigin = () => {
+                    try {
+                        const frameUrl = new URL(iframe.src || iframe.getAttribute('src'), window.location.href);
+                        return frameUrl.origin === 'null' ? window.location.origin : frameUrl.origin;
+                    } catch (e) {
+                        return window.location.origin;
+                    }
+                };
+
                 // 首选：postMessage，无跨域限制
                 try {
                     if (iframe.contentWindow) {
                         iframe.contentWindow.postMessage(
-                            { type: '17tools-theme', theme: this.currentTheme }, '*'
+                            { type: '17tools-theme', theme: this.currentTheme }, getIframeTargetOrigin()
                         );
                     }
                 } catch (e) { }
