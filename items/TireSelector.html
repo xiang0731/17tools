@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>轮胎选择器</title>
+    <link rel="stylesheet" href="../css/theme.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background: var(--background-primary);
+            color: var(--text-primary);
+            font-family: var(--font-family);
+        }
+
+        body {
+            padding: var(--spacing-lg);
+            overflow-x: hidden;
+        }
+
+        .page-shell {
+            width: min(1180px, 100%);
+            margin: 0 auto;
+        }
+
+        .page-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        h1 {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin: 0;
+            font-size: 28px;
+            line-height: 1.2;
+        }
+
+        .header-note {
+            max-width: 720px;
+            margin-top: var(--spacing-sm);
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .spec-chip {
+            flex: none;
+            min-width: 156px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--background-secondary);
+            box-shadow: var(--shadow-sm);
+            padding: 10px 14px;
+            text-align: center;
+        }
+
+        .spec-chip-label {
+            color: var(--text-tertiary);
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .spec-chip-value {
+            color: var(--primary-color);
+            font-family: var(--font-mono);
+            font-size: 22px;
+            font-weight: 900;
+            line-height: 1.2;
+        }
+
+        .tool-section {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--background-secondary);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-bottom: 1px solid var(--border-color);
+            background: var(--background-tertiary);
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            color: var(--text-primary);
+            font-size: 16px;
+            font-weight: 800;
+        }
+
+        .section-subtitle {
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .tire-stage {
+            padding: var(--spacing-lg);
+            background:
+                linear-gradient(90deg, var(--primary-light), transparent 46%),
+                var(--background-secondary);
+        }
+
+        .tire-diagram {
+            --outer-size: 262px;
+            --rim-size: 128px;
+            --side-profile-width: 82px;
+            --side-profile-height: 262px;
+            --shadow-width: 66%;
+            position: relative;
+            min-height: 360px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            isolation: isolate;
+        }
+
+        .tire-visual {
+            width: var(--outer-size);
+            height: var(--outer-size);
+            border-radius: 50%;
+            background:
+                radial-gradient(circle at center,
+                    var(--background-primary) 0 18%,
+                    #94a3b8 19% 23%,
+                    #475569 24% 31%,
+                    #111827 32% 56%,
+                    #020617 57% 69%,
+                    transparent 70%),
+                repeating-conic-gradient(from -6deg, #020617 0 9deg, #334155 9deg 15deg);
+            box-shadow:
+                inset 0 0 0 10px #020617,
+                inset 0 0 0 28px rgba(15, 23, 42, 0.86),
+                0 18px 44px rgba(15, 23, 42, 0.22);
+            transition: width var(--transition-base), height var(--transition-base);
+            position: absolute;
+        }
+
+        [data-theme="dark"] .tire-stage {
+            background:
+                radial-gradient(circle at center, rgba(129, 140, 248, 0.16), transparent 44%),
+                linear-gradient(90deg, var(--primary-light), transparent 46%),
+                var(--background-secondary);
+        }
+
+        [data-theme="dark"] .tire-visual {
+            box-shadow:
+                inset 0 0 0 10px #020617,
+                inset 0 0 0 28px rgba(15, 23, 42, 0.86),
+                0 0 0 1px rgba(148, 163, 184, 0.24),
+                0 18px 54px rgba(0, 0, 0, 0.44);
+        }
+
+        .tire-visual::before {
+            content: "";
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: var(--rim-size);
+            height: var(--rim-size);
+            border-radius: 50%;
+            background:
+                radial-gradient(circle at center, #f8fafc 0 17%, #64748b 18% 23%, transparent 24%),
+                repeating-conic-gradient(from 0deg, #e2e8f0 0 8deg, #64748b 8deg 12deg, #cbd5e1 12deg 20deg);
+            box-shadow: inset 0 0 0 10px #94a3b8;
+            transform: translate(-50%, -50%);
+            mask: radial-gradient(circle, transparent 0 19%, #000 20% 72%, transparent 73%);
+        }
+
+        .tire-visual::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: #475569;
+            border: 5px solid #cbd5e1;
+            transform: translate(-50%, -50%);
+        }
+
+        .tire-side-view {
+            position: absolute;
+            width: var(--side-profile-width);
+            height: var(--side-profile-height);
+            pointer-events: none;
+            transition: all var(--transition-base);
+        }
+
+        .tire-side-profile {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            border-radius: 44% / 8%;
+            background:
+                linear-gradient(90deg,
+                    #020617 0 13%,
+                    #1e293b 18% 38%,
+                    #334155 48% 52%,
+                    #1e293b 62% 82%,
+                    #020617 87% 100%);
+            box-shadow:
+                inset 0 0 0 4px rgba(2, 6, 23, 0.88),
+                inset 12px 0 22px rgba(148, 163, 184, 0.18),
+                inset -12px 0 22px rgba(0, 0, 0, 0.34),
+                0 14px 34px rgba(15, 23, 42, 0.18);
+        }
+
+        .tire-side-profile::before {
+            content: "";
+            position: absolute;
+            inset: 8px 14%;
+            border-radius: inherit;
+            background:
+                repeating-linear-gradient(0deg,
+                    rgba(148, 163, 184, 0.34) 0 3px,
+                    transparent 3px 10px);
+            opacity: 0.72;
+        }
+
+        .tire-side-profile::after {
+            content: "";
+            position: absolute;
+            top: 8px;
+            bottom: 8px;
+            left: 50%;
+            width: 2px;
+            border-radius: var(--radius-full);
+            background: rgba(226, 232, 240, 0.26);
+            transform: translateX(-50%);
+        }
+
+        .tire-shadow {
+            position: absolute;
+            left: 50%;
+            bottom: 24px;
+            width: min(360px, var(--shadow-width));
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(15, 23, 42, 0.14);
+            filter: blur(4px);
+            transform: translateX(-50%);
+            z-index: -1;
+        }
+
+        .tire-marker {
+            position: absolute;
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0;
+            opacity: 0.88;
+            pointer-events: none;
+            transition: all var(--transition-base);
+        }
+
+        .marker-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            border: 1px solid color-mix(in srgb, var(--border-color) 72%, transparent);
+            border-radius: var(--radius-full);
+            background: color-mix(in srgb, var(--background-primary) 76%, transparent);
+            box-shadow: none;
+            padding: 5px 8px;
+            white-space: nowrap;
+            backdrop-filter: blur(6px);
+        }
+
+        .tire-marker i {
+            color: var(--primary-color);
+            opacity: 0.76;
+        }
+
+        .marker-width {
+            height: 34px;
+            border-top: 1px solid color-mix(in srgb, var(--primary-color) 62%, transparent);
+            text-align: center;
+        }
+
+        .marker-width::before,
+        .marker-width::after {
+            content: "";
+            position: absolute;
+            top: -6px;
+            width: 1px;
+            height: 12px;
+            background: color-mix(in srgb, var(--primary-color) 62%, transparent);
+        }
+
+        .marker-width::before {
+            left: 0;
+        }
+
+        .marker-width::after {
+            right: 0;
+        }
+
+        .marker-width .marker-label {
+            margin-top: 7px;
+        }
+
+        .marker-rim {
+            height: 28px;
+            border-top: 1px dashed color-mix(in srgb, var(--accent-color) 64%, transparent);
+            text-align: center;
+        }
+
+        .marker-rim::before,
+        .marker-rim::after {
+            content: "";
+            position: absolute;
+            top: -5px;
+            width: 1px;
+            height: 10px;
+            background: color-mix(in srgb, var(--accent-color) 64%, transparent);
+        }
+
+        .marker-rim::before {
+            left: 0;
+        }
+
+        .marker-rim::after {
+            right: 0;
+        }
+
+        .marker-rim .marker-label {
+            margin-top: 6px;
+        }
+
+        .marker-aspect {
+            width: 132px;
+            border-left: 1px solid color-mix(in srgb, var(--warning-color) 68%, transparent);
+        }
+
+        .marker-aspect::before,
+        .marker-aspect::after {
+            content: "";
+            position: absolute;
+            left: -6px;
+            width: 12px;
+            height: 1px;
+            background: color-mix(in srgb, var(--warning-color) 68%, transparent);
+        }
+
+        .marker-aspect::before {
+            top: 0;
+        }
+
+        .marker-aspect::after {
+            bottom: 0;
+        }
+
+        .marker-aspect .marker-label {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .selection-panel {
+            border-top: 1px solid var(--border-color);
+            background: var(--background-primary);
+        }
+
+        .selector-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: var(--spacing-md);
+            padding: var(--spacing-lg);
+            background: transparent;
+        }
+
+        .constraint-hint {
+            display: flex;
+            align-items: flex-start;
+            gap: var(--spacing-sm);
+            margin: 0 var(--spacing-lg) var(--spacing-md);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--background-secondary);
+            color: var(--text-secondary);
+            padding: var(--spacing-sm) var(--spacing-md);
+            font-size: 13px;
+            line-height: 1.55;
+        }
+
+        .constraint-hint i {
+            color: var(--primary-color);
+            margin-top: 2px;
+        }
+
+        .field-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-xs);
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .field-label span:last-child {
+            color: var(--text-tertiary);
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .form-select {
+            height: 44px;
+            font-weight: 700;
+        }
+
+        .metric-strip {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: var(--spacing-sm);
+            padding: 0 var(--spacing-lg) var(--spacing-lg);
+            background: transparent;
+        }
+
+        .metric-item {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--background-secondary);
+            padding: var(--spacing-sm) var(--spacing-md);
+        }
+
+        .metric-label {
+            color: var(--text-tertiary);
+            font-size: 12px;
+            font-weight: 800;
+            margin-bottom: 3px;
+        }
+
+        .metric-value {
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 18px;
+            font-weight: 900;
+            line-height: 1.2;
+        }
+
+        .explanation-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: var(--spacing-md);
+            padding: var(--spacing-lg);
+        }
+
+        .explanation-item {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--background-primary);
+            padding: var(--spacing-md);
+        }
+
+        .explanation-title {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-sm);
+            color: var(--text-primary);
+            font-size: 15px;
+            font-weight: 900;
+        }
+
+        .explanation-title i {
+            color: var(--primary-color);
+        }
+
+        .explanation-copy {
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 1.65;
+        }
+
+        .purchase-list {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-lg);
+        }
+
+        .purchase-item {
+            display: grid;
+            grid-template-columns: minmax(128px, 0.3fr) minmax(230px, 0.7fr) minmax(260px, 1fr);
+            gap: var(--spacing-md);
+            align-items: center;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--background-primary);
+            padding: var(--spacing-md);
+        }
+
+        .purchase-kind {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            min-width: 0;
+            font-weight: 900;
+        }
+
+        .purchase-kind i {
+            color: var(--primary-color);
+            width: 18px;
+            text-align: center;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: fit-content;
+            min-width: 54px;
+            border-radius: var(--radius-full);
+            padding: 3px 9px;
+            font-size: 12px;
+            font-weight: 900;
+        }
+
+        .status-good {
+            background: rgba(16, 185, 129, 0.12);
+            color: var(--success-color);
+        }
+
+        .status-neutral {
+            background: var(--primary-light);
+            color: var(--primary-color);
+        }
+
+        .status-warn {
+            background: rgba(245, 158, 11, 0.14);
+            color: var(--warning-color);
+        }
+
+        .range-text {
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 800;
+            line-height: 1.5;
+        }
+
+        .advice-text {
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .safety-note {
+            padding: 0 var(--spacing-lg) var(--spacing-lg);
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
+        .safety-note strong {
+            color: var(--text-primary);
+        }
+
+        @media (max-width: 920px) {
+            body {
+                padding: var(--spacing-md);
+            }
+
+            .page-header {
+                display: block;
+            }
+
+            .spec-chip {
+                display: inline-block;
+                margin-top: var(--spacing-md);
+            }
+
+            .selector-grid,
+            .metric-strip,
+            .explanation-grid,
+            .purchase-item {
+                grid-template-columns: 1fr;
+            }
+
+            .tire-diagram {
+                min-height: 330px;
+            }
+        }
+
+        @media (max-width: 560px) {
+            body {
+                padding: var(--spacing-sm);
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .section-header {
+                display: block;
+            }
+
+            .section-subtitle {
+                margin-top: var(--spacing-xs);
+            }
+
+            .tire-stage {
+                padding: var(--spacing-md);
+            }
+
+            .tire-diagram {
+                min-height: 300px;
+            }
+
+            .marker-label {
+                font-size: 11px;
+                padding: 4px 6px;
+            }
+
+            .marker-aspect {
+                width: 96px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="page-shell">
+        <header class="page-header">
+            <div>
+                <h1><i class="fas fa-circle-dot"></i> 轮胎选择器</h1>
+                <div class="header-note">
+                    选择胎宽、扁平比和轮毂尺寸，查看规格含义、轮胎图形变化和购买参考范围。这里提供科普和初筛参考，换规格前仍应确认车辆手册、载重指数和速度级别。
+                </div>
+            </div>
+            <div class="spec-chip" aria-live="polite">
+                <div class="spec-chip-label">当前规格</div>
+                <div class="spec-chip-value" id="currentSpec">265/45 R22</div>
+            </div>
+        </header>
+
+        <section class="tool-section" aria-label="轮胎规格选择">
+            <div class="tire-stage">
+                <div class="tire-diagram" id="tireDiagram">
+                    <div class="tire-visual" id="tireVisual" aria-hidden="true"></div>
+                    <div class="tire-side-view" id="tireSideView" aria-hidden="true">
+                        <div class="tire-side-profile" id="tireSideProfile"></div>
+                    </div>
+                    <div class="tire-shadow" aria-hidden="true"></div>
+
+                    <div class="tire-marker marker-width" id="widthMarker" data-marker="width">
+                        <span class="marker-label"><i class="fas fa-arrows-left-right"></i><span id="widthMarkerValue">断面宽 265mm</span></span>
+                    </div>
+                    <div class="tire-marker marker-aspect" id="aspectMarker" data-marker="aspect">
+                        <span class="marker-label"><i class="fas fa-up-down"></i><span id="aspectMarkerValue">胎壁 119.3mm</span></span>
+                    </div>
+                    <div class="tire-marker marker-rim" id="rimMarker" data-marker="rim">
+                        <span class="marker-label"><i class="fas fa-circle-notch"></i><span id="rimMarkerValue">轮毂 R22</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="selection-panel">
+                <div class="selector-grid">
+                    <div class="selector-field">
+                        <label class="field-label" for="tireWidthSelect">
+                            <span>胎宽（断面）</span>
+                            <span>mm</span>
+                        </label>
+                        <select class="form-input form-select" id="tireWidthSelect"></select>
+                    </div>
+                    <div class="selector-field">
+                        <label class="field-label" for="aspectRatioSelect">
+                            <span>扁平比</span>
+                            <span>%</span>
+                        </label>
+                        <select class="form-input form-select" id="aspectRatioSelect"></select>
+                    </div>
+                    <div class="selector-field">
+                        <label class="field-label" for="rimDiameterSelect">
+                            <span>轮毂直径</span>
+                            <span>inch</span>
+                        </label>
+                        <select class="form-input form-select" id="rimDiameterSelect"></select>
+                    </div>
+                </div>
+
+                <div class="constraint-hint" id="constraintHint" aria-live="polite">
+                    <i class="fas fa-link"></i>
+                    <span>当前规格会按常见量产轮胎尺寸自动约束可选项。</span>
+                </div>
+
+                <div class="metric-strip" aria-label="规格估算">
+                    <div class="metric-item">
+                        <div class="metric-label">外径估算</div>
+                        <div class="metric-value" id="overallDiameterValue">797.3mm</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">胎壁高度</div>
+                        <div class="metric-value" id="sidewallValue">119.3mm</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">轮毂直径</div>
+                        <div class="metric-value" id="rimDiameterValue">558.8mm</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">滚动周长</div>
+                        <div class="metric-value" id="circumferenceValue">2505mm</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="tool-section" id="tireExplanationSection">
+            <div class="section-header">
+                <div class="section-title"><i class="fas fa-book-open"></i> 基础属性解释</div>
+                <div class="section-subtitle">每个数字都对应轮胎的一部分，图形标识会随上方选择同步变化。</div>
+            </div>
+            <div class="explanation-grid">
+                <div class="explanation-item">
+                    <div class="explanation-title"><i class="fas fa-arrows-left-right"></i><span id="widthTitle">胎宽 265mm</span></div>
+                    <div class="explanation-copy" id="widthExplanation">
+                        胎宽是轮胎横截面宽度。更宽通常带来更强抓地潜力，也可能增加胎噪、油耗和轮拱空间要求。
+                    </div>
+                </div>
+                <div class="explanation-item">
+                    <div class="explanation-title"><i class="fas fa-up-down"></i><span id="aspectTitle">扁平比 45%</span></div>
+                    <div class="explanation-copy" id="aspectExplanation">
+                        扁平比表示胎壁高度约为胎宽的百分比。数值越小胎壁越薄，转向更直接，舒适缓冲通常更少。
+                    </div>
+                </div>
+                <div class="explanation-item">
+                    <div class="explanation-title"><i class="fas fa-circle-notch"></i><span id="rimTitle">轮毂 R22</span></div>
+                    <div class="explanation-copy" id="rimExplanation">
+                        R 表示子午线轮胎，22 表示适配 22 英寸轮圈。大轮圈视觉效果强，但轮胎成本和舒适性压力更高。
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="tool-section" id="purchaseReferenceSection">
+            <div class="section-header">
+                <div class="section-title"><i class="fas fa-list-check"></i> 购买参考</div>
+                <div class="section-subtitle">不是用途选择器，而是按常见购买方向列出适合的规格范围和当前规格匹配度。</div>
+            </div>
+            <div class="purchase-list" id="purchaseReferenceList"></div>
+            <div class="safety-note">
+                <strong>提示：</strong>同一规格下，不同品牌和型号的取向差异很大。购买时还要核对原厂规格、载重指数、速度级别、生产日期、胎纹深度和四轮一致性。
+            </div>
+        </section>
+    </main>
+
+    <script src="../js/tire-selector-core.js"></script>
+    <script src="../js/theme.js"></script>
+    <script>
+        const {
+            WIDTH_OPTIONS,
+            getConstrainedOptions,
+            normalizeTireSelection,
+            calculateTireMetrics,
+            getPurchaseReferences,
+            getVisualModel
+        } = window.TireSelectorCore;
+
+        const state = {
+            width: 265,
+            aspectRatio: 45,
+            rimDiameter: 22
+        };
+
+        const elements = {
+            widthSelect: document.getElementById('tireWidthSelect'),
+            aspectSelect: document.getElementById('aspectRatioSelect'),
+            rimSelect: document.getElementById('rimDiameterSelect'),
+            currentSpec: document.getElementById('currentSpec'),
+            tireDiagram: document.getElementById('tireDiagram'),
+            tireVisual: document.getElementById('tireVisual'),
+            tireSideView: document.getElementById('tireSideView'),
+            tireSideProfile: document.getElementById('tireSideProfile'),
+            widthMarker: document.getElementById('widthMarker'),
+            aspectMarker: document.getElementById('aspectMarker'),
+            rimMarker: document.getElementById('rimMarker'),
+            widthMarkerValue: document.getElementById('widthMarkerValue'),
+            aspectMarkerValue: document.getElementById('aspectMarkerValue'),
+            rimMarkerValue: document.getElementById('rimMarkerValue'),
+            constraintHint: document.getElementById('constraintHint'),
+            overallDiameterValue: document.getElementById('overallDiameterValue'),
+            sidewallValue: document.getElementById('sidewallValue'),
+            rimDiameterValue: document.getElementById('rimDiameterValue'),
+            circumferenceValue: document.getElementById('circumferenceValue'),
+            widthTitle: document.getElementById('widthTitle'),
+            aspectTitle: document.getElementById('aspectTitle'),
+            rimTitle: document.getElementById('rimTitle'),
+            widthExplanation: document.getElementById('widthExplanation'),
+            aspectExplanation: document.getElementById('aspectExplanation'),
+            rimExplanation: document.getElementById('rimExplanation'),
+            purchaseReferenceList: document.getElementById('purchaseReferenceList')
+        };
+
+        function renderOptions(select, values, currentValue, formatter) {
+            select.innerHTML = values.map(value => {
+                const selected = value === currentValue ? 'selected' : '';
+                return `<option value="${value}" ${selected}>${formatter(value)}</option>`;
+            }).join('');
+        }
+
+        function formatMm(value) {
+            return `${value}mm`;
+        }
+
+        function formatRange(prefix, values) {
+            if (values.length === 1) {
+                return `${prefix}${values[0]}`;
+            }
+
+            return `${prefix}${values[0]}-${prefix}${values[values.length - 1]}`;
+        }
+
+        function renderTireSelection() {
+            const constraints = getConstrainedOptions(state);
+            Object.assign(state, constraints.normalized);
+
+            renderOptions(elements.widthSelect, WIDTH_OPTIONS, state.width, value => `${value} mm`);
+            renderOptions(elements.aspectSelect, constraints.aspectRatios, state.aspectRatio, value => `${value}%`);
+            renderOptions(elements.rimSelect, constraints.rimDiameters, state.rimDiameter, value => `R${value}`);
+
+            elements.constraintHint.querySelector('span').textContent =
+                `当前 ${state.width}/${state.aspectRatio} 常见轮毂为 ${formatRange('R', constraints.rimDiameters)}；${state.width}mm 胎宽常见扁平比为 ${formatRange('', constraints.aspectRatios)}%。已隐藏明显不常见组合，最终以车辆手册和门店库存为准。`;
+        }
+
+        function setMarkerBox(element, styles) {
+            Object.entries(styles).forEach(([key, value]) => {
+                element.style[key] = value;
+            });
+        }
+
+        function updateTireVisualization(metrics) {
+            const visual = getVisualModel(metrics);
+            const diagramWidth = elements.tireDiagram.clientWidth || 720;
+            const centerX = diagramWidth / 2;
+            const top = 46;
+            const outer = visual.outerSize;
+            const rim = visual.rimSize;
+            const sidewall = visual.sidewallSize;
+            const sectionWidth = visual.sectionWidth;
+            const isNarrow = diagramWidth < 460;
+            const sideGap = isNarrow ? 18 : 150;
+            const pairWidth = outer + sideGap + sectionWidth;
+            const sideProfileHeight = isNarrow ? Math.round(outer * 0.68) : outer;
+            const sideFitsRight = pairWidth <= diagramWidth - 16;
+            const frontLeft = sideFitsRight
+                ? Math.max(8, centerX - pairWidth / 2)
+                : Math.max(8, centerX - outer / 2);
+            const frontCenterX = frontLeft + outer / 2;
+            const sideLeft = frontCenterX + outer / 2 + sideGap;
+            const sideMarkerLeft = sideFitsRight
+                ? sideLeft
+                : Math.max(8, frontCenterX - sectionWidth / 2);
+            const sideTop = sideFitsRight ? top : top + outer + 32;
+            const widthMarkerTop = sideTop + sideProfileHeight + 14;
+            const diagramMinHeight = Math.max(isNarrow ? 300 : 360, widthMarkerTop + 48);
+            const aspectMarkerWidth = isNarrow ? 106 : 132;
+            const aspectLeft = Math.max(
+                8,
+                Math.min(frontCenterX + rim / 2 + (isNarrow ? 8 : 22), diagramWidth - aspectMarkerWidth - 6)
+            );
+
+            elements.tireDiagram.style.setProperty('--outer-size', `${outer}px`);
+            elements.tireDiagram.style.setProperty('--rim-size', `${rim}px`);
+            elements.tireDiagram.style.setProperty('--side-profile-width', `${sectionWidth}px`);
+            elements.tireDiagram.style.setProperty('--side-profile-height', `${sideProfileHeight}px`);
+            elements.tireDiagram.style.setProperty('--shadow-width', `${visual.contactWidth}%`);
+            elements.tireDiagram.style.minHeight = `${diagramMinHeight}px`;
+
+            setMarkerBox(elements.tireVisual, {
+                left: `${frontLeft}px`,
+                top: `${top}px`,
+                width: `${outer}px`,
+                height: `${outer}px`
+            });
+
+            setMarkerBox(elements.tireSideView, {
+                left: `${sideMarkerLeft}px`,
+                top: `${sideTop}px`,
+                width: `${sectionWidth}px`,
+                height: `${sideProfileHeight}px`
+            });
+
+            setMarkerBox(elements.widthMarker, {
+                left: `${sideMarkerLeft}px`,
+                top: `${widthMarkerTop}px`,
+                width: `${sectionWidth}px`
+            });
+
+            setMarkerBox(elements.rimMarker, {
+                left: `${frontCenterX - rim / 2}px`,
+                top: `${top + outer / 2 + 6}px`,
+                width: `${rim}px`
+            });
+
+            setMarkerBox(elements.aspectMarker, {
+                left: `${aspectLeft}px`,
+                top: `${top + (outer - rim) / 2}px`,
+                width: `${aspectMarkerWidth}px`,
+                height: `${sidewall}px`
+            });
+        }
+
+        function updateExplanations(metrics) {
+            elements.widthTitle.textContent = `胎宽 ${metrics.width}mm`;
+            elements.aspectTitle.textContent = `扁平比 ${metrics.aspectRatio}%`;
+            elements.rimTitle.textContent = `轮毂 R${metrics.rimDiameter}`;
+
+            elements.widthExplanation.textContent = `${metrics.widthCategory}胎宽。这里的胎宽是轮胎断面宽度，不是侧视图里的外径。胎宽越大，接地面积和抓地潜力通常越高，也更容易带来胎噪、滚阻和空间兼容问题。`;
+            elements.aspectExplanation.textContent = `${metrics.aspectCategory}。当前胎壁约 ${formatMm(metrics.sidewallHeightMm)}，胎壁越低，路感越直接，但对坑洼和轮圈保护越弱。`;
+            elements.rimExplanation.textContent = `${metrics.rimCategory}。当前轮圈直径约 ${formatMm(metrics.rimDiameterMm)}，换更大轮毂前要确认刹车、轮拱和原厂允许范围。`;
+        }
+
+        function renderPurchaseReferences(metrics) {
+            const references = getPurchaseReferences(metrics);
+
+            elements.purchaseReferenceList.innerHTML = references.map(item => `
+                <div class="purchase-item">
+                    <div class="purchase-kind">
+                        <i class="fas ${item.icon}"></i>
+                        <span>${item.title}</span>
+                        <span class="status-badge status-${item.tone}">${item.status}</span>
+                    </div>
+                    <div class="range-text">${item.rangeText}</div>
+                    <div class="advice-text">${item.advice}</div>
+                </div>
+            `).join('');
+        }
+
+        function updatePage() {
+            Object.assign(state, normalizeTireSelection(state));
+            const metrics = calculateTireMetrics(state);
+
+            elements.currentSpec.textContent = metrics.spec;
+            elements.widthMarkerValue.textContent = `断面宽 ${metrics.width}mm`;
+            elements.aspectMarkerValue.textContent = window.innerWidth <= 560
+                ? `胎壁 ${formatMm(metrics.sidewallHeightMm)}`
+                : `胎壁 ${formatMm(metrics.sidewallHeightMm)} / ${metrics.aspectRatio}%`;
+            elements.rimMarkerValue.textContent = `轮毂 R${metrics.rimDiameter}`;
+            elements.overallDiameterValue.textContent = formatMm(metrics.overallDiameterMm);
+            elements.sidewallValue.textContent = formatMm(metrics.sidewallHeightMm);
+            elements.rimDiameterValue.textContent = formatMm(metrics.rimDiameterMm);
+            elements.circumferenceValue.textContent = formatMm(metrics.circumferenceMm);
+
+            updateTireVisualization(metrics);
+            updateExplanations(metrics);
+            renderPurchaseReferences(metrics);
+        }
+
+        function bindEvents() {
+            elements.widthSelect.addEventListener('change', () => {
+                state.width = Number(elements.widthSelect.value);
+                renderTireSelection();
+                updatePage();
+            });
+
+            elements.aspectSelect.addEventListener('change', () => {
+                state.aspectRatio = Number(elements.aspectSelect.value);
+                renderTireSelection();
+                updatePage();
+            });
+
+            elements.rimSelect.addEventListener('change', () => {
+                state.rimDiameter = Number(elements.rimSelect.value);
+                renderTireSelection();
+                updatePage();
+            });
+
+            window.addEventListener('resize', () => {
+                updatePage();
+            });
+        }
+
+        renderTireSelection();
+        bindEvents();
+        updatePage();
+    </script>
+</body>
+
+</html>

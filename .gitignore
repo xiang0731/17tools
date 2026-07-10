@@ -1,3 +1,10 @@
 
 testTools/
 otherDocs/
+.playwright-cli/
+
+tests/
+
+ISSUES_AUDIT.md
+
+ISSUES_FIX_REPORT.md

@@ -322,6 +322,12 @@
             background-color: var(--border-color);
         }
 
+        .footer-stat-separator {
+            display: inline-block;
+            margin-left: 16px;
+            vertical-align: middle;
+        }
+
         /* 移动端适配 */
         @media (max-width: 768px) {
             .sidebar {
@@ -681,6 +687,18 @@
                 </div>
 
                 <div class="nav-section">
+                    <div class="nav-section-title">其他工具</div>
+                    <div class="nav-item" data-file="TireSelector.html">
+                        <i class="fas fa-circle-dot"></i>
+                        <span>轮胎选择器</span>
+                    </div>
+                    <div class="nav-item" data-file="MartianText.html">
+                        <i class="fas fa-language"></i>
+                        <span>火星文转换</span>
+                    </div>
+                </div>
+
+                <div class="nav-section">
                     <div class="nav-section-title">研发中</div>
                     <div class="nav-item" data-file="WifiQRCode.html" data-protected="true">
                         <i class="fas fa-wifi"></i>
@@ -728,14 +746,14 @@
 
         <!-- 底部状态栏 -->
         <div class="footer" id="footer">
-            <span id="busuanzi_container_site_pv">
+            <span id="busuanzi_container_site_pv" style="display: none;">
                 本站总访问量<span id="busuanzi_value_site_pv"></span>次
+                <span class="footer-separator footer-stat-separator"></span>
             </span>
-            <div class="footer-separator"></div>
-            <span id="busuanzi_container_site_uv">
+            <span id="busuanzi_container_site_uv" style="display: none;">
                 访客数<span id="busuanzi_value_site_uv"></span>人次
+                <span class="footer-separator footer-stat-separator"></span>
             </span>
-            <div class="footer-separator"></div>
             <a href="https://github.com/xiang0731/17tools/issues/new" target="_blank">提问题/建议</a>
             <div class="footer-separator"></div>
             <a href="https://www.wow17.com" target="_blank">了解更多→WOW17</a>

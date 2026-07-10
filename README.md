@@ -37,6 +37,10 @@
 - 时间计算：日期加减、日期差、农历/公历转换和时间偏移计算。
 - 世界时间：多个时区的实时时钟和时差说明。
 
+### 其他工具
+
+- 轮胎选择器：通过胎宽、扁平比和轮毂尺寸选择，展示轮胎图形标识、规格解释和购买参考范围。
+
 ### 研发中工具
 
 - WiFi 二维码：生成 WiFi 配置二维码。
@@ -71,6 +75,7 @@
 ├── js/
 │   ├── auth.js
 │   ├── theme.js
+│   ├── tire-selector-core.js
 │   └── version.js
 ├── items/
 │   ├── Welcome.html
@@ -89,6 +94,7 @@
 │   ├── Calendar.html
 │   ├── DateCalculator.html
 │   ├── WorldTime.html
+│   ├── TireSelector.html
 │   ├── WifiQRCode.html
 │   ├── Keeper.html
 │   ├── History.html
