@@ -1436,62 +1436,84 @@
             }
         }
 
-        // 主题注入器
-        function injectTheme() {
+        function getSafeParentDocumentElement() {
             try {
-                const parentTheme = parent.document.documentElement.getAttribute('data-theme');
-                if (parentTheme) {
-                    document.documentElement.setAttribute('data-theme', parentTheme);
-                }
+                if (window.parent === window) return null;
+                const parentDoc = window.parent && window.parent.document;
+                const parentRoot = parentDoc && parentDoc.documentElement;
+                return parentRoot instanceof Node ? parentRoot : null;
             } catch (e) {
-                // 跨域限制，使用默认主题
-                console.log('无法获取父页面主题，使用默认主题');
+                return null;
             }
         }
 
-        // 初始化
-        document.addEventListener('DOMContentLoaded', () => {
-            injectTheme();
+        let currentAppliedTheme = null;
 
-            // 短暂延迟后初始化白板，确保DOM完全加载
+        function detectTheme() {
+            try {
+                const parentRoot = getSafeParentDocumentElement();
+                const parentTheme = parentRoot ? parentRoot.getAttribute('data-theme') : null;
+                if (parentTheme === 'light' || parentTheme === 'dark') {
+                    return parentTheme;
+                }
+            } catch (e) { }
+            try {
+                const stored = localStorage.getItem('theme');
+                if (stored === 'light' || stored === 'dark') {
+                    return stored;
+                }
+            } catch (e) { }
+            return 'light';
+        }
+
+        function applyTheme(theme) {
+            if (theme !== 'light' && theme !== 'dark') {
+                theme = 'light';
+            }
+            if (theme === currentAppliedTheme) {
+                return;
+            }
+            const previous = currentAppliedTheme;
+            currentAppliedTheme = theme;
+            document.documentElement.setAttribute('data-theme', theme);
+            if (window.whiteboard && previous) {
+                window.whiteboard.handleThemeChange(theme);
+            }
+        }
+
+        applyTheme(detectTheme());
+
+        document.addEventListener('DOMContentLoaded', () => {
+            applyTheme(detectTheme());
             setTimeout(() => {
                 window.whiteboard = new WhiteBoard();
-
-                // 隐藏加载动画
                 document.getElementById('loading').style.display = 'none';
             }, 100);
         });
 
-        // 监听主题变化
-        window.addEventListener('message', (event) => {
-            if (event.data && event.data.type === 'theme-change') {
-                const newTheme = event.data.theme;
-                document.documentElement.setAttribute('data-theme', newTheme);
-
-                // 如果白板已初始化，通知白板主题已改变
-                if (window.whiteboard) {
-                    window.whiteboard.handleThemeChange(newTheme);
-                }
+        window.addEventListener('message', (e) => {
+            if (e.data && e.data.type === '17tools-theme') {
+                applyTheme(e.data.theme);
             }
         });
 
-        // 使用 MutationObserver 监听 data-theme 属性变化（备用方案）
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
-                    const newTheme = document.documentElement.getAttribute('data-theme');
-                    if (window.whiteboard && newTheme) {
-                        window.whiteboard.handleThemeChange(newTheme);
-                    }
-                }
-            });
-        });
-
-        // 观察 documentElement 的属性变化
-        observer.observe(document.documentElement, {
+        new MutationObserver(() => {
+            const theme = document.documentElement.getAttribute('data-theme');
+            if (theme) {
+                applyTheme(theme);
+            }
+        }).observe(document.documentElement, {
             attributes: true,
             attributeFilter: ['data-theme']
         });
+
+        try {
+            const parentRoot = getSafeParentDocumentElement();
+            if (parentRoot) {
+                new MutationObserver(() => applyTheme(detectTheme()))
+                    .observe(parentRoot, { attributes: true, attributeFilter: ['data-theme'] });
+            }
+        } catch (e) { }
     </script>
 </body>
 
