@@ -160,7 +160,7 @@
 
         const state = {
             watermark: { items: [], selectedId: null },
-            crop: { items: [], selectedId: null, cropper: null, ratio: 'free' },
+            crop: { items: [], selectedId: null, cropper: null, cropImageUrl: null, ratio: 'free' },
             compress: { items: [], selectedId: null, controlMode: 'quality', previewUrl: null, lastBlob: null, lastPlan: null }
         };
 
@@ -226,11 +226,7 @@
             if (single && files.length > 1) {
                 showToast('裁切一次只能处理一张，已使用第一张');
             }
-            let incoming = single ? files.slice(0, 1) : files;
-            if (!single && incoming.length > core.MAX_BATCH_COUNT) {
-                showToast('一次最多 20 张，已忽略多余文件');
-                incoming = incoming.slice(0, core.MAX_BATCH_COUNT);
-            }
+            const incoming = single ? files.slice(0, 1) : files;
             const nextItems = single ? [] : bucket.items.slice();
             if (single) bucket.items.forEach(revokeItem);
             for (const file of incoming) {
@@ -256,6 +252,9 @@
                 } catch (error) {
                     errors.push(file.name + '：无法读取');
                 }
+            }
+            if (!single && nextItems.length > core.MAX_BATCH_COUNT) {
+                showToast('一次最多 20 张，已忽略多余文件');
             }
             bucket.items = nextItems.slice(0, core.MAX_BATCH_COUNT);
             bucket.selectedId = bucket.items[0] ? bucket.items[0].id : null;
@@ -424,7 +423,23 @@
             if (out.length) await exportBlobs(out, 'watermarked.zip');
         }
 
-        function renderCrop() {
+        function revokeCropImageUrl() {
+            if (state.crop.cropImageUrl) {
+                URL.revokeObjectURL(state.crop.cropImageUrl);
+                state.crop.cropImageUrl = null;
+            }
+        }
+
+        async function bitmapToObjectUrl(bitmap, mime) {
+            const canvas = document.createElement('canvas');
+            canvas.width = bitmap.width;
+            canvas.height = bitmap.height;
+            canvas.getContext('2d').drawImage(bitmap, 0, 0, bitmap.width, bitmap.height);
+            const blob = await canvasToBlob(canvas, mime, mime === 'image/png' ? undefined : 0.92);
+            return URL.createObjectURL(blob);
+        }
+
+        async function renderCrop() {
             const item = selected('crop');
             const wrap = document.getElementById('cropWrap');
             const hint = document.getElementById('cropHint');
@@ -434,6 +449,7 @@
                 state.crop.cropper.destroy();
                 state.crop.cropper = null;
             }
+            revokeCropImageUrl();
             if (!item) {
                 wrap.hidden = true;
                 hint.hidden = false;
@@ -443,15 +459,21 @@
             hint.hidden = true;
             wrap.hidden = false;
             document.getElementById('cropDrop').classList.add('has-image');
-            image.onload = () => {
-                if (state.crop.cropper) {
-                    state.crop.cropper.destroy();
-                    state.crop.cropper = null;
-                }
-                state.crop.cropper = new Cropper(image, { viewMode: 1, autoCropArea: 0.8, background: false, responsive: true });
-                applyCropRatio();
-            };
-            image.src = item.url;
+            try {
+                const orientedUrl = await bitmapToObjectUrl(item.bitmap, item.mime);
+                state.crop.cropImageUrl = orientedUrl;
+                image.onload = () => {
+                    if (state.crop.cropper) {
+                        state.crop.cropper.destroy();
+                        state.crop.cropper = null;
+                    }
+                    state.crop.cropper = new Cropper(image, { viewMode: 1, autoCropArea: 0.8, background: false, responsive: true });
+                    applyCropRatio();
+                };
+                image.src = orientedUrl;
+            } catch (error) {
+                setErrors('cropErrors', [item.name + '：无法读取']);
+            }
         }
 
         function applyCropRatio() {
@@ -568,7 +590,8 @@
                     if (!plan.hitTarget) {
                         lines.push(item.name + '：未达到目标体积，实际 ' + core.formatByteSize(blob.size).text);
                     }
-                    out.push({ blob, name: core.buildExportName(item.name, 'compressed', mime) });
+                    const exportMime = plan.passthrough ? item.mime : mime;
+                    out.push({ blob, name: core.buildExportName(item.name, 'compressed', exportMime) });
                 } catch (error) {
                     lines.push(item.name + '：无法读取');
                 }
@@ -700,6 +723,7 @@
         window.addEventListener('beforeunload', () => {
             ['watermark', 'crop', 'compress'].forEach((tab) => state[tab].items.forEach(revokeItem));
             if (state.compress.previewUrl) URL.revokeObjectURL(state.compress.previewUrl);
+            revokeCropImageUrl();
         });
     </script>
     <script src="../js/theme.js"></script>
