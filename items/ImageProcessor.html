@@ -161,7 +161,7 @@
         const state = {
             watermark: { items: [], selectedId: null },
             crop: { items: [], selectedId: null, cropper: null, cropImageUrl: null, ratio: 'free' },
-            compress: { items: [], selectedId: null, controlMode: 'quality', previewUrl: null, lastBlob: null, lastPlan: null }
+            compress: { items: [], selectedId: null, controlMode: 'quality', previewUrl: null, lastBlob: null, lastPlan: null, runId: 0 }
         };
 
         function loadSettings() {
@@ -226,7 +226,16 @@
             if (single && files.length > 1) {
                 showToast('裁切一次只能处理一张，已使用第一张');
             }
-            const incoming = single ? files.slice(0, 1) : files;
+            let incoming;
+            if (single) {
+                incoming = files.slice(0, 1);
+            } else {
+                const remaining = core.MAX_BATCH_COUNT - bucket.items.length;
+                if (files.length > remaining) {
+                    showToast('一次最多 20 张，已忽略多余文件');
+                }
+                incoming = files.slice(0, Math.max(0, remaining));
+            }
             const nextItems = single ? [] : bucket.items.slice();
             if (single) bucket.items.forEach(revokeItem);
             for (const file of incoming) {
@@ -253,10 +262,7 @@
                     errors.push(file.name + '：无法读取');
                 }
             }
-            if (!single && nextItems.length > core.MAX_BATCH_COUNT) {
-                showToast('一次最多 20 张，已忽略多余文件');
-            }
-            bucket.items = nextItems.slice(0, core.MAX_BATCH_COUNT);
+            bucket.items = nextItems;
             bucket.selectedId = bucket.items[0] ? bucket.items[0].id : null;
             setErrors(tab === 'watermark' ? 'wmErrors' : tab === 'crop' ? 'cropErrors' : 'cpErrors', errors);
             if (tab === 'watermark') renderWatermark();
@@ -430,12 +436,12 @@
             }
         }
 
-        async function bitmapToObjectUrl(bitmap, mime) {
+        async function bitmapToPngUrl(bitmap) {
             const canvas = document.createElement('canvas');
             canvas.width = bitmap.width;
             canvas.height = bitmap.height;
             canvas.getContext('2d').drawImage(bitmap, 0, 0, bitmap.width, bitmap.height);
-            const blob = await canvasToBlob(canvas, mime, mime === 'image/png' ? undefined : 0.92);
+            const blob = await canvasToBlob(canvas, 'image/png', undefined);
             return URL.createObjectURL(blob);
         }
 
@@ -444,7 +450,7 @@
             const wrap = document.getElementById('cropWrap');
             const hint = document.getElementById('cropHint');
             const image = document.getElementById('cropImage');
-            document.getElementById('cropExport').disabled = !item;
+            document.getElementById('cropExport').disabled = true;
             if (state.crop.cropper) {
                 state.crop.cropper.destroy();
                 state.crop.cropper = null;
@@ -460,19 +466,28 @@
             wrap.hidden = false;
             document.getElementById('cropDrop').classList.add('has-image');
             try {
-                const orientedUrl = await bitmapToObjectUrl(item.bitmap, item.mime);
+                const orientedUrl = await bitmapToPngUrl(item.bitmap);
                 state.crop.cropImageUrl = orientedUrl;
                 image.onload = () => {
                     if (state.crop.cropper) {
                         state.crop.cropper.destroy();
                         state.crop.cropper = null;
                     }
-                    state.crop.cropper = new Cropper(image, { viewMode: 1, autoCropArea: 0.8, background: false, responsive: true });
-                    applyCropRatio();
+                    try {
+                        if (typeof Cropper === 'undefined') throw new ReferenceError('Cropper missing');
+                        state.crop.cropper = new Cropper(image, { viewMode: 1, autoCropArea: 0.8, background: false, responsive: true });
+                        applyCropRatio();
+                        document.getElementById('cropExport').disabled = false;
+                        setErrors('cropErrors', []);
+                    } catch (error) {
+                        setErrors('cropErrors', ['裁切组件加载失败']);
+                        document.getElementById('cropExport').disabled = true;
+                    }
                 };
                 image.src = orientedUrl;
             } catch (error) {
                 setErrors('cropErrors', [item.name + '：无法读取']);
+                document.getElementById('cropExport').disabled = true;
             }
         }
 
@@ -536,43 +551,58 @@
         }
 
         async function renderCompress() {
+            const runId = ++state.compress.runId;
             const item = selected('compress');
-            renderThumbs('cpThumbs', 'compress', (id) => { state.compress.selectedId = id; renderCompress(); });
-            const preview = document.getElementById('cpPreview');
-            const hint = document.getElementById('cpHint');
-            document.getElementById('cpExport').disabled = !item;
-            if (!item) {
-                preview.hidden = true;
-                hint.hidden = false;
-                document.getElementById('cpStats').textContent = '';
-                return;
+            try {
+                renderThumbs('cpThumbs', 'compress', (id) => { state.compress.selectedId = id; renderCompress(); });
+                if (runId !== state.compress.runId) return;
+                const preview = document.getElementById('cpPreview');
+                const hint = document.getElementById('cpHint');
+                document.getElementById('cpExport').disabled = !item;
+                if (!item) {
+                    preview.hidden = true;
+                    hint.hidden = false;
+                    document.getElementById('cpStats').textContent = '';
+                    setErrors('cpErrors', []);
+                    return;
+                }
+                hint.hidden = true;
+                preview.hidden = false;
+                document.getElementById('cpDrop').classList.add('has-image');
+                const plan = await planCompress(item);
+                if (runId !== state.compress.runId) return;
+                state.compress.lastPlan = plan;
+                const mime = document.getElementById('cpFormat').value;
+                let blob;
+                if (plan.passthrough) {
+                    blob = item.file;
+                } else {
+                    blob = await encodeBitmap(item.bitmap, plan.width, plan.height, mime, plan.quality);
+                }
+                if (runId !== state.compress.runId) return;
+                state.compress.lastBlob = blob;
+                if (state.compress.previewUrl) URL.revokeObjectURL(state.compress.previewUrl);
+                state.compress.previewUrl = URL.createObjectURL(blob);
+                if (runId !== state.compress.runId) return;
+                preview.src = state.compress.previewUrl;
+                if (state.compress.controlMode === 'size') {
+                    document.getElementById('cpQuality').value = String(core.canvasToQuality(plan.quality));
+                } else {
+                    const formatted = core.formatByteSize(blob.size);
+                    document.getElementById('cpSize').value = String(formatted.value);
+                    document.getElementById('cpUnit').value = formatted.unit;
+                }
+                if (runId !== state.compress.runId) return;
+                const saved = item.size > 0 ? Math.max(0, Math.round((1 - blob.size / item.size) * 100)) : 0;
+                const note = plan.passthrough ? ' · 已小于或等于目标，未再压缩' : '';
+                document.getElementById('cpStats').textContent = `原体积 ${core.formatByteSize(item.size).text} · 结果 ${core.formatByteSize(blob.size).text} · 节省 ${saved}% · ${plan.width}×${plan.height}${note}`;
+                setErrors('cpErrors', []);
+            } catch (error) {
+                if (runId !== state.compress.runId) return;
+                const name = item ? item.name + '：' : '';
+                const reason = error && error.message ? error.message : '处理失败';
+                document.getElementById('cpErrors').textContent = name + reason;
             }
-            hint.hidden = true;
-            preview.hidden = false;
-            document.getElementById('cpDrop').classList.add('has-image');
-            const plan = await planCompress(item);
-            state.compress.lastPlan = plan;
-            const mime = document.getElementById('cpFormat').value;
-            let blob;
-            if (plan.passthrough) {
-                blob = item.file;
-            } else {
-                blob = await encodeBitmap(item.bitmap, plan.width, plan.height, mime, plan.quality);
-            }
-            state.compress.lastBlob = blob;
-            if (state.compress.previewUrl) URL.revokeObjectURL(state.compress.previewUrl);
-            state.compress.previewUrl = URL.createObjectURL(blob);
-            preview.src = state.compress.previewUrl;
-            if (state.compress.controlMode === 'size') {
-                document.getElementById('cpQuality').value = String(core.canvasToQuality(plan.quality));
-            } else {
-                const formatted = core.formatByteSize(blob.size);
-                document.getElementById('cpSize').value = String(formatted.value);
-                document.getElementById('cpUnit').value = formatted.unit;
-            }
-            const saved = item.size > 0 ? Math.max(0, Math.round((1 - blob.size / item.size) * 100)) : 0;
-            const note = plan.passthrough ? ' · 已小于或等于目标，未再压缩' : '';
-            document.getElementById('cpStats').textContent = `原体积 ${core.formatByteSize(item.size).text} · 结果 ${core.formatByteSize(blob.size).text} · 节省 ${saved}% · ${plan.width}×${plan.height}${note}`;
         }
 
         const renderCompressDebounced = debounce(renderCompress, 150);
