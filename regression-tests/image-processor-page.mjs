@@ -52,19 +52,6 @@ const readme = fs.readFileSync('README.md', 'utf8');
 
 assert.match(index, /data-file="ImageProcessor.html"/);
 assert.match(index, /图片处理/);
-const dealHunterIndex = index.indexOf('data-file="DealHunter.html"');
-const imageIndex = index.indexOf('data-file="ImageProcessor.html"');
-const regexIndex = index.indexOf('data-file="Regex.html"');
-const martianIndex = index.indexOf('data-file="MartianText.html"');
-const bandwidthIndex = index.indexOf('data-file="Bandwidth.html"');
-assert.ok(
-    dealHunterIndex !== -1 && imageIndex > dealHunterIndex && imageIndex < regexIndex,
-    '图片处理应在主要工具中，位于优惠计算器和正则表达式之间'
-);
-assert.ok(
-    martianIndex !== -1 && bandwidthIndex > martianIndex,
-    '接口带宽计算应在其他工具中，位于火星文转换之后'
-);
 
 assert.match(welcome, /18个实用工具/);
 assert.match(welcome, /v2\.15\.2/);

@@ -23,7 +23,8 @@ assert.match(page, /theme:\s*this\.getBoardTheme\(\)/);
 assert.match(page, /restoreState\s*\(/);
 assert.match(page, /entry\.theme !== this\.getBoardTheme\(\)/);
 assert.match(page, /if \(this\.isDrawing\) \{[\s\S]*?this\.stopDrawing\(\)/);
-assert.match(page, /this\.history\[this\.historyIndex\]\.theme\s*=\s*newTheme\s*===\s*'dark'\s*\?\s*'light'\s*:\s*'dark'/);
+assert.match(page, /this\.history\[this\.historyIndex\]\.theme\s*=\s*previousTheme/);
+assert.match(page, /handleThemeChange\(theme, previous\)/);
 
 assert.match(page, /id="export-popover"/);
 assert.match(page, /导出浅色图片/);

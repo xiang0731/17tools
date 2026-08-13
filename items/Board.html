@@ -1184,11 +1184,11 @@
                 ctx.putImageData(imageData, 0, 0);
             }
 
-            handleThemeChange(newTheme) {
+            handleThemeChange(newTheme, previousTheme) {
                 if (this.isDrawing) {
                     this.stopDrawing();
                     if (this.history[this.historyIndex]) {
-                        this.history[this.historyIndex].theme = newTheme === 'dark' ? 'light' : 'dark';
+                        this.history[this.historyIndex].theme = previousTheme;
                     }
                 }
 
@@ -1339,6 +1339,8 @@
                             this.ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
                             this.ctx.stroke();
                         }
+                        this.lastX = pos.x;
+                        this.lastY = pos.y;
                         break;
                 }
             }
@@ -1642,7 +1644,7 @@
             currentAppliedTheme = theme;
             document.documentElement.setAttribute('data-theme', theme);
             if (window.whiteboard && previous) {
-                window.whiteboard.handleThemeChange(theme);
+                window.whiteboard.handleThemeChange(theme, previous);
             }
         }
 
