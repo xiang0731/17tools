@@ -1,6 +1,6 @@
 # 17Tools
 
-17Tools 是一个基于 HTML/CSS/JavaScript 的轻量工具集合，当前包含文本处理、代码处理、时间日期、计算、白板和研发中工具等多个独立页面。
+17Tools 是一个基于 HTML/CSS/JavaScript 的轻量工具集合，当前包含文本处理、代码处理、时间日期、计算、图片处理、白板和研发中工具等多个独立页面。
 
 ## 功能特点
 
@@ -40,6 +40,7 @@
 ### 其他工具
 
 - 轮胎选择器：通过胎宽、扁平比和轮毂尺寸选择，展示轮胎图形标识、规格解释和购买参考范围。
+- 图片处理：本地添加文字水印、单张裁切，以及按目标体积或质量压缩图片。
 
 ### 研发中工具
 
@@ -56,7 +57,7 @@
 
 - 原生 HTML/CSS/JavaScript 实现。
 - 主题样式通过 `css/theme.css` 和 `js/theme.js` 共享。
-- 部分工具使用第三方库，例如 Prettier、highlight.js、Marked、Font Awesome。
+- 部分工具使用第三方库，例如 Prettier、highlight.js、Marked、Font Awesome、Cropper.js、JSZip。
 - 本地历史和草稿主要使用 `localStorage` 或 `sessionStorage`。
 
 ## 使用方法
@@ -76,6 +77,7 @@
 │   ├── auth.js
 │   ├── theme.js
 │   ├── tire-selector-core.js
+│   ├── image-processor-core.js
 │   └── version.js
 ├── items/
 │   ├── Welcome.html
@@ -95,6 +97,8 @@
 │   ├── DateCalculator.html
 │   ├── WorldTime.html
 │   ├── TireSelector.html
+│   ├── MartianText.html
+│   ├── ImageProcessor.html
 │   ├── WifiQRCode.html
 │   ├── Keeper.html
 │   ├── History.html
