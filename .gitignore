@@ -2,6 +2,7 @@
 testTools/
 otherDocs/
 .playwright-cli/
+.worktrees/
 
 tests/
 
