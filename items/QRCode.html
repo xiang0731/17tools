@@ -464,19 +464,16 @@
             });
         });
         btnCopy.addEventListener('click', () => {
-            if (!currentPayload) return;
-            canvas.toBlob(async (blob) => {
-                if (!blob || !navigator.clipboard || !window.ClipboardItem) {
-                    actionMsg.textContent = '无法复制，请改用下载';
-                    return;
-                }
-                try {
-                    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-                    actionMsg.textContent = '已复制到剪贴板';
-                } catch (err) {
-                    actionMsg.textContent = '无法复制，请改用下载';
-                }
-            }, 'image/png');
+            if (!currentPayload || !navigator.clipboard || !window.ClipboardItem) {
+                actionMsg.textContent = '无法复制，请改用下载';
+                return;
+            }
+            const blobPromise = new Promise((resolve, reject) => {
+                canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('no blob'))), 'image/png');
+            });
+            navigator.clipboard.write([new ClipboardItem({ 'image/png': blobPromise })])
+                .then(() => { actionMsg.textContent = '已复制到剪贴板'; })
+                .catch(() => { actionMsg.textContent = '无法复制，请改用下载'; });
         });
 
         applyStyle(loadStyle());
