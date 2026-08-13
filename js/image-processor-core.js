@@ -245,6 +245,7 @@
         }
 
         const minShort = Math.min(MIN_SHORT_SIDE_CAP, originalShort);
+        // Proportional clamp closes the gap when discrete 0.9 steps cannot land on the floor.
         if (!result.hit && Math.min(width, height) > minShort) {
             const ratio = minShort / Math.min(width, height);
             width = Math.max(1, Math.round(width * ratio));
@@ -258,7 +259,7 @@
             quality: result.quality,
             byteLength: result.byteLength,
             passthrough: false,
-            hitTarget: false
+            hitTarget: result.hit
         };
     }
 

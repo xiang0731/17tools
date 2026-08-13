@@ -115,6 +115,13 @@ assert.ok(scaled.width < 1000);
 assert.equal(scaled.hitTarget, true);
 assert.ok(scaled.byteLength <= 50000);
 
+const clampHit = await core.compressToTarget({
+    sourceWidth: 1000, sourceHeight: 800, sourceBytes: 900000, targetBytes: 25000,
+    controlMode: 'size', quality: 1, encode: fakeEncode
+});
+assert.equal(clampHit.hitTarget, true);
+assert.ok(clampHit.byteLength <= 25000);
+
 const missed = await core.compressToTarget({
     sourceWidth: 1000, sourceHeight: 800, sourceBytes: 900000, targetBytes: 1,
     controlMode: 'size', quality: 1, encode: fakeEncode
