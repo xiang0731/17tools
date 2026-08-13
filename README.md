@@ -20,7 +20,7 @@
 - 优惠计算器：折扣、满减和优惠方案对比。
 - 图片处理：本地添加文字水印（多种样式）、单张裁切，以及按目标体积或质量压缩图片；水印和压缩可按需批量处理。
 - 二维码工具：把文本、链接、WiFi、名片、邮件、电话或短信生成二维码，可调颜色、尺寸和纠错级别，并下载 PNG / SVG 或复制图片。
-- 正则工具：正则测试、匹配结果查看和测试文本生成。
+- 正则表达式：正则测试、匹配结果查看、常用预设和测试文本生成。
 
 ### 文本工具
 
@@ -41,11 +41,13 @@
 ### 其他工具
 
 - 轮胎选择器：通过胎宽、扁平比和轮毂尺寸选择，展示轮胎图形标识、规格解释和购买参考范围。
+- 火星文转换：把普通文本转成非主流火星文。
 - 接口带宽计算：按接口调用量、数据大小和时间窗口估算带宽。
 
 ### 研发中工具
 
-- WiFi 二维码：生成 WiFi 配置二维码。
+侧栏「研发中」入口受访问控制保护，未登录时显示为「敬请期待」。WiFi 二维码能力已并入正式「二维码工具」。
+
 - 防息屏工具：保持设备屏幕常亮。
 - DevTool1 / DevTool2：实验性工具入口。
 
@@ -57,7 +59,7 @@
 ## 技术实现
 
 - 原生 HTML/CSS/JavaScript 实现。
-- 主题样式通过 `css/theme.css` 和 `js/theme.js` 共享。
+- 主题样式通过 `css/theme.css` 共享，并由 `js/theme.js` 或 `js/theme-injector.js` 注入到各工具页。
 - 部分工具使用第三方库，例如 Prettier、highlight.js、Marked、Font Awesome、Cropper.js、JSZip、qrcode 1.5.1。
 - 本地历史和草稿主要使用 `localStorage` 或 `sessionStorage`。
 
@@ -77,16 +79,19 @@
 ├── js/
 │   ├── auth.js
 │   ├── theme.js
+│   ├── theme-injector.js
 │   ├── tire-selector-core.js
 │   ├── image-processor-core.js
 │   ├── qrcode-core.js
+│   ├── regex-tool.js
 │   └── version.js
 ├── items/
 │   ├── Welcome.html
 │   ├── Board.html
 │   ├── Calculator.html
 │   ├── DealHunter.html
-│   ├── Bandwidth.html
+│   ├── ImageProcessor.html
+│   ├── QRCode.html
 │   ├── Regex.html
 │   ├── Transformer.html
 │   ├── Replacer.html
@@ -100,14 +105,27 @@
 │   ├── WorldTime.html
 │   ├── TireSelector.html
 │   ├── MartianText.html
-│   ├── ImageProcessor.html
-│   ├── QRCode.html
+│   ├── Bandwidth.html
 │   ├── WifiQRCode.html
 │   ├── Keeper.html
+│   ├── DevTool1.html
+│   ├── DevTool2.html
 │   ├── History.html
 │   └── About.html
-├── testTools/
-├── tests/
-├── DRAWNIX_LICENSE.md
+├── regression-tests/
+├── docs/
 └── README.md
+```
+
+## 回归测试
+
+`regression-tests/` 下是可直接用 Node 运行的静态回归，用来锁住页面结构、核心逻辑和文档接入。例如：
+
+```bash
+node regression-tests/qrcode-core.mjs
+node regression-tests/qrcode-page.mjs
+node regression-tests/image-processor-core.mjs
+node regression-tests/image-processor-page.mjs
+node regression-tests/board-theme.mjs
+node regression-tests/history-layout.mjs
 ```

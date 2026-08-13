@@ -541,14 +541,14 @@
 
                 regexInput.value = preset.pattern.replace(/^\/|\/[gim]*$/g, ''); // strip outer slashes
                 testTextInput.value = preset.test;
-                
-                const cbGlobal = document.querySelector('[data-flag="g"]');
-                const cbIgnoreCase = document.querySelector('[data-flag="i"]');
-                if (cbGlobal) cbGlobal.checked = true;
-                if (cbIgnoreCase) cbIgnoreCase.checked = false;
-                
-                regexInput.dispatchEvent(new Event('input', { bubbles: true }));
-                testTextInput.dispatchEvent(new Event('input', { bubbles: true }));
+                replaceInput.value = preset.replacement ?? '';
+
+                const presetFlags = preset.flags || 'g';
+                flagInputs.forEach((input) => {
+                    input.checked = presetFlags.includes(input.dataset.flag);
+                });
+
+                evaluateAndRender();
                 
                 isLoadingPreset = false;
                 

@@ -31,6 +31,8 @@ assert.match(page, /无法复制，请改用下载/);
 assert.match(page, /已复制到剪贴板/);
 assert.match(page, /无法生成二维码，请缩短内容/);
 assert.match(page, /前景与背景对比过低，可能无法扫描/);
+assert.match(page, /决定图案被遮挡或印刷模糊时还能不能扫出来/);
+assert.match(page, /WPA \/ WPA2/);
 
 const index = fs.readFileSync('index.html', 'utf8');
 const welcome = fs.readFileSync('items/Welcome.html', 'utf8');

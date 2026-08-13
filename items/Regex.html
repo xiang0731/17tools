@@ -1160,6 +1160,25 @@
                 test: "123456789\n0\nabc123\n99.9"
             },
             {
+                name: "只筛选数字",
+                pattern: "\\d+",
+                desc: "从混合文本中匹配一个或多个连续数字，便于提取所有数字片段",
+                test: "订单 A-1024，共 3 件\n手机号：13812345678"
+            },
+            {
+                name: "只筛选字母",
+                pattern: "[a-zA-Z]+",
+                desc: "从混合文本中匹配连续英文字母（A-Z、a-z），不包含数字、中文和符号",
+                test: "abc123\nOpenAI 2026\n正则Regex工具"
+            },
+            {
+                name: "移除空格",
+                pattern: "\\s+",
+                replacement: "",
+                desc: "匹配连续空白字符，并在自由测试与替换模式中将其替换为空",
+                test: "Hello World\n正 则 工 具\t17 Tools"
+            },
+            {
                 name: "中文字符",
                 pattern: "^[\\u4e00-\\u9fa5]+$",
                 desc: "匹配纯中文字符串，不包含数字、字母及其他符号",
@@ -1366,7 +1385,37 @@
                 ]
             },
             {
-                // 7. 中文字符
+                // 7. 只筛选数字
+                anchorMode: "none",
+                limitLength: false,
+                flags: { global: true, ignoreCase: false, multiline: false },
+                logic: "",
+                segments: [
+                    { status: 'include', type: 'digit', quantifier: 'one-or-more' }
+                ]
+            },
+            {
+                // 8. 只筛选字母
+                anchorMode: "none",
+                limitLength: false,
+                flags: { global: true, ignoreCase: false, multiline: false },
+                logic: "",
+                segments: [
+                    { status: 'include', type: 'letter', quantifier: 'one-or-more' }
+                ]
+            },
+            {
+                // 9. 移除空格
+                anchorMode: "none",
+                limitLength: false,
+                flags: { global: true, ignoreCase: false, multiline: false },
+                logic: "",
+                segments: [
+                    { status: 'include', type: 'whitespace', quantifier: 'one-or-more' }
+                ]
+            },
+            {
+                // 10. 中文字符
                 anchorMode: "both",
                 limitLength: false,
                 flags: { global: true, ignoreCase: false, multiline: false },
@@ -1376,7 +1425,7 @@
                 ]
             },
             {
-                // 8. URL 网址
+                // 11. URL 网址
                 anchorMode: "both",
                 limitLength: false,
                 flags: { global: true, ignoreCase: false, multiline: false },

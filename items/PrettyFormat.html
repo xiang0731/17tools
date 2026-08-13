@@ -689,7 +689,9 @@
                 'info': 'fas fa-info-circle'
             };
 
-            statusEl.innerHTML = `<i class="${iconMap[type]}"></i> ${message}`;
+            const icon = document.createElement('i');
+            icon.className = iconMap[type] || iconMap.info;
+            statusEl.replaceChildren(icon, document.createTextNode(` ${String(message)}`));
             statusEl.classList.add('show');
 
             setTimeout(() => {

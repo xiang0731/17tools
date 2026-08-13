@@ -791,17 +791,22 @@
             // 创建历史记录项
             const historyItem = document.createElement('div');
             historyItem.className = 'history-item';
-            historyItem.innerHTML = `
-                <div class="history-time">
-                    <i class="fas fa-clock"></i> ${timestamp}
-                </div>
-                <div class="history-expression">
-                    <i class="fas fa-code"></i> ${formattedExpr}
-                </div>
-                <div class="history-result">
-                    <i class="fas fa-equals"></i> ${result}
-                </div>
-            `;
+
+            const createHistoryRow = (className, iconClass, text) => {
+                const row = document.createElement('div');
+                row.className = className;
+
+                const icon = document.createElement('i');
+                icon.className = iconClass;
+                row.append(icon, document.createTextNode(` ${text}`));
+                return row;
+            };
+
+            historyItem.append(
+                createHistoryRow('history-time', 'fas fa-clock', timestamp),
+                createHistoryRow('history-expression', 'fas fa-code', formattedExpr),
+                createHistoryRow('history-result', 'fas fa-equals', result)
+            );
 
             // 将新记录插入到历史记录的顶部
             const historyContainer = document.getElementById('history');

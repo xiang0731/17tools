@@ -1023,6 +1023,10 @@
             IMG: new Set(['src', 'alt', 'width', 'height', 'loading']),
             INPUT: new Set(['type', 'checked', 'disabled'])
         };
+        const DROP_MARKDOWN_CONTENT_TAGS = new Set([
+            'BASE', 'EMBED', 'IFRAME', 'LINK', 'MATH', 'META', 'NOSCRIPT',
+            'OBJECT', 'SCRIPT', 'STYLE', 'SVG', 'TEMPLATE'
+        ]);
         const SAFE_URL_PATTERN = /^(https?:|mailto:|tel:|#|\/|\.\/|\.\.\/)/i;
         const SAFE_IMAGE_PATTERN = /^(https?:|data:image\/(?:png|gif|jpe?g|webp);base64,|#|\/|\.\/|\.\.\/)/i;
 
@@ -1039,6 +1043,16 @@
                 if (node.nodeType !== Node.ELEMENT_NODE) return;
 
                 const tagName = node.tagName;
+
+                if (DROP_MARKDOWN_CONTENT_TAGS.has(tagName)) {
+                    node.remove();
+                    return;
+                }
+
+                // 先净化后代，再处理当前节点。这样未知标签被解包时，
+                // 移到父级的子节点也已经完成属性和协议检查。
+                Array.from(node.childNodes).forEach(sanitizeNode);
+
                 if (!ALLOWED_MARKDOWN_TAGS.has(tagName)) {
                     node.replaceWith(...Array.from(node.childNodes));
                     return;
@@ -1076,14 +1090,7 @@
                 }
             };
 
-            const walk = (root) => {
-                Array.from(root.childNodes).forEach((child) => {
-                    sanitizeNode(child);
-                    if (child.parentNode) walk(child);
-                });
-            };
-
-            walk(template.content);
+            Array.from(template.content.childNodes).forEach(sanitizeNode);
             return template.innerHTML;
         }
 

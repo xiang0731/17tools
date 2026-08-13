@@ -423,13 +423,19 @@
             // 代码生成器演示
             const codeInput = document.querySelector('.tool-card:nth-child(4) .demo-input');
             const codeOutput = document.querySelector('.tool-card:nth-child(4) .demo-output');
+            let codeGenerationTimer = null;
 
             if (codeInput) {
                 codeInput.addEventListener('input', function () {
+                    clearTimeout(codeGenerationTimer);
                     if (this.value.trim()) {
-                        codeOutput.textContent = `正在分析 "${this.value}"...`;
-                        setTimeout(() => {
-                            codeOutput.innerHTML = `<code>// 根据描述生成的示例代码<br>function ${this.value.replace(/\s+/g, '')}() {<br>    // TODO: 实现功能<br>    console.log('${this.value}');<br>}</code>`;
+                        const description = this.value;
+                        codeOutput.textContent = `正在分析 "${description}"...`;
+                        codeGenerationTimer = setTimeout(() => {
+                            const code = document.createElement('code');
+                            code.style.whiteSpace = 'pre-wrap';
+                            code.textContent = `// 根据描述生成的示例代码\nfunction ${description.replace(/\s+/g, '')}() {\n    // TODO: 实现功能\n    console.log('${description}');\n}`;
+                            codeOutput.replaceChildren(code);
                         }, 1500);
                     } else {
                         codeOutput.textContent = '生成的代码将显示在这里...';

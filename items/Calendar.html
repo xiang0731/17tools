@@ -628,6 +628,16 @@
 
     <script src="../js/theme.js"></script>
     <script>
+        const MILLISECONDS_PER_DAY = 86400000;
+
+        function getCalendarDayNumber(date) {
+            return Math.floor(Date.UTC(
+                date.getFullYear(),
+                date.getMonth(),
+                date.getDate()
+            ) / MILLISECONDS_PER_DAY);
+        }
+
         // 万年历类
         class Calendar {
             // 农历大数据表 (1900-2100)
@@ -1012,7 +1022,7 @@
                 if (objDate < baseDate) {
                     throw new RangeError('农历转换仅支持1900年1月31日至2100年范围');
                 }
-                let offset = Math.floor((objDate.getTime() - baseDate.getTime()) / 86400000);
+                let offset = getCalendarDayNumber(objDate) - getCalendarDayNumber(baseDate);
 
                 let i, temp = 0;
                 let lunarYear, lunarMonth, lunarDay;
@@ -1205,10 +1215,8 @@
                 });
 
                 const today = new Date();
-                today.setHours(0, 0, 0, 0);
                 const compareDate = new Date(date);
-                compareDate.setHours(0, 0, 0, 0);
-                const daysDiff = Math.floor((compareDate - today) / 86400000);
+                const daysDiff = getCalendarDayNumber(compareDate) - getCalendarDayNumber(today);
 
                 if (daysDiff === 0) content += `<div><span class="today-badge">今天</span></div>`;
                 else if (daysDiff === 1) content += `<div style="color: var(--primary-color); margin-top: 4px; font-weight: 600;">明天</div>`;

@@ -28,6 +28,7 @@
         .form-group { margin-bottom: 12px; }
         label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; }
         .field-error { min-height: 1.2em; color: var(--error-color); font-size: 12px; margin-top: 4px; }
+        .field-hint { margin: 6px 0 0; font-size: 12px; line-height: 1.5; color: var(--text-secondary); }
         .warn, .action-msg { font-size: 13px; margin-top: 8px; min-height: 1.4em; }
         .warn { color: var(--warning-color); }
         .size-row, .color-row { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -89,10 +90,11 @@
                     <div class="form-group">
                         <label for="wifiAuth">加密</label>
                         <select class="form-input form-select" id="wifiAuth">
-                            <option value="WPA" selected>WPA</option>
+                            <option value="WPA" selected>WPA / WPA2</option>
                             <option value="WEP">WEP</option>
                             <option value="nopass">无密码</option>
                         </select>
+                        <p class="field-hint">家用路由器选 WPA / WPA2 即可。WEP 已过时；开放网络选无密码。</p>
                     </div>
                     <div class="form-group" id="wifiPassGroup">
                         <label for="wifiPassword">密码</label>
@@ -181,11 +183,12 @@
                 <div class="form-group">
                     <label for="eccSelect">纠错</label>
                     <select class="form-input form-select" id="eccSelect">
-                        <option value="L">L</option>
-                        <option value="M" selected>M</option>
-                        <option value="Q">Q</option>
-                        <option value="H">H</option>
+                        <option value="L">L（约 7%）</option>
+                        <option value="M" selected>M（约 15%，默认）</option>
+                        <option value="Q">Q（约 25%）</option>
+                        <option value="H">H（约 30%）</option>
                     </select>
+                    <p class="field-hint">决定图案被遮挡或印刷模糊时还能不能扫出来。级别越高越耐损，但格子更密、能装的内容更少。日常用默认 M 即可。</p>
                 </div>
                 <div class="actions">
                     <button class="btn btn-primary" id="btnPng" type="button" disabled>下载 PNG</button>

@@ -619,8 +619,9 @@ https://shop.example.com/product/123?fbclid=abc123&gclid=def456&utm_term=keyword
 
     <script src="../js/theme.js"></script>
     <script>
-        // 常见的追踪参数列表
-        const trackingParams = [
+        // 仅保留含义明确、移除后不会改变页面内容的追踪参数。
+        // q、variant、app、from、ref 等可能承载业务状态，不在全局规则中删除。
+        const trackingParams = new Set([
             // Google Analytics & Ads
             'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
             'gclid', 'gclsrc', 'dclid', 'gbraid', 'wbraid',
@@ -640,27 +641,42 @@ https://shop.example.com/product/123?fbclid=abc123&gclid=def456&utm_term=keyword
             // Microsoft/Bing
             'msclkid',
 
-            // Amazon
-            'tag', 'ref_', 'ref', 'pf_rd_', 'pf', 'keywords',
-
             // Email tracking
             'mc_cid', 'mc_eid', 'mkt_tok',
 
-            // General tracking
-            '_ga', '_gl', 'igshid', 'si', 'feature', 'app', 'ved',
-            'sa', 'usg', 'cd', 'cad', 'rct', 'q', 'esrc',
-            'source', 'medium', 'campaign', 'content', 'term',
+            // 明确的分析/分享追踪参数
+            '_ga', '_gl', 'igshid', 'ved', 'usg',
 
-            // YouTube
-            'feature', 'kw', 'si',
+            // Shopify 列表来源信息（保留决定商品规格的 variant）
+            '_pos', '_sid', '_ss',
 
-            // Shopify
-            'variant', '_pos', '_sid', '_ss',
-
-            // Other common ones
-            'spm', 'scm', 'from', 'share_medium', 'share_source',
+            // Other common tracking parameters
+            'spm', 'scm', 'share_medium', 'share_source',
             'vn_medium', 'vn_campaign', 'vn_source', 'vn_term', 'vn_content'
-        ];
+        ].map(param => param.toLowerCase()));
+
+        const AMAZON_HOST_PATTERN = /(^|\.)amazon\.[a-z]{2,3}(\.[a-z]{2})?$/i;
+
+        function isTrackingParameter(paramName, hostname) {
+            const name = paramName.toLowerCase();
+
+            if (name.startsWith('utm_') || trackingParams.has(name)) {
+                return true;
+            }
+
+            // 这些名称过于通用，只能在确定的站点上按追踪参数处理。
+            if (AMAZON_HOST_PATTERN.test(hostname) &&
+                (name === 'tag' || name === 'ref' || name === 'ref_' || name.startsWith('pf_rd_'))) {
+                return true;
+            }
+
+            const isYouTube = hostname === 'youtu.be' || hostname === 'youtube.com' || hostname.endsWith('.youtube.com');
+            if (isYouTube && (name === 'feature' || name === 'si')) {
+                return true;
+            }
+
+            return false;
+        }
 
         // 参数说明字典
         const paramDescriptions = {
@@ -825,35 +841,18 @@ https://shop.example.com/product/123?fbclid=abc123&gclid=def456&utm_term=keyword
                 const urlObj = new URL(url);
                 const removedParams = [];
 
-                // 检查并移除追踪参数
-                trackingParams.forEach(param => {
-                    if (urlObj.searchParams.has(param)) {
-                        removedParams.push(param);
-                        urlObj.searchParams.delete(param);
-                    }
-                });
-
-                // 检查参数名包含追踪关键词的参数
+                // 按参数名逐项判断，避免用 ref/source 等模糊子串误删业务参数。
                 const paramNames = Array.from(urlObj.searchParams.keys());
                 paramNames.forEach(paramName => {
-                    const lowerParam = paramName.toLowerCase();
-                    if (lowerParam.includes('utm_') ||
-                        lowerParam.includes('gclid') ||
-                        lowerParam.includes('fbclid') ||
-                        lowerParam.includes('ref') ||
-                        lowerParam.includes('track') ||
-                        lowerParam.includes('campaign') ||
-                        lowerParam.includes('source') ||
-                        lowerParam.includes('medium')) {
-                        if (!removedParams.includes(paramName)) {
-                            removedParams.push(paramName);
-                            urlObj.searchParams.delete(paramName);
-                        }
+                    if (isTrackingParameter(paramName, urlObj.hostname)) {
+                        removedParams.push(paramName);
+                        urlObj.searchParams.delete(paramName);
                     }
                 });
 
                 return {
-                    url: urlObj.toString(),
+                    // 没有移除任何参数时保留用户原始文本，避免无意义的 URL 规范化。
+                    url: removedParams.length > 0 ? urlObj.toString() : url,
                     removed: removedParams
                 };
             } catch (e) {
@@ -893,7 +892,7 @@ https://shop.example.com/product/123?fbclid=abc123&gclid=def456&utm_term=keyword
 
                     const description = document.createElement('span');
                     description.className = 'param-description';
-                    description.textContent = `(${paramDescriptions[param] || '追踪参数'})`;
+                    description.textContent = `(${paramDescriptions[param] || paramDescriptions[param.toLowerCase()] || '追踪参数'})`;
                     tag.appendChild(description);
                     removedParams.appendChild(tag);
                 });

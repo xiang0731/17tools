@@ -566,6 +566,42 @@
     <script src="../js/theme.js"></script>
     <script>
         let selectedFunction = '';
+        const MILLISECONDS_PER_DAY = 86400000;
+
+        function getCalendarDayNumber(year, month, day) {
+            return Math.floor(Date.UTC(year, month - 1, day) / MILLISECONDS_PER_DAY);
+        }
+
+        function toCalendarDayNumber(date) {
+            return getCalendarDayNumber(date.getFullYear(), date.getMonth() + 1, date.getDate());
+        }
+
+        function getCalendarDayDifference(left, right) {
+            return Math.abs(toCalendarDayNumber(right) - toCalendarDayNumber(left));
+        }
+
+        function getDaysInMonth(year, monthIndex) {
+            return new Date(year, monthIndex + 1, 0).getDate();
+        }
+
+        // 自然月/年采用“月末截断”语义，例如 1 月 31 日 + 1 月 = 2 月最后一天。
+        function addCalendarMonths(date, amount) {
+            const originalDay = date.getDate();
+            date.setDate(1);
+            date.setMonth(date.getMonth() + amount);
+            date.setDate(Math.min(originalDay, getDaysInMonth(date.getFullYear(), date.getMonth())));
+            return date;
+        }
+
+        function addCalendarYears(date, amount) {
+            const originalMonth = date.getMonth();
+            const originalDay = date.getDate();
+            date.setDate(1);
+            date.setFullYear(date.getFullYear() + amount);
+            date.setMonth(originalMonth);
+            date.setDate(Math.min(originalDay, getDaysInMonth(date.getFullYear(), originalMonth)));
+            return date;
+        }
 
         // 完整的农历转换类（支持1900-2100年）
         class LunarCalendar {
@@ -627,9 +663,8 @@
             // 公历转农历
             solarToLunar(year, month, day) {
                 // 基准日期：1900年1月31日对应农历1900年正月初一
-                const baseDate = new Date(1900, 0, 31);
-                const targetDate = new Date(year, month - 1, day);
-                let offset = Math.floor((targetDate - baseDate) / (24 * 60 * 60 * 1000));
+                const baseDayNumber = getCalendarDayNumber(1900, 1, 31);
+                let offset = getCalendarDayNumber(year, month, day) - baseDayNumber;
 
                 let lunarYear = 1900;
                 let daysInYear = 0;
@@ -689,7 +724,7 @@
             lunarToSolar(year, month, day, isLeap = false) {
                 try {
                     // 基准日期：1900年1月31日对应农历1900年正月初一
-                    const baseDate = new Date(1900, 0, 31);
+                    const baseDayNumber = getCalendarDayNumber(1900, 1, 31);
                     let offset = 0;
 
                     // 计算到目标年的天数
@@ -715,11 +750,11 @@
                     // 加上目标日（减1是因为初一是第1天）
                     offset += day - 1;
 
-                    const resultDate = new Date(baseDate.getTime() + offset * 24 * 60 * 60 * 1000);
+                    const resultDate = new Date((baseDayNumber + offset) * MILLISECONDS_PER_DAY);
                     return {
-                        year: resultDate.getFullYear(),
-                        month: resultDate.getMonth() + 1,
-                        day: resultDate.getDate()
+                        year: resultDate.getUTCFullYear(),
+                        month: resultDate.getUTCMonth() + 1,
+                        day: resultDate.getUTCDate()
                     };
                 } catch (error) {
                     console.error('农历转公历错误:', error);
@@ -1105,10 +1140,10 @@
                         date.setDate(date.getDate() + timeValue * 7);
                         break;
                     case 'months':
-                        date.setMonth(date.getMonth() + timeValue);
+                        addCalendarMonths(date, timeValue);
                         break;
                     case 'years':
-                        date.setFullYear(date.getFullYear() + timeValue);
+                        addCalendarYears(date, timeValue);
                         break;
                     case 'calendar-months':
                         date.setDate(date.getDate() + timeValue * 30);
@@ -1155,8 +1190,7 @@
                     alert('请输入有效的日期！');
                     return;
                 }
-                const timeDiff = Math.abs(d2.getTime() - d1.getTime());
-                const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+                const daysDiff = getCalendarDayDifference(d1, d2);
 
                 const earlierDate = d1 <= d2 ? date1 : date2;
                 const laterDate = d1 <= d2 ? date2 : date1;
@@ -1228,8 +1262,8 @@
                     switch (unit) {
                         case 'days': date.setDate(date.getDate() + value); break;
                         case 'weeks': date.setDate(date.getDate() + value * 7); break;
-                        case 'months': date.setMonth(date.getMonth() + value); break;
-                        case 'years': date.setFullYear(date.getFullYear() + value); break;
+                        case 'months': addCalendarMonths(date, value); break;
+                        case 'years': addCalendarYears(date, value); break;
                         case 'calendar-months': date.setDate(date.getDate() + value * 30); break;
                     }
                     return date;
