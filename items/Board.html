@@ -471,6 +471,49 @@
         .slot-btn:hover:not(.active-slot) {
             background-color: var(--background-tertiary);
         }
+
+        .export-wrap {
+            position: relative;
+            display: inline-flex;
+        }
+
+        .export-popover {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 148px;
+            padding: 8px;
+            background: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: var(--shadow-medium);
+            z-index: 10000;
+        }
+
+        .export-popover[hidden] {
+            display: none;
+        }
+
+        .export-option {
+            background: var(--background-primary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            text-align: left;
+        }
+
+        .export-option:hover,
+        .export-option.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
     </style>
 </head>
 
@@ -540,9 +583,15 @@
                 <button class="tool-btn tooltip" id="load-btn" data-tooltip="打开文件">
                     <i class="fas fa-folder-open"></i>
                 </button>
-                <button class="tool-btn tooltip" id="export-btn" data-tooltip="导出图片">
-                    <i class="fas fa-download"></i>
-                </button>
+                <div class="export-wrap">
+                    <button class="tool-btn tooltip" id="export-btn" data-tooltip="导出图片">
+                        <i class="fas fa-download"></i>
+                    </button>
+                    <div class="export-popover" id="export-popover" hidden>
+                        <button type="button" class="export-option" id="export-light" data-export-theme="light">导出浅色图片</button>
+                        <button type="button" class="export-option" id="export-dark" data-export-theme="dark">导出深色图片</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -817,7 +866,29 @@
                 document.getElementById('clear-btn').addEventListener('click', () => this.clearCanvas());
                 document.getElementById('save-btn').addEventListener('click', () => this.saveToLocal());
                 document.getElementById('load-btn').addEventListener('click', () => this.loadFromLocal());
-                document.getElementById('export-btn').addEventListener('click', () => this.exportImage());
+                document.getElementById('export-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggleExportPopover();
+                });
+
+                document.querySelectorAll('.export-option').forEach((btn) => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const theme = btn.getAttribute('data-export-theme');
+                        this.closeExportPopover();
+                        this.exportImageWithTheme(theme);
+                    });
+                });
+
+                document.addEventListener('click', (e) => {
+                    const popover = document.getElementById('export-popover');
+                    if (popover.hidden) {
+                        return;
+                    }
+                    if (!e.target.closest('.export-wrap')) {
+                        this.closeExportPopover();
+                    }
+                });
 
                 // 文件加载
                 document.getElementById('file-input').addEventListener('change', (e) => {
@@ -826,6 +897,15 @@
 
                 // 键盘快捷键
                 document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        const popover = document.getElementById('export-popover');
+                        if (popover && !popover.hidden) {
+                            e.preventDefault();
+                            this.closeExportPopover();
+                            return;
+                        }
+                    }
+
                     // 工具快捷键
                     if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
                         switch (e.key.toLowerCase()) {
@@ -1477,10 +1557,46 @@
                 }
             }
 
-            exportImage() {
+            toggleExportPopover() {
+                const popover = document.getElementById('export-popover');
+                if (!popover.hidden) {
+                    this.closeExportPopover();
+                    return;
+                }
+                const current = this.getBoardTheme();
+                document.querySelectorAll('.export-option').forEach((btn) => {
+                    btn.classList.toggle('active', btn.getAttribute('data-export-theme') === current);
+                });
+                popover.hidden = false;
+            }
+
+            closeExportPopover() {
+                document.getElementById('export-popover').hidden = true;
+            }
+
+            exportImageWithTheme(targetTheme) {
+                const theme = targetTheme === 'dark' ? 'dark' : 'light';
+                const src = this.canvas;
+                const strokes = document.createElement('canvas');
+                strokes.width = src.width;
+                strokes.height = src.height;
+                const strokesCtx = strokes.getContext('2d');
+                strokesCtx.drawImage(src, 0, 0);
+                if (theme !== this.getBoardTheme()) {
+                    this.invertPixels(strokes);
+                }
+
+                const output = document.createElement('canvas');
+                output.width = src.width;
+                output.height = src.height;
+                const outputCtx = output.getContext('2d');
+                outputCtx.fillStyle = theme === 'dark' ? '#111827' : '#ffffff';
+                outputCtx.fillRect(0, 0, output.width, output.height);
+                outputCtx.drawImage(strokes, 0, 0);
+
                 const link = document.createElement('a');
                 link.download = `whiteboard_${new Date().getTime()}.png`;
-                link.href = this.canvas.toDataURL();
+                link.href = output.toDataURL();
                 link.click();
             }
         }

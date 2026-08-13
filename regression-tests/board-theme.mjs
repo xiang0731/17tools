@@ -25,4 +25,14 @@ assert.match(page, /entry\.theme !== this\.getBoardTheme\(\)/);
 assert.match(page, /if \(this\.isDrawing\) \{[\s\S]*?this\.stopDrawing\(\)/);
 assert.match(page, /this\.history\[this\.historyIndex\]\.theme\s*=\s*newTheme\s*===\s*'dark'\s*\?\s*'light'\s*:\s*'dark'/);
 
+assert.match(page, /id="export-popover"/);
+assert.match(page, /导出浅色图片/);
+assert.match(page, /导出深色图片/);
+assert.match(page, /data-export-theme="light"/);
+assert.match(page, /data-export-theme="dark"/);
+assert.match(page, /exportImageWithTheme\s*\(/);
+assert.match(page, /outputCtx\.fillStyle = theme === 'dark' \? '#111827' : '#ffffff'/);
+assert.match(page, /toggleExportPopover\s*\(/);
+assert.match(page, /closeExportPopover\s*\(/);
+
 console.log('board-theme regression passed');
