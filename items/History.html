@@ -304,6 +304,43 @@
         </header>
 
         <div class="timeline">
+            <!-- 版本 2.15.2 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 2.15.2</div>
+                    <div class="version-date">2026-08-13</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">新功能</div>
+                    <ul>
+                        <li><span class="tag new">新增</span>智能白板：导出 PNG 时可选择浅色或深色合成</li>
+                    </ul>
+                    <div class="feature-category">缺陷修复</div>
+                    <ul>
+                        <li><span class="tag fixed">修复</span>智能白板：跟随全局黑暗模式，切换主题时反相已有笔迹</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- 版本 2.15.1 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 2.15.1</div>
+                    <div class="version-date">2026-08-13</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">新功能</div>
+                    <ul>
+                        <li><span class="tag new">新增</span>图片处理：水印新增填充、描边、阴影、印章、底栏等样式，以及字体和粗体选项</li>
+                        <li><span class="tag new">新增</span>图片处理：水印和压缩默认只处理单张，可按需开启批量；各标签支持一键重置已上传图片</li>
+                    </ul>
+                    <div class="feature-category">缺陷修复</div>
+                    <ul>
+                        <li><span class="tag fixed">修复</span>图片处理：已有裁切图后禁止点击预览框重新上传；旋转后预览可完整显示整张图片</li>
+                    </ul>
+                </div>
+            </div>
             <!-- 版本 2.15.0 -->
             <div class="version-entry">
                 <div class="version-dot"></div>
@@ -318,6 +355,35 @@
                     </ul>
                 </div>
             </div>
+            <!-- 版本 2.14.1 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 2.14.1</div>
+                    <div class="version-date">2026-08-01</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">新功能</div>
+                    <ul>
+                        <li><span class="tag new">新增</span>新增浏览器回归测试，覆盖 HTML 注入防护、链接参数保留、夏令时边界、月末计算和农历转换</li>
+                    </ul>
+                    <div class="feature-category">逻辑改动与优化</div>
+                    <ul>
+                        <li><span class="tag improved">优化</span>研发工具：输入变化时取消过期的代码生成任务，避免旧结果覆盖最新内容</li>
+                        <li><span class="tag improved">优化</span>时间计算：自然月和自然年加减采用月末截断规则，并同步应用到批量计算</li>
+                        <li><span class="tag improved">优化</span>链接清理工具：针对 Amazon 和 YouTube 应用站点专属规则；没有移除参数时保留原始链接文本</li>
+                    </ul>
+                    <div class="feature-category">缺陷修复</div>
+                    <ul>
+                        <li><span class="tag fixed">修复</span>Markdown 编辑器：加固预览内容净化，递归检查未知标签的后代节点，并完整移除脚本、样式、内嵌页面和 SVG 等危险内容</li>
+                        <li><span class="tag fixed">修复</span>计算器、代码格式化与研发工具：用户输入、错误信息和代码预览统一按纯文本渲染，防止恶意 HTML 被执行</li>
+                        <li><span class="tag fixed">修复</span>万年历与时间计算：按自然日而非毫秒差计算日期间隔，避免夏令时切换导致相对日期和天数结果偏差</li>
+                        <li><span class="tag fixed">修复</span>时间计算：公历与农历转换改用时区无关的日期基准，确保不同时区下结果一致</li>
+                        <li><span class="tag fixed">修复</span>链接清理工具：收紧追踪参数规则，保留搜索词、商品规格和来源状态等可能影响页面内容的业务参数</li>
+                    </ul>
+                </div>
+            </div>
+
             <!-- 版本 2.14.0 -->
             <div class="version-entry">
                 <div class="version-dot"></div>
@@ -326,27 +392,23 @@
                     <div class="version-date">2026-07-09</div>
                 </div>
                 <div class="update-list">
-                    <div class="feature-category">新增工具</div>
+                    <div class="feature-category">新功能</div>
                     <ul>
                         <li><span class="tag new">新增</span>轮胎选择器：新增独立工具页和侧栏入口，支持胎宽、扁平比和轮毂直径联动选择</li>
                         <li><span class="tag new">新增</span>轮胎选择器：提供规格估算、胎宽/扁平比/轮毂解释、购买方向参考和当前规格匹配度</li>
                         <li><span class="tag new">新增</span>火星文转换器：新增非主流火星文转换工具，找回曾经的非主流记忆</li>
                     </ul>
-                </div>
-                <div class="update-list">
-                    <div class="feature-category">规格逻辑</div>
+                    <div class="feature-category">逻辑改动与优化</div>
                     <ul>
                         <li><span class="tag improved">优化</span>轮胎选择器：按常见量产轮胎规格约束扁平比和轮毂选项，避免明显不合理组合</li>
                         <li><span class="tag improved">优化</span>轮胎选择器：无效组合会自动收敛到当前胎宽下更接近的常见规格</li>
+                        <li><span class="tag improved">优化</span>轮胎选择器：优化胎宽、轮毂和胎壁指示器视觉，降低突兀感并保持移动端可读</li>
+                        <li><span class="tag improved">优化</span>火星文转换器：统一使用类似文本替换工具的现代化响应式布局</li>
                     </ul>
-                </div>
-                <div class="update-list">
-                    <div class="feature-category">界面修复</div>
+                    <div class="feature-category">缺陷修复</div>
                     <ul>
                         <li><span class="tag fixed">修复</span>轮胎选择器：修复不同胎宽下轮胎图形被横向拉伸的问题，轮毂尺寸按真实比例显示</li>
-                        <li><span class="tag improved">优化</span>轮胎选择器：优化胎宽、轮毂和胎壁指示器视觉，降低突兀感并保持移动端可读</li>
                         <li><span class="tag fixed">修复</span>轮胎选择器：修复深色主题下选择区背景出现横向异常色带的问题</li>
-                        <li><span class="tag improved">优化</span>火星文转换器：统一使用类似文本替换工具的现代化响应式布局</li>
                         <li><span class="tag fixed">修复</span>火星文转换器：修复在深色主题（Dark Mode）下背景色及相关样式不生效的问题</li>
                     </ul>
                 </div>
@@ -360,7 +422,7 @@
                     <div class="version-date">2026-07-06</div>
                 </div>
                 <div class="update-list">
-                    <div class="feature-category">界面修复</div>
+                    <div class="feature-category">缺陷修复</div>
                     <ul>
                         <li><span class="tag fixed">修复</span>侧栏菜单：修复工具分组 DOM 结构错位导致分组间距不一致的问题</li>
                         <li><span class="tag fixed">修复</span>更新历史：修复连续更新卡片之间缺少间距的问题</li>
@@ -376,34 +438,27 @@
                     <div class="version-date">2026-06-09</div>
                 </div>
                 <div class="update-list">
-                    <div class="feature-category">安全修复</div>
+                    <div class="feature-category">逻辑改动与优化</div>
+                    <ul>
+                        <li><span class="tag improved">优化</span>主题同步：父窗口主题监听增加同源和 DOM 节点有效性判断，避免异常环境下 MutationObserver 报错</li>
+                        <li><span class="tag improved">优化</span>主题同步：iframe 主题消息发送改为计算目标 origin，不再使用通配 origin</li>
+                        <li><span class="tag improved">优化</span>代码格式化：输出区滚动同步监听改为初始化时单次绑定，避免多次格式化后重复监听</li>
+                        <li><span class="tag improved">优化</span>Welcome 页和版本管理脚本同步到当前版本，工具数量更新为 17 个实用工具</li>
+                        <li><span class="tag improved">优化</span>README 更新为当前导航结构和完整工具清单，补充接口带宽计算、正则工具、Markdown 编辑器、链接清理工具、代码对比工具、万年历和时间计算等说明</li>
+                        <li><span class="tag improved">优化</span>新增 issues 修复回归检查和修复报告，覆盖本次安全、日期、时区、主题和文档同步改动</li>
+                    </ul>
+                    <div class="feature-category">缺陷修复</div>
                     <ul>
                         <li><span class="tag fixed">修复</span>Markdown 编辑器：预览、复制和导出 HTML 统一使用安全净化后的渲染结果，过滤危险标签、事件属性和不安全链接协议</li>
                         <li><span class="tag fixed">修复</span>链接清理工具：历史记录改用 DOM 节点和文本写入方式渲染，避免恶意链接造成 HTML 注入</li>
                         <li><span class="tag fixed">修复</span>链接清理工具：历史复制按钮改为显式事件绑定，不再依赖 inline onclick 和全局 event</li>
-                        <li><span class="tag improved">优化</span>主题同步：父窗口主题监听增加同源和 DOM 节点有效性判断，避免异常环境下 MutationObserver 报错</li>
-                        <li><span class="tag improved">优化</span>主题同步：iframe 主题消息发送改为计算目标 origin，不再使用通配 origin</li>
-                    </ul>
-                </div>
-                <div class="update-list">
-                    <div class="feature-category">功能修复</div>
-                    <ul>
                         <li><span class="tag fixed">修复</span>世界时间：时差说明改为动态计算当前时区偏移，正确处理夏令时和时区政策变化</li>
                         <li><span class="tag fixed">修复</span>世界时间：修正 A/B 时差“早/晚”方向，默认上海与纽约显示为 A 比 B 早 12 小时</li>
                         <li><span class="tag fixed">修复</span>万年历：节气改为按年份动态计算，不再使用固定日期表</li>
                         <li><span class="tag fixed">修复</span>万年历：农历数据访问增加 1900-2100 年范围保护，避免越界年份导致错误结果或渲染异常</li>
                         <li><span class="tag fixed">修复</span>时间计算：纯日期输入改用本地日期解析和格式化，避免 UTC 转换导致跨时区日期偏移</li>
                         <li><span class="tag fixed">修复</span>极速计算：使用内置表达式解析器替代动态代码执行，保留括号、小数、正负号、四则运算和幂运算支持</li>
-                    </ul>
-                </div>
-                <div class="update-list">
-                    <div class="feature-category">体验与文档</div>
-                    <ul>
                         <li><span class="tag fixed">修复</span>极速计算、WiFi 二维码、优惠计算器、链接清理工具补齐 UTF-8 声明和页面语言，避免独立访问时中文乱码</li>
-                        <li><span class="tag improved">优化</span>代码格式化：输出区滚动同步监听改为初始化时单次绑定，避免多次格式化后重复监听</li>
-                        <li><span class="tag improved">优化</span>Welcome 页和版本管理脚本同步到当前版本，工具数量更新为 17 个实用工具</li>
-                        <li><span class="tag improved">优化</span>README 更新为当前导航结构和完整工具清单，补充接口带宽计算、正则工具、Markdown 编辑器、链接清理工具、代码对比工具、万年历和时间计算等说明</li>
-                        <li><span class="tag improved">优化</span>新增 issues 修复回归检查和修复报告，覆盖本次安全、日期、时区、主题和文档同步改动</li>
                     </ul>
                 </div>
             </div>
@@ -423,9 +478,7 @@
                         <li><span class="tag new">新增</span>接口带宽计算：网线/网卡、PCIe、USB、其他负载新增类型化带宽预设，例如 100M、1000M、2.5GbE、10GbE、PCIe Gen3 x4、USB4 40Gbps 等</li>
                         <li><span class="tag new">新增</span>接口带宽计算：新增术语科普模块，解释 TX/RX、增强模式、PCIe 纯数据、DSC 压缩、Gbps、双向负载等概念</li>
                     </ul>
-                </div>
-                <div class="update-list">
-                    <div class="feature-category">体验优化</div>
+                    <div class="feature-category">逻辑改动与优化</div>
                     <ul>
                         <li><span class="tag improved">优化</span>接口带宽计算：将增强模式改为接口标准中的独立选项，选择接口后直接展示当前接口模式、TX、RX、PCIe 等关键属性</li>
                         <li><span class="tag improved">优化</span>接口带宽计算：负载列表改为紧凑表格布局，新增负载在表格底部追加一行，减少页面占用并保留可编辑属性</li>
@@ -433,9 +486,7 @@
                         <li><span class="tag ux">体验</span>接口带宽计算：根据负载类型自动套用默认方向和默认带宽，例如网线/网卡默认双向、1000M，PCIe 默认接收 RX、32Gbps</li>
                         <li><span class="tag ui">界面</span>接口带宽计算：区分固定接口能力与动态负载占用的颜色，放大计算结果和计算带宽显示，提升扫描效率</li>
                     </ul>
-                </div>
-                <div class="update-list">
-                    <div class="feature-category">修复</div>
+                    <div class="feature-category">缺陷修复</div>
                     <ul>
                         <li><span class="tag fixed">修复</span>接口带宽计算：修复显示器等负载字段在窄布局下显示不全的问题</li>
                         <li><span class="tag fixed">修复</span>接口带宽计算：修复负载类型从 PCIe 切换到网线/网卡、USB/外设、其他时备注不随默认类型更新的问题</li>
@@ -504,11 +555,14 @@
                         <li><span class="tag new">新增</span>Calculator极速计算：新增“清空输入”按钮，一键重置当前计算状态</li>
                         <li><span class="tag new">新增</span>Calculator极速计算：新增实时错误提醒功能，智能检测括号未闭合、运算符结尾、除数为0等异常</li>
                     </ul>
-                    <div class="feature-category">功能改进</div>
+                    <div class="feature-category">逻辑改动与优化</div>
                     <ul>
                         <li><span class="tag improved">优化</span>Calculator极速计算：算术表达式支持使用小写或大写字母 “x” 代替乘号 “*”</li>
                         <li><span class="tag ux">体验</span>Calculator极速计算：优化历史记录区域布局，实现自适应高度填充容器空间</li>
                         <li><span class="tag ui">界面</span>Calculator极速计算：重构操作按钮布局与配色，采用更沉稳的灰蓝色与暗红色调</li>
+                    </ul>
+                    <div class="feature-category">缺陷修复</div>
+                    <ul>
                         <li><span class="tag fixed">修复</span>Calculator极速计算：修复“保存结果”按钮反馈状态偶发性不恢复的问题</li>
                     </ul>
                 </div>
@@ -540,7 +594,7 @@
                     <ul>
                         <li><span class="tag new">新增</span>DealHunter优惠计算器：功能“自由比价”，支持输入总价和均摊单位，自动计算单价并按价格从低到高排序</li>
                     </ul>
-                    <div class="feature-category">性能优化</div>
+                    <div class="feature-category">逻辑改动与优化</div>
                     <ul>
                         <li><span class="tag improved">算法</span>Calendar万年历：农历算法升级，引入 1900-2100 精准农历数据表，彻底解决节气（如清明）计算误差
                         </li>
@@ -587,7 +641,7 @@
                         <li><span class="tag new">新增</span>TimeCalculator时间计算：新增“D-时间计算”功能，支持输入起始日期时间及小时/分钟偏移量进行精确计算
                         </li>
                     </ul>
-                    <div class="feature-category">体验改进</div>
+                    <div class="feature-category">逻辑改动与优化</div>
                     <ul>
                         <li><span class="tag improved">优化</span>原“日期计算”工具全面升级并更名为“时间计算”，优化了图标显示及布局</li>
                     </ul>
@@ -607,7 +661,7 @@
                         <li><span class="tag new">新增</span>Transformer文本转换工具：新增“O-添加倒序前缀”功能，支持数字、字母序列自动递减，并具备序号不足智能提醒
                         </li>
                     </ul>
-                    <div class="feature-category">功能改进</div>
+                    <div class="feature-category">逻辑改动与优化</div>
                     <ul>
                         <li><span class="tag improved">优化</span>Transformer文本转换工具：“合并为一行”支持自定义分隔符，默认不添加空格</li>
                         <li><span class="tag improved">优化</span>Transformer文本转换工具：重新梳理功能编号，使其分类更趋合理</li>
@@ -630,13 +684,7 @@
                         <li><span class="tag new">新增</span>Whiteboard智能白板：支持画布缩放功能（Shift+滚轮）</li>
                         <li><span class="tag new">新增</span>Divider文本分割：支持输入框行数统计与空行警告提示</li>
                     </ul>
-                    <div class="feature-category">问题修复</div>
-                    <ul>
-                        <li><span class="tag fixed">修复</span>Calendar万年历：年份显示不全问题</li>
-                        <li><span class="tag fixed">修复</span>Calendar万年历：输入后指示器同步问题</li>
-                        <li><span class="tag fixed">修复</span>Calendar万年历：信息面板日期对齐问题</li>
-                    </ul>
-                    <div class="feature-category">体验改进</div>
+                    <div class="feature-category">逻辑改动与优化</div>
                     <ul>
                         <li><span class="tag improved">优化</span>Calendar万年历：为操作按钮添加提示文本，提升易用性</li>
                         <li><span class="tag improved">优化</span>Calendar万年历：UI全面升级，采用卡片式设计与柔和阴影</li>
@@ -646,6 +694,12 @@
                         <li><span class="tag improved">优化</span>Whiteboard智能白板：优化移动端工具栏布局与Tooltip显示位置，解决遮挡问题</li>
                         <li><span class="tag improved">优化</span>Whiteboard智能白板：美化颜色选择器样式</li>
                         <li><span class="tag improved">优化</span>Whiteboard智能白板：性能优化，提升绘图与交互流畅度</li>
+                    </ul>
+                    <div class="feature-category">缺陷修复</div>
+                    <ul>
+                        <li><span class="tag fixed">修复</span>Calendar万年历：年份显示不全问题</li>
+                        <li><span class="tag fixed">修复</span>Calendar万年历：输入后指示器同步问题</li>
+                        <li><span class="tag fixed">修复</span>Calendar万年历：信息面板日期对齐问题</li>
                     </ul>
                 </div>
             </div>
@@ -661,7 +715,7 @@
                     <ul>
                         <li><span class="tag new">新增</span>Transformer文本转换工具：输入框和输出框添加行数显示功能</li>
                     </ul>
-                    <div class="feature-category">问题修复</div>
+                    <div class="feature-category">缺陷修复</div>
                     <ul>
                         <li><span class="tag fixed">修复</span>PrettyFormat代码格式化工具：输入框行号与代码对齐问题</li>
                         <li><span class="tag fixed">修复</span>PrettyFormat代码格式化工具：输出框行号样式与输入框不一致问题</li>
@@ -720,21 +774,18 @@
                     <div class="version-date">2025-09-07</div>
                 </div>
                 <div class="update-list">
-                    <div class="feature-category">主题系统优化</div>
+                    <div class="feature-category">逻辑改动与优化</div>
                     <ul>
                         <li><span class="tag improved">优化</span>增强深色模式主题注入器，提升兼容性</li>
                         <li><span class="tag improved">优化</span>完善CSS变量覆盖规则，确保所有页面主题一致性</li>
+                        <li><span class="tag improved">改进</span>优化主题切换时的视觉过渡效果</li>
+                        <li><span class="tag improved">改进</span>About关于：增强页面的响应式布局</li>
                     </ul>
-                    <div class="feature-category">问题修复</div>
+                    <div class="feature-category">缺陷修复</div>
                     <ul>
                         <li><span class="tag fixed">修复</span>About关于：修复页面深色模式下字体颜色不变化问题</li>
                         <li><span class="tag fixed">修复</span>About关于：修复页面模块外边框和布局异常问题</li>
                         <li><span class="tag fixed">修复</span>修复深色模式下背景颜色未正确应用的问题</li>
-                    </ul>
-                    <div class="feature-category">样式改进</div>
-                    <ul>
-                        <li><span class="tag improved">改进</span>优化主题切换时的视觉过渡效果</li>
-                        <li><span class="tag improved">改进</span>About关于：增强页面的响应式布局</li>
                     </ul>
                 </div>
             </div>
@@ -751,7 +802,7 @@
                     <ul>
                         <li><span class="tag new">新增</span>添加Calendar万年历工具</li>
                     </ul>
-                    <div class="feature-category">问题修复</div>
+                    <div class="feature-category">缺陷修复</div>
                     <ul>
                         <li><span class="tag fixed">修复</span>修复版本不统一问题</li>
                     </ul>
@@ -770,7 +821,7 @@
                     <ul>
                         <li><span class="tag new">新增</span>为研发中工具添加访问权限控制</li>
                     </ul>
-                    <div class="feature-category">改进</div>
+                    <div class="feature-category">逻辑改动与优化</div>
                     <ul>
                         <li><span class="tag ui">界面</span>新增"研发中"工具分区，更好组织实验性功能</li>
                     </ul>
@@ -785,13 +836,13 @@
                     <div class="version-date">2025-06-16</div>
                 </div>
                 <div class="update-list">
-                    <div class="feature-category">新界面！</div>
-                    <ul>
-                        <li><span class="tag improved">优化</span>优化大部分UI界面</li>
-                    </ul>
                     <div class="feature-category">新功能</div>
                     <ul>
                         <li><span class="tag new">新增</span>首次访问自动判断深/浅色模式</li>
+                    </ul>
+                    <div class="feature-category">逻辑改动与优化</div>
+                    <ul>
+                        <li><span class="tag improved">优化</span>优化大部分UI界面</li>
                     </ul>
                 </div>
             </div>
@@ -803,7 +854,7 @@
                     <div class="version-date">2025-06-09</div>
                 </div>
                 <div class="update-list">
-                    <div class="feature-category">问题修复</div>
+                    <div class="feature-category">缺陷修复</div>
                     <ul>
                         <li><span class="tag fixed">修复</span>Transformer文本转换工具：功能N前缀递增异常问题</li>
                     </ul>
@@ -838,13 +889,11 @@
                         <li><span class="tag new">新增</span>添加提问题选项，方便用户反馈</li>
                         <li><span class="tag new">新增</span>更新历史页面，方便用户了解产品迭代历程</li>
                     </ul>
-
-                    <div class="feature-category">改进</div>
+                    <div class="feature-category">逻辑改动与优化</div>
                     <ul>
                         <li><span class="tag improved">优化</span>添加更多语言支持，并调整列表顺序排列</li>
                     </ul>
-
-                    <div class="feature-category">问题修复</div>
+                    <div class="feature-category">缺陷修复</div>
                     <ul>
                         <li><span class="tag fixed">修复</span>修复代码行数不对齐的问题</li>
                         <li><span class="tag fixed">修复</span>去除灰色背景以达到颜色一致</li>
@@ -865,8 +914,7 @@
                         <li><span class="tag new">新增</span>添加WorldTime世界时间工具，支持查看不同时区的当前时间</li>
                         <li><span class="tag new">新增</span>Transformer文本转换工具：添加顺序前缀功能，方便用户整理文本</li>
                     </ul>
-
-                    <div class="feature-category">问题修复</div>
+                    <div class="feature-category">缺陷修复</div>
                     <ul>
                         <li><span class="tag fixed">修复</span>修复计算器在移动端无法滚动的问题</li>
                     </ul>
@@ -886,8 +934,7 @@
                         <li><span class="tag new">新增</span>添加"关于"页面，提供项目信息</li>
                         <li><span class="tag new">新增</span>添加提取值功能，帮助用户从文本中提取信息</li>
                     </ul>
-
-                    <div class="feature-category">改进</div>
+                    <div class="feature-category">逻辑改动与优化</div>
                     <ul>
                         <li><span class="tag improved">优化</span>添加移动端支持，提升在小屏幕设备上的使用体验</li>
                         <li><span class="tag improved">优化</span>细节优化、UI调整</li>
@@ -908,14 +955,12 @@
                     <ul>
                         <li><span class="tag new">新增</span>添加前后缀处理功能</li>
                     </ul>
-
-                    <div class="feature-category">改进</div>
+                    <div class="feature-category">逻辑改动与优化</div>
                     <ul>
                         <li><span class="tag improved">优化</span>更新UI界面，提升用户体验</li>
                         <li><span class="tag improved">优化</span>补充功能指引</li>
                     </ul>
-
-                    <div class="feature-category">问题修复</div>
+                    <div class="feature-category">缺陷修复</div>
                     <ul>
                         <li><span class="tag fixed">修复</span>修复"合并为一行"功能中多添加逗号的问题</li>
                     </ul>
@@ -935,8 +980,7 @@
                         <li><span class="tag new">新增</span>添加Transformer工具，支持多种文本转换操作</li>
                         <li><span class="tag new">新增</span>添加不蒜子网页统计功能</li>
                     </ul>
-
-                    <div class="feature-category">改进</div>
+                    <div class="feature-category">逻辑改动与优化</div>
                     <ul>
                         <li><span class="tag improved">优化</span>添加示例文本，提高使用体验</li>
                         <li><span class="tag improved">优化</span>历史结果表达式优化</li>
@@ -953,7 +997,7 @@
                     <div class="version-date">2025-02-12</div>
                 </div>
                 <div class="update-list">
-                    <div class="feature-category">17Tools正式发布！</div>
+                    <div class="feature-category">新功能</div>
                     <ul>
                         <li><span class="tag new">新增</span>创建基础UI框架和首页</li>
                         <li><span class="tag new">新增</span>添加计算器工具，支持基础的数学计算</li>

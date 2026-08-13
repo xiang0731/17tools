@@ -13,7 +13,36 @@ assert.match(page, /image-processor-core\.js/);
 assert.match(page, /theme\.js/);
 assert.match(page, /17tools-image-processor/);
 assert.equal(page.includes('innerHTML = file.name'), false);
-assert.match(page, /imageOrientation:\s*['"]from-image['"]/);
+assert.match(page, /\[hidden\]\s*\{\s*display:\s*none\s*!important/);
+assert.match(page, /class="form-input"/);
+assert.equal(page.includes('#wmCanvas, #cpPreview, #cropImage { max-width: 100%; max-height: 420px; display: block'), false);
+assert.match(page, /id="wmBatch"/);
+assert.match(page, /id="cpBatch"/);
+assert.match(page, /id="wmClear"/);
+assert.match(page, /id="cropClear"/);
+assert.match(page, /id="cpClear"/);
+assert.match(page, /id="wmStyle"/);
+assert.match(page, /option value="stroke"/);
+assert.match(page, /option value="shadow"/);
+assert.match(page, /option value="stamp"/);
+assert.match(page, /option value="banner"/);
+assert.match(page, /id="wmFontFamily"/);
+assert.match(page, /id="wmBold"/);
+assert.match(page, /function fitCropperCanvas/);
+assert.match(page, /clearImages\('watermark'\)/);
+assert.match(page, /clearImages\('crop'\)/);
+assert.match(page, /clearImages\('compress'\)/);
+assert.match(page, /syncBatchInput\('watermark'\)/);
+assert.match(page, /syncBatchInput\('compress'\)/);
+assert.match(page, /tab === 'crop' && state\.crop\.items\.length/);
+assert.match(page, /bindDrop\('wmDrop', 'wmFile', 'watermark'\);/);
+assert.match(page, /bindDrop\('cropDrop', 'cropFile', 'crop'\);/);
+assert.match(page, /bindDrop\('cpDrop', 'cpFile', 'compress'\);/);
+assert.equal(/id="wmFile"[^>]*\bmultiple\b/.test(page), false);
+assert.equal(/id="cpFile"[^>]*\bmultiple\b/.test(page), false);
+assert.match(page, /#cropDrop\.has-image/);
+assert.match(page, /viewMode:\s*2/);
+assert.match(page, /fitCropperCanvas\(\)/);
 
 const index = fs.readFileSync('index.html', 'utf8');
 const welcome = fs.readFileSync('items/Welcome.html', 'utf8');
@@ -23,17 +52,35 @@ const readme = fs.readFileSync('README.md', 'utf8');
 
 assert.match(index, /data-file="ImageProcessor.html"/);
 assert.match(index, /图片处理/);
-const martianIndex = index.indexOf('data-file="MartianText.html"');
+const dealHunterIndex = index.indexOf('data-file="DealHunter.html"');
 const imageIndex = index.indexOf('data-file="ImageProcessor.html"');
-assert.ok(martianIndex !== -1 && imageIndex > martianIndex, '图片处理应在火星文转换之后');
+const regexIndex = index.indexOf('data-file="Regex.html"');
+const martianIndex = index.indexOf('data-file="MartianText.html"');
+const bandwidthIndex = index.indexOf('data-file="Bandwidth.html"');
+assert.ok(
+    dealHunterIndex !== -1 && imageIndex > dealHunterIndex && imageIndex < regexIndex,
+    '图片处理应在主要工具中，位于优惠计算器和正则表达式之间'
+);
+assert.ok(
+    martianIndex !== -1 && bandwidthIndex > martianIndex,
+    '接口带宽计算应在其他工具中，位于火星文转换之后'
+);
 
 assert.match(welcome, /18个实用工具/);
+assert.match(welcome, /v2\.15\.2/);
+assert.match(history, /<!-- 版本 2\.15\.2 -->/);
+assert.match(history, /版本 2\.15\.2/);
+assert.match(history, /<!-- 版本 2\.15\.1 -->/);
+assert.match(history, /版本 2\.15\.1/);
 assert.match(history, /<!-- 版本 2\.15\.0 -->/);
 assert.match(history, /版本 2\.15\.0/);
 assert.match(history, /2026-08-13/);
 assert.match(history, /图片处理：新增独立工具页/);
-assert.match(version, /2\.15\.0/);
-assert.equal(version.includes('2.14.0'), false);
+assert.match(history, /智能白板：跟随全局黑暗模式/);
+assert.match(history, /智能白板：导出 PNG 时可选择浅色或深色合成/);
+assert.match(version, /2\.15\.2/);
+assert.equal(version.includes('2.15.1'), false);
+assert.equal(version.includes('2.15.0'), false);
 assert.equal(version.includes('2.14.1'), false);
 assert.match(readme, /图片处理/);
 assert.match(readme, /ImageProcessor\.html/);
