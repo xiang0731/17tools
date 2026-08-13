@@ -67,4 +67,59 @@ assert.equal(core.qualityToCanvas(1), 0.01);
 assert.equal(core.qualityToCanvas(100), 1);
 assert.equal(core.canvasToQuality(0.8), 80);
 
+assert.equal(core.SEARCH_MIN_QUALITY, 0.3);
+assert.deepEqual(core.nextScaleSize(1000, 800, 800), { width: 900, height: 720 });
+assert.equal(core.nextScaleSize(260, 260, 800), null);
+assert.equal(core.nextScaleSize(200, 200, 200), null);
+
+async function fakeEncode({ width, height, quality }) {
+    return Math.round(width * height * quality);
+}
+
+const passthrough = await core.compressToTarget({
+    sourceWidth: 100, sourceHeight: 80, sourceBytes: 1000, targetBytes: 2000,
+    controlMode: 'size', quality: 0.8, encode: async () => {
+        throw new Error('encode should not run for passthrough');
+    }
+});
+assert.equal(passthrough.passthrough, true);
+assert.equal(passthrough.hitTarget, true);
+assert.equal(passthrough.byteLength, 1000);
+
+const qualityMode = await core.compressToTarget({
+    sourceWidth: 1000, sourceHeight: 800, sourceBytes: 900000, targetBytes: 100,
+    controlMode: 'quality', quality: 0.8, encode: fakeEncode
+});
+assert.equal(qualityMode.width, 1000);
+assert.equal(qualityMode.height, 800);
+assert.equal(qualityMode.quality, 0.8);
+assert.equal(qualityMode.passthrough, false);
+assert.equal(qualityMode.byteLength, Math.round(1000 * 800 * 0.8));
+
+const byQuality = await core.compressToTarget({
+    sourceWidth: 1000, sourceHeight: 800, sourceBytes: 900000, targetBytes: 400000,
+    controlMode: 'size', quality: 1, encode: fakeEncode
+});
+assert.equal(byQuality.width, 1000);
+assert.equal(byQuality.height, 800);
+assert.equal(byQuality.passthrough, false);
+assert.equal(byQuality.hitTarget, true);
+assert.ok(byQuality.byteLength <= 400000);
+assert.ok(byQuality.quality >= 0.45 && byQuality.quality <= 0.5);
+
+const scaled = await core.compressToTarget({
+    sourceWidth: 1000, sourceHeight: 800, sourceBytes: 900000, targetBytes: 50000,
+    controlMode: 'size', quality: 1, encode: fakeEncode
+});
+assert.ok(scaled.width < 1000);
+assert.equal(scaled.hitTarget, true);
+assert.ok(scaled.byteLength <= 50000);
+
+const missed = await core.compressToTarget({
+    sourceWidth: 1000, sourceHeight: 800, sourceBytes: 900000, targetBytes: 1,
+    controlMode: 'size', quality: 1, encode: fakeEncode
+});
+assert.equal(missed.hitTarget, false);
+assert.ok(Math.min(missed.width, missed.height) <= 256);
+
 console.log('image-processor-core regression passed');
