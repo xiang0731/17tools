@@ -1,6 +1,6 @@
 # 17Tools
 
-17Tools 是一个基于 HTML/CSS/JavaScript 的轻量工具集合，当前包含文本处理、代码处理、时间日期、计算、图片处理、白板和研发中工具等多个独立页面。
+17Tools 是一个基于 HTML/CSS/JavaScript 的轻量工具集合，当前包含文本处理、代码处理、时间日期、计算、图片处理、二维码、白板和研发中工具等多个独立页面。
 
 ## 功能特点
 
@@ -18,7 +18,8 @@
 - 智能白板：画笔、橡皮擦、形状、撤销/重做、JSON 保存/加载、PNG 导出。
 - 极速计算：多行算术表达式求和，支持括号、小数、加减乘除和幂运算。
 - 优惠计算器：折扣、满减和优惠方案对比。
-- 接口带宽计算：按接口调用量、数据大小和时间窗口估算带宽。
+- 图片处理：本地添加文字水印（多种样式）、单张裁切，以及按目标体积或质量压缩图片；水印和压缩可按需批量处理。
+- 二维码工具：把文本、链接、WiFi、名片、邮件、电话或短信生成二维码，可调颜色、尺寸和纠错级别，并下载 PNG / SVG 或复制图片。
 - 正则工具：正则测试、匹配结果查看和测试文本生成。
 
 ### 文本工具
@@ -40,7 +41,7 @@
 ### 其他工具
 
 - 轮胎选择器：通过胎宽、扁平比和轮毂尺寸选择，展示轮胎图形标识、规格解释和购买参考范围。
-- 图片处理：本地添加文字水印、单张裁切，以及按目标体积或质量压缩图片。
+- 接口带宽计算：按接口调用量、数据大小和时间窗口估算带宽。
 
 ### 研发中工具
 
@@ -57,7 +58,7 @@
 
 - 原生 HTML/CSS/JavaScript 实现。
 - 主题样式通过 `css/theme.css` 和 `js/theme.js` 共享。
-- 部分工具使用第三方库，例如 Prettier、highlight.js、Marked、Font Awesome、Cropper.js、JSZip。
+- 部分工具使用第三方库，例如 Prettier、highlight.js、Marked、Font Awesome、Cropper.js、JSZip、qrcode 1.5.1。
 - 本地历史和草稿主要使用 `localStorage` 或 `sessionStorage`。
 
 ## 使用方法
@@ -78,6 +79,7 @@
 │   ├── theme.js
 │   ├── tire-selector-core.js
 │   ├── image-processor-core.js
+│   ├── qrcode-core.js
 │   └── version.js
 ├── items/
 │   ├── Welcome.html
@@ -99,6 +101,7 @@
 │   ├── TireSelector.html
 │   ├── MartianText.html
 │   ├── ImageProcessor.html
+│   ├── QRCode.html
 │   ├── WifiQRCode.html
 │   ├── Keeper.html
 │   ├── History.html

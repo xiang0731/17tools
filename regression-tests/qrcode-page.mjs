@@ -32,4 +32,31 @@ assert.match(page, /已复制到剪贴板/);
 assert.match(page, /无法生成二维码，请缩短内容/);
 assert.match(page, /前景与背景对比过低，可能无法扫描/);
 
+const index = fs.readFileSync('index.html', 'utf8');
+const welcome = fs.readFileSync('items/Welcome.html', 'utf8');
+const history = fs.readFileSync('items/History.html', 'utf8');
+const version = fs.readFileSync('js/version.js', 'utf8');
+const readme = fs.readFileSync('README.md', 'utf8');
+
+const imageIndex = index.indexOf('data-file="ImageProcessor.html"');
+const qrIndex = index.indexOf('data-file="QRCode.html"');
+const regexIndex = index.indexOf('data-file="Regex.html"');
+assert.ok(imageIndex !== -1 && qrIndex !== -1 && regexIndex !== -1, '导航缺少图片处理、二维码或正则入口');
+assert.ok(qrIndex > imageIndex, '二维码工具应在图片处理之后');
+assert.ok(qrIndex < regexIndex, '二维码工具应在正则表达式之前');
+assert.match(index, /二维码工具/);
+assert.equal(/data-file="QRCode.html"[^>]*data-protected/.test(index), false);
+
+assert.match(welcome, /19个实用工具/);
+assert.match(welcome, /v2\.16\.0/);
+assert.match(history, /<!-- 版本 2\.16\.0 -->/);
+assert.match(history, /版本 2\.16\.0/);
+assert.match(history, /2026-08-13/);
+assert.match(history, /二维码工具/);
+assert.match(version, /2\.16\.0/);
+assert.equal(version.includes('2.15.2'), false);
+assert.match(readme, /二维码工具/);
+assert.match(readme, /QRCode\.html/);
+assert.match(readme, /qrcode-core\.js/);
+
 console.log('qrcode-page regression passed');
