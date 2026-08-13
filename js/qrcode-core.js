@@ -31,7 +31,10 @@
         emailEmpty: '请输入邮箱',
         emailInvalid: '请输入有效邮箱',
         phoneEmpty: '请输入电话',
-        phoneInvalid: '请输入有效电话'
+        phoneInvalid: '请输入有效电话',
+        wifiSsid: '请输入 WiFi 名称',
+        wifiPassword: '请输入密码',
+        vcardName: '请输入姓名'
     };
     const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -181,14 +184,77 @@
         return ok(body ? 'SMSTO:' + result.phone + ':' + body : 'SMSTO:' + result.phone);
     }
 
+    function escapeWifi(value) {
+        return String(value).replace(/([\\;,:])/g, '\\$1');
+    }
+
+    function escapeVCard(value) {
+        return String(value)
+            .replace(/\\/g, '\\\\')
+            .replace(/\r\n|\n|\r/g, '\\n')
+            .replace(/;/g, '\\;')
+            .replace(/,/g, '\\,');
+    }
+
+    function buildWifi(fields) {
+        const ssid = trim(fields.ssid);
+        const auth = fields.auth === 'WEP' || fields.auth === 'nopass' ? fields.auth : 'WPA';
+        const hidden = Boolean(fields.hidden);
+        const errors = {};
+        if (!ssid) errors.ssid = MSG.wifiSsid;
+        const password = trim(fields.password);
+        if (auth !== 'nopass' && !password) errors.password = MSG.wifiPassword;
+        if (Object.keys(errors).length) return fail(errors);
+        const parts = ['WIFI:T:' + auth, 'S:' + escapeWifi(ssid)];
+        if (auth !== 'nopass') parts.push('P:' + escapeWifi(password));
+        if (hidden) parts.push('H:true');
+        return ok(parts.join(';') + ';;');
+    }
+
+    function buildVCard(fields) {
+        const name = trim(fields.name);
+        if (!name) return fail({ name: MSG.vcardName });
+        const errors = {};
+        const email = trim(fields.email);
+        if (email && !isValidEmail(email)) errors.email = MSG.emailInvalid;
+        let urlValue = '';
+        const urlRaw = trim(fields.url);
+        if (urlRaw) {
+            const result = normalizeUrl(urlRaw);
+            if (!result.ok) errors.url = MSG.urlInvalid;
+            else urlValue = result.url;
+        }
+        if (Object.keys(errors).length) return fail(errors);
+        const lines = [
+            'BEGIN:VCARD',
+            'VERSION:3.0',
+            'N:' + escapeVCard(name) + ';;;;',
+            'FN:' + escapeVCard(name)
+        ];
+        const org = trim(fields.org);
+        const phone = trim(fields.phone);
+        if (org) lines.push('ORG:' + escapeVCard(org));
+        if (phone) lines.push('TEL:' + escapeVCard(phone));
+        if (email) lines.push('EMAIL:' + escapeVCard(email));
+        if (urlValue) lines.push('URL:' + escapeVCard(urlValue));
+        lines.push('END:VCARD');
+        return ok(lines.join('\n'));
+    }
+
     function buildPayload(type, fields) {
         const source = fields || {};
-        if (type === 'text') return buildText(source);
-        if (type === 'url') return buildUrl(source);
-        if (type === 'email') return buildEmail(source);
-        if (type === 'tel') return buildTel(source);
-        if (type === 'sms') return buildSms(source);
-        return fail({ type: '未知类型' });
+        const handlers = {
+            text: buildText,
+            url: buildUrl,
+            wifi: buildWifi,
+            vcard: buildVCard,
+            email: buildEmail,
+            tel: buildTel,
+            sms: buildSms
+        };
+        const handler = handlers[type];
+        if (!handler) return fail({ type: '未知类型' });
+        return handler(source);
     }
 
     return {
@@ -206,6 +272,8 @@
         buildFileName: buildFileName,
         buildPayload: buildPayload,
         normalizeUrl: normalizeUrl,
-        normalizePhone: normalizePhone
+        normalizePhone: normalizePhone,
+        escapeWifi: escapeWifi,
+        escapeVCard: escapeVCard
     };
 });

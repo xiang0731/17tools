@@ -104,4 +104,48 @@ assert.deepEqual(core.buildPayload('sms', { phone: '13800138000', body: 'hello:w
     ok: true, payload: 'SMSTO:13800138000:hello:world'
 });
 
+assert.equal(
+    core.buildPayload('wifi', { ssid: 'Home', auth: 'WPA', password: 'secret' }).payload,
+    'WIFI:T:WPA;S:Home;P:secret;;'
+);
+assert.equal(
+    core.buildPayload('wifi', { ssid: 'Open', auth: 'nopass', password: 'ignore' }).payload,
+    'WIFI:T:nopass;S:Open;;'
+);
+assert.equal(
+    core.buildPayload('wifi', { ssid: 'Home', auth: 'WPA', password: 'secret', hidden: true }).payload,
+    'WIFI:T:WPA;S:Home;P:secret;H:true;;'
+);
+assert.equal(
+    core.buildPayload('wifi', { ssid: 'a;b,c:d\\e', auth: 'WPA', password: 'p;q' }).payload,
+    'WIFI:T:WPA;S:a\\;b\\,c\\:d\\\\e;P:p\\;q;;'
+);
+assert.deepEqual(core.buildPayload('wifi', { ssid: '', auth: 'WPA', password: '' }), {
+    ok: false, errors: { ssid: '请输入 WiFi 名称', password: '请输入密码' }
+});
+assert.equal(core.buildPayload('wifi', { ssid: 'x', auth: 'nopass' }).ok, true);
+
+assert.equal(
+    core.buildPayload('vcard', { name: '张三' }).payload,
+    'BEGIN:VCARD\nVERSION:3.0\nN:张三;;;;\nFN:张三\nEND:VCARD'
+);
+assert.equal(
+    core.buildPayload('vcard', {
+        name: 'Li', phone: '123', email: 'a@b.c', org: 'Acme', url: 'acme.com'
+    }).payload,
+    'BEGIN:VCARD\nVERSION:3.0\nN:Li;;;;\nFN:Li\nORG:Acme\nTEL:123\nEMAIL:a@b.c\nURL:https://acme.com\nEND:VCARD'
+);
+assert.equal(
+    core.buildPayload('vcard', { name: 'A;B' }).payload,
+    'BEGIN:VCARD\nVERSION:3.0\nN:A\\;B;;;;\nFN:A\\;B\nEND:VCARD'
+);
+assert.ok(!core.buildPayload('vcard', { name: 'Li' }).payload.includes('ORG:'));
+assert.ok(!core.buildPayload('vcard', { name: 'Li' }).payload.includes('TEL:'));
+assert.deepEqual(core.buildPayload('vcard', { name: '  ' }), {
+    ok: false, errors: { name: '请输入姓名' }
+});
+assert.deepEqual(core.buildPayload('vcard', { name: 'Li', email: 'bad' }), {
+    ok: false, errors: { email: '请输入有效邮箱' }
+});
+
 console.log('qrcode-core regression passed');
