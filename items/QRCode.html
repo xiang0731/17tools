@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>二维码工具</title>
+    <!-- localStorage style key: 17tools-qrcode (QRCodeCore.STORAGE_KEY) -->
+    <link rel="stylesheet" href="../css/theme.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        html, body { margin: 0; min-height: 100vh; background: var(--background-primary); color: var(--text-primary); font-family: var(--font-family); }
+        .page { padding: var(--spacing-lg); max-width: 1280px; margin: 0 auto; }
+        h1 { margin: 0 0 var(--spacing-lg); text-align: center; display: flex; align-items: center; justify-content: center; gap: var(--spacing-sm); font-size: 28px; }
+        h1 i { color: var(--primary-color); }
+        .layout { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: var(--spacing-lg); }
+        .preview-pane, .control-pane { background: var(--background-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: var(--spacing-lg); box-shadow: var(--shadow-sm); }
+        .preview-box { min-height: 280px; border: 1px dashed var(--border-color); border-radius: var(--radius-md); display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--background-primary); padding: var(--spacing-lg); }
+        #previewCanvas { max-width: 100%; max-height: 420px; display: none; }
+        #previewCanvas.is-visible { display: block; }
+        .drop-hint { display: flex; flex-direction: column; align-items: center; gap: var(--spacing-sm); text-align: center; color: var(--text-secondary); }
+        .drop-hint i { font-size: 32px; color: var(--primary-color); }
+        .drop-hint.is-hidden { display: none; }
+        .types { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: var(--spacing-lg); }
+        .type-btn { background: transparent; border: none; border-bottom: 2px solid transparent; color: var(--text-secondary); padding: 10px 12px; cursor: pointer; font-size: 14px; font-weight: 600; }
+        .type-btn.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
+        .type-panel { display: none; }
+        .type-panel.active { display: block; }
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; }
+        .field-error { min-height: 1.2em; color: var(--error-color); font-size: 12px; margin-top: 4px; }
+        .warn, .action-msg { font-size: 13px; margin-top: 8px; min-height: 1.4em; }
+        .warn { color: var(--warning-color); }
+        .size-row, .color-row { display: flex; flex-wrap: wrap; gap: 6px; }
+        .size-row button { border: 1px solid var(--border-color); background: var(--background-primary); color: var(--text-primary); border-radius: 8px; padding: 8px 12px; cursor: pointer; }
+        .size-row button.active { background: var(--primary-light); border-color: var(--primary-color); color: var(--primary-color); }
+        input[type="color"] { width: 48px; height: 36px; padding: 2px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--background-primary); }
+        .actions { display: flex; flex-direction: column; gap: 8px; margin-top: var(--spacing-md); }
+        .actions button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .hidden { display: none !important; }
+        @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <h1><i class="fas fa-qrcode"></i>二维码工具</h1>
+        <div class="layout">
+            <div class="preview-pane">
+                <div class="preview-box">
+                    <div class="drop-hint" id="previewHint">
+                        <i class="fas fa-qrcode"></i>
+                        <div id="previewHintText">填写内容后生成二维码</div>
+                    </div>
+                    <canvas id="previewCanvas" width="256" height="256"></canvas>
+                </div>
+                <div class="warn" id="contrastWarn"></div>
+                <div class="action-msg" id="actionMsg"></div>
+            </div>
+            <div class="control-pane">
+                <div class="types">
+                    <button class="type-btn active" type="button" data-type="text">文本</button>
+                    <button class="type-btn" type="button" data-type="url">链接</button>
+                    <button class="type-btn" type="button" data-type="wifi">WiFi</button>
+                    <button class="type-btn" type="button" data-type="vcard">名片</button>
+                    <button class="type-btn" type="button" data-type="email">邮件</button>
+                    <button class="type-btn" type="button" data-type="tel">电话</button>
+                    <button class="type-btn" type="button" data-type="sms">短信</button>
+                </div>
+
+                <div class="type-panel active" data-panel="text">
+                    <div class="form-group">
+                        <label for="textInput">内容</label>
+                        <textarea class="form-input form-textarea" id="textInput" rows="5"></textarea>
+                        <div class="field-error" data-error-for="text"></div>
+                    </div>
+                </div>
+                <div class="type-panel" data-panel="url">
+                    <div class="form-group">
+                        <label for="urlInput">链接</label>
+                        <input class="form-input" id="urlInput" type="text">
+                        <div class="field-error" data-error-for="url"></div>
+                    </div>
+                </div>
+                <div class="type-panel" data-panel="wifi">
+                    <div class="form-group">
+                        <label for="wifiSsid">WiFi 名称</label>
+                        <input class="form-input" id="wifiSsid" type="text">
+                        <div class="field-error" data-error-for="ssid"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="wifiAuth">加密</label>
+                        <select class="form-input form-select" id="wifiAuth">
+                            <option value="WPA" selected>WPA</option>
+                            <option value="WEP">WEP</option>
+                            <option value="nopass">无密码</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="wifiPassGroup">
+                        <label for="wifiPassword">密码</label>
+                        <input class="form-input" id="wifiPassword" type="text">
+                        <div class="field-error" data-error-for="password"></div>
+                    </div>
+                    <div class="form-group">
+                        <label><input id="wifiHidden" type="checkbox"> 隐藏网络</label>
+                    </div>
+                </div>
+                <div class="type-panel" data-panel="vcard">
+                    <div class="form-group">
+                        <label for="vcardName">姓名</label>
+                        <input class="form-input" id="vcardName" type="text">
+                        <div class="field-error" data-error-for="name"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="vcardPhone">电话</label>
+                        <input class="form-input" id="vcardPhone" type="text">
+                    </div>
+                    <div class="form-group">
+                        <label for="vcardEmail">邮箱</label>
+                        <input class="form-input" id="vcardEmail" type="text">
+                        <div class="field-error" data-error-for="email"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="vcardOrg">公司</label>
+                        <input class="form-input" id="vcardOrg" type="text">
+                    </div>
+                    <div class="form-group">
+                        <label for="vcardUrl">网址</label>
+                        <input class="form-input" id="vcardUrl" type="text">
+                        <div class="field-error" data-error-for="url"></div>
+                    </div>
+                </div>
+                <div class="type-panel" data-panel="email">
+                    <div class="form-group">
+                        <label for="emailTo">收件人</label>
+                        <input class="form-input" id="emailTo" type="text">
+                        <div class="field-error" data-error-for="email"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="emailSubject">主题</label>
+                        <input class="form-input" id="emailSubject" type="text">
+                    </div>
+                    <div class="form-group">
+                        <label for="emailBody">正文</label>
+                        <textarea class="form-input form-textarea" id="emailBody" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="type-panel" data-panel="tel">
+                    <div class="form-group">
+                        <label for="telPhone">号码</label>
+                        <input class="form-input" id="telPhone" type="text">
+                        <div class="field-error" data-error-for="phone"></div>
+                    </div>
+                </div>
+                <div class="type-panel" data-panel="sms">
+                    <div class="form-group">
+                        <label for="smsPhone">号码</label>
+                        <input class="form-input" id="smsPhone" type="text">
+                        <div class="field-error" data-error-for="phone"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="smsBody">正文</label>
+                        <textarea class="form-input form-textarea" id="smsBody" rows="3"></textarea>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>前景色 / 背景色</label>
+                    <div class="color-row">
+                        <input id="fgColor" type="color" value="#000000">
+                        <input id="bgColor" type="color" value="#ffffff">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>尺寸</label>
+                    <div class="size-row">
+                        <button type="button" data-size="128">128</button>
+                        <button type="button" class="active" data-size="256">256</button>
+                        <button type="button" data-size="512">512</button>
+                        <button type="button" data-size="1024">1024</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="eccSelect">纠错</label>
+                    <select class="form-input form-select" id="eccSelect">
+                        <option value="L">L</option>
+                        <option value="M" selected>M</option>
+                        <option value="Q">Q</option>
+                        <option value="H">H</option>
+                    </select>
+                </div>
+                <div class="actions">
+                    <button class="btn btn-primary" id="btnPng" type="button" disabled>下载 PNG</button>
+                    <button class="btn btn-secondary" id="btnSvg" type="button" disabled>下载 SVG</button>
+                    <button class="btn btn-secondary" id="btnCopy" type="button" disabled>复制图片</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.1/qrcode.min.js"></script>
+    <script src="../js/qrcode-core.js"></script>
+    <script>
+        const core = window.QRCodeCore;
+        const canvas = document.getElementById('previewCanvas');
+        const hint = document.getElementById('previewHint');
+        const hintText = document.getElementById('previewHintText');
+        const contrastWarn = document.getElementById('contrastWarn');
+        const actionMsg = document.getElementById('actionMsg');
+        const btnPng = document.getElementById('btnPng');
+        const btnSvg = document.getElementById('btnSvg');
+        const btnCopy = document.getElementById('btnCopy');
+        const fgColor = document.getElementById('fgColor');
+        const bgColor = document.getElementById('bgColor');
+        const eccSelect = document.getElementById('eccSelect');
+        const wifiPassGroup = document.getElementById('wifiPassGroup');
+        const wifiAuth = document.getElementById('wifiAuth');
+
+        const drafts = {
+            text: { text: '' },
+            url: { url: '' },
+            wifi: { ssid: '', auth: 'WPA', password: '', hidden: false },
+            vcard: { name: '', phone: '', email: '', org: '', url: '' },
+            email: { email: '', subject: '', body: '' },
+            tel: { phone: '' },
+            sms: { phone: '', body: '' }
+        };
+
+        let currentType = 'text';
+        let currentPayload = '';
+        let debounceTimer = 0;
+        let libraryOk = typeof QRCode !== 'undefined';
+
+        function $(id) { return document.getElementById(id); }
+
+        function readStyle() {
+            const sizeBtn = document.querySelector('.size-row button.active');
+            return core.parseStyle({
+                type: currentType,
+                foreground: fgColor.value,
+                background: bgColor.value,
+                size: sizeBtn ? Number(sizeBtn.getAttribute('data-size')) : 256,
+                ecc: eccSelect.value
+            });
+        }
+
+        function applyStyle(style) {
+            currentType = style.type;
+            fgColor.value = style.foreground.toLowerCase();
+            bgColor.value = style.background.toLowerCase();
+            eccSelect.value = style.ecc;
+            document.querySelectorAll('.size-row button').forEach((btn) => {
+                btn.classList.toggle('active', Number(btn.getAttribute('data-size')) === style.size);
+            });
+            document.querySelectorAll('.type-btn').forEach((btn) => {
+                btn.classList.toggle('active', btn.getAttribute('data-type') === style.type);
+            });
+            document.querySelectorAll('.type-panel').forEach((panel) => {
+                panel.classList.toggle('active', panel.getAttribute('data-panel') === style.type);
+            });
+        }
+
+        function saveStyle() {
+            try {
+                localStorage.setItem(core.STORAGE_KEY, JSON.stringify(readStyle()));
+            } catch (err) { /* ignore quota / private mode */ }
+        }
+
+        function loadStyle() {
+            try {
+                const raw = localStorage.getItem(core.STORAGE_KEY);
+                if (!raw) return core.DEFAULT_STYLE;
+                return core.parseStyle(JSON.parse(raw));
+            } catch (err) {
+                return core.DEFAULT_STYLE;
+            }
+        }
+
+        function readFields(type) {
+            if (type === 'text') return { text: $('textInput').value };
+            if (type === 'url') return { url: $('urlInput').value };
+            if (type === 'wifi') {
+                return {
+                    ssid: $('wifiSsid').value,
+                    auth: wifiAuth.value,
+                    password: $('wifiPassword').value,
+                    hidden: $('wifiHidden').checked
+                };
+            }
+            if (type === 'vcard') {
+                return {
+                    name: $('vcardName').value,
+                    phone: $('vcardPhone').value,
+                    email: $('vcardEmail').value,
+                    org: $('vcardOrg').value,
+                    url: $('vcardUrl').value
+                };
+            }
+            if (type === 'email') {
+                return {
+                    email: $('emailTo').value,
+                    subject: $('emailSubject').value,
+                    body: $('emailBody').value
+                };
+            }
+            if (type === 'tel') return { phone: $('telPhone').value };
+            return { phone: $('smsPhone').value, body: $('smsBody').value };
+        }
+
+        function writeFields(type, fields) {
+            if (type === 'text') $('textInput').value = fields.text || '';
+            if (type === 'url') $('urlInput').value = fields.url || '';
+            if (type === 'wifi') {
+                $('wifiSsid').value = fields.ssid || '';
+                wifiAuth.value = fields.auth || 'WPA';
+                $('wifiPassword').value = fields.password || '';
+                $('wifiHidden').checked = Boolean(fields.hidden);
+            }
+            if (type === 'vcard') {
+                $('vcardName').value = fields.name || '';
+                $('vcardPhone').value = fields.phone || '';
+                $('vcardEmail').value = fields.email || '';
+                $('vcardOrg').value = fields.org || '';
+                $('vcardUrl').value = fields.url || '';
+            }
+            if (type === 'email') {
+                $('emailTo').value = fields.email || '';
+                $('emailSubject').value = fields.subject || '';
+                $('emailBody').value = fields.body || '';
+            }
+            if (type === 'tel') $('telPhone').value = fields.phone || '';
+            if (type === 'sms') {
+                $('smsPhone').value = fields.phone || '';
+                $('smsBody').value = fields.body || '';
+            }
+            syncWifiPasswordVisibility();
+        }
+
+        function syncWifiPasswordVisibility() {
+            wifiPassGroup.classList.toggle('hidden', wifiAuth.value === 'nopass');
+        }
+
+        function clearFieldErrors() {
+            document.querySelectorAll('.field-error').forEach((el) => { el.textContent = ''; });
+        }
+
+        function showFieldErrors(errors) {
+            clearFieldErrors();
+            const panel = document.querySelector('.type-panel.active');
+            Object.keys(errors || {}).forEach((key) => {
+                const el = panel.querySelector('[data-error-for="' + key + '"]');
+                if (el) el.textContent = errors[key];
+            });
+        }
+
+        function setButtonsEnabled(enabled) {
+            btnPng.disabled = !enabled;
+            btnSvg.disabled = !enabled;
+            btnCopy.disabled = !enabled;
+        }
+
+        function renderOptions(style) {
+            return {
+                errorCorrectionLevel: style.ecc,
+                width: style.size,
+                margin: 2,
+                color: { dark: style.foreground, light: style.background }
+            };
+        }
+
+        function showPlaceholder(text) {
+            currentPayload = '';
+            canvas.classList.remove('is-visible');
+            hint.classList.remove('is-hidden');
+            hintText.textContent = text;
+            setButtonsEnabled(false);
+        }
+
+        function scheduleRender() {
+            window.clearTimeout(debounceTimer);
+            debounceTimer = window.setTimeout(renderPreview, 150);
+        }
+
+        function renderPreview() {
+            actionMsg.textContent = '';
+            const style = readStyle();
+            contrastWarn.textContent = core.isLowContrast(style.foreground, style.background)
+                ? '前景与背景对比过低，可能无法扫描'
+                : '';
+            if (!libraryOk) {
+                showPlaceholder('二维码库加载失败');
+                return;
+            }
+            const built = core.buildPayload(currentType, readFields(currentType));
+            if (!built.ok) {
+                showFieldErrors(built.errors);
+                showPlaceholder('填写内容后生成二维码');
+                return;
+            }
+            clearFieldErrors();
+            QRCode.toCanvas(canvas, built.payload, renderOptions(style), (error) => {
+                if (error) {
+                    showPlaceholder('无法生成二维码，请缩短内容');
+                    actionMsg.textContent = '无法生成二维码，请缩短内容';
+                    return;
+                }
+                currentPayload = built.payload;
+                hint.classList.add('is-hidden');
+                canvas.classList.add('is-visible');
+                setButtonsEnabled(true);
+            });
+        }
+
+        function downloadBlob(blob, name) {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = name;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function switchType(nextType) {
+            drafts[currentType] = readFields(currentType);
+            currentType = nextType;
+            writeFields(nextType, drafts[nextType]);
+            applyStyle(Object.assign(readStyle(), { type: nextType }));
+            saveStyle();
+            scheduleRender();
+        }
+
+        document.querySelectorAll('.type-btn').forEach((btn) => {
+            btn.addEventListener('click', () => switchType(btn.getAttribute('data-type')));
+        });
+        document.querySelectorAll('.size-row button').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.size-row button').forEach((el) => el.classList.remove('active'));
+                btn.classList.add('active');
+                saveStyle();
+                scheduleRender();
+            });
+        });
+        wifiAuth.addEventListener('change', () => {
+            syncWifiPasswordVisibility();
+            scheduleRender();
+        });
+        ['fgColor', 'bgColor', 'eccSelect'].forEach((id) => {
+            $(id).addEventListener('change', () => { saveStyle(); scheduleRender(); });
+        });
+        document.querySelector('.control-pane').addEventListener('input', scheduleRender);
+
+        btnPng.addEventListener('click', () => {
+            if (!currentPayload) return;
+            canvas.toBlob((blob) => {
+                if (!blob) return;
+                downloadBlob(blob, core.buildFileName(currentType, 'png'));
+            }, 'image/png');
+        });
+        btnSvg.addEventListener('click', () => {
+            if (!currentPayload || !libraryOk) return;
+            QRCode.toString(currentPayload, Object.assign({ type: 'svg' }, renderOptions(readStyle())), (error, svg) => {
+                if (error) {
+                    actionMsg.textContent = '无法生成二维码，请缩短内容';
+                    return;
+                }
+                downloadBlob(new Blob([svg], { type: 'image/svg+xml' }), core.buildFileName(currentType, 'svg'));
+            });
+        });
+        btnCopy.addEventListener('click', () => {
+            if (!currentPayload) return;
+            canvas.toBlob(async (blob) => {
+                if (!blob || !navigator.clipboard || !window.ClipboardItem) {
+                    actionMsg.textContent = '无法复制，请改用下载';
+                    return;
+                }
+                try {
+                    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                    actionMsg.textContent = '已复制到剪贴板';
+                } catch (err) {
+                    actionMsg.textContent = '无法复制，请改用下载';
+                }
+            }, 'image/png');
+        });
+
+        applyStyle(loadStyle());
+        if (!libraryOk) {
+            showPlaceholder('二维码库加载失败');
+        } else {
+            showPlaceholder('填写内容后生成二维码');
+            scheduleRender();
+        }
+    </script>
+    <script src="../js/theme.js"></script>
+</body>
+</html>
