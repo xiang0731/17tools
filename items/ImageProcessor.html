@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片处理</title>
+    <link rel="stylesheet" href="../css/theme.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+    <style>
+        html, body { margin: 0; min-height: 100vh; background: var(--background-primary); color: var(--text-primary); font-family: var(--font-family); }
+        .page { padding: var(--spacing-lg); max-width: 1280px; margin: 0 auto; }
+        h1 { margin: 0 0 var(--spacing-lg); text-align: center; display: flex; align-items: center; justify-content: center; gap: var(--spacing-sm); font-size: 28px; }
+        h1 i { color: var(--primary-color); }
+        .tabs { display: flex; gap: 8px; justify-content: center; margin-bottom: var(--spacing-lg); }
+        .tab-btn { background: transparent; border: none; border-bottom: 2px solid transparent; color: var(--text-secondary); padding: 10px 16px; cursor: pointer; font-size: 15px; font-weight: 600; }
+        .tab-btn.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+        .layout { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: var(--spacing-lg); }
+        .preview-pane, .control-pane { background: var(--background-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: var(--spacing-md); }
+        .dropzone { min-height: 280px; border: 2px dashed var(--border-color); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; background: var(--background-tertiary); cursor: pointer; position: relative; overflow: hidden; }
+        .dropzone.has-image { border-style: solid; }
+        .drop-hint { text-align: center; color: var(--text-secondary); pointer-events: none; }
+        #wmCanvas, #cpPreview, #cropImage { max-width: 100%; max-height: 420px; display: block; margin: 0 auto; }
+        #cropWrap { max-height: 420px; }
+        .thumbs { display: flex; gap: 8px; overflow-x: auto; margin-top: 12px; }
+        .thumbs button { border: 2px solid transparent; background: var(--background-primary); color: var(--text-secondary); border-radius: 8px; padding: 4px; cursor: pointer; min-width: 72px; }
+        .thumbs button.active { border-color: var(--primary-color); }
+        .thumbs img { width: 64px; height: 48px; object-fit: cover; display: block; border-radius: 4px; }
+        .thumbs span { display: block; max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; }
+        input[type="text"], input[type="number"], input[type="range"], select { width: 100%; }
+        .pos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+        .pos-grid button, .ratio-row button, .tool-row button, .size-presets button { border: 1px solid var(--border-color); background: var(--background-primary); color: var(--text-primary); border-radius: 8px; padding: 8px; cursor: pointer; }
+        .pos-grid button.active, .ratio-row button.active { background: var(--primary-light); border-color: var(--primary-color); color: var(--primary-color); }
+        .ratio-row, .tool-row, .size-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+        .pick-btn { margin-bottom: 8px; border: 1px solid var(--border-color); background: var(--background-primary); color: var(--text-primary); border-radius: 8px; padding: 8px 12px; cursor: pointer; }
+        .btn-primary { width: 100%; border: none; background: var(--primary-color); color: #fff; border-radius: 8px; padding: 12px; font-weight: 600; cursor: pointer; }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .errors { white-space: pre-wrap; color: var(--error-color); font-size: 13px; min-height: 1.4em; margin-top: 8px; }
+        .stats { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+        #toastContainer { position: fixed; right: 20px; top: 20px; z-index: 20; display: flex; flex-direction: column; gap: 8px; }
+        .toast { background: var(--background-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 12px; display: flex; gap: 8px; align-items: center; box-shadow: var(--shadow-md); }
+        .hidden-file { display: none; }
+        @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <h1><i class="fas fa-image"></i>图片处理</h1>
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="watermark" type="button">添加水印</button>
+            <button class="tab-btn" data-tab="crop" type="button">图片裁切</button>
+            <button class="tab-btn" data-tab="compress" type="button">图片压缩</button>
+        </div>
+
+        <section class="tab-panel active" data-panel="watermark">
+            <div class="layout">
+                <div class="preview-pane">
+                    <button class="pick-btn" id="wmPick" type="button">选择图片</button>
+                    <div class="dropzone" id="wmDrop">
+                        <input class="hidden-file" id="wmFile" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+                        <div class="drop-hint" id="wmHint"><i class="fas fa-cloud-upload-alt"></i><div>点击或拖拽上传 JPEG / PNG / WebP</div></div>
+                        <canvas id="wmCanvas" hidden></canvas>
+                    </div>
+                    <div class="thumbs" id="wmThumbs"></div>
+                </div>
+                <div class="control-pane">
+                    <div class="form-group"><label for="wmText">水印文字</label><input id="wmText" type="text" placeholder="输入水印文字"></div>
+                    <div class="form-group"><label for="wmFont">字号（短边百分比）</label><input id="wmFont" type="range" min="1" max="20" value="5"></div>
+                    <div class="form-group"><label for="wmColor">颜色</label><input id="wmColor" type="color" value="#ffffff"></div>
+                    <div class="form-group"><label for="wmOpacity">透明度</label><input id="wmOpacity" type="range" min="0" max="100" value="50"></div>
+                    <div class="form-group"><label for="wmRotation">旋转</label><input id="wmRotation" type="range" min="-90" max="90" value="0"></div>
+                    <div class="form-group"><label>位置</label><div class="pos-grid" id="wmPosition"></div></div>
+                    <div class="form-group"><label><input id="wmTiled" type="checkbox"> 对角线平铺</label></div>
+                    <div class="form-group"><label for="wmGap">平铺间距（短边百分比）</label><input id="wmGap" type="range" min="8" max="40" value="18"></div>
+                    <button class="btn-primary" id="wmExport" type="button" disabled>导出</button>
+                    <div class="errors" id="wmErrors"></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="tab-panel" data-panel="crop">
+            <div class="layout">
+                <div class="preview-pane">
+                    <button class="pick-btn" id="cropPick" type="button">选择图片</button>
+                    <div class="dropzone" id="cropDrop">
+                        <input class="hidden-file" id="cropFile" type="file" accept="image/jpeg,image/png,image/webp">
+                        <div class="drop-hint" id="cropHint"><i class="fas fa-crop"></i><div>点击或拖拽上传一张图片</div></div>
+                        <div id="cropWrap" hidden><img id="cropImage" alt="裁切预览"></div>
+                    </div>
+                </div>
+                <div class="control-pane">
+                    <div class="form-group"><label>比例</label><div class="ratio-row" id="cropRatios"></div></div>
+                    <div class="tool-row">
+                        <button type="button" id="cropRotateCcw">逆时针 90°</button>
+                        <button type="button" id="cropRotateCw">顺时针 90°</button>
+                        <button type="button" id="cropFlipH">水平翻转</button>
+                        <button type="button" id="cropFlipV">垂直翻转</button>
+                        <button type="button" id="cropReset">重置</button>
+                    </div>
+                    <button class="btn-primary" id="cropExport" type="button" disabled>导出</button>
+                    <div class="errors" id="cropErrors"></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="tab-panel" data-panel="compress">
+            <div class="layout">
+                <div class="preview-pane">
+                    <button class="pick-btn" id="cpPick" type="button">选择图片</button>
+                    <div class="dropzone" id="cpDrop">
+                        <input class="hidden-file" id="cpFile" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+                        <div class="drop-hint" id="cpHint"><i class="fas fa-compress"></i><div>点击或拖拽上传 JPEG / PNG / WebP</div></div>
+                        <img id="cpPreview" alt="压缩预览" hidden>
+                    </div>
+                    <div class="thumbs" id="cpThumbs"></div>
+                </div>
+                <div class="control-pane">
+                    <div class="form-group"><label for="cpQuality">质量</label><input id="cpQuality" type="range" min="1" max="100" value="80"></div>
+                    <div class="form-group"><label for="cpSize">目标体积</label>
+                        <div style="display:flex;gap:8px;">
+                            <input id="cpSize" type="number" min="0.1" step="0.1">
+                            <select id="cpUnit"><option value="KB">KB</option><option value="MB">MB</option></select>
+                        </div>
+                    </div>
+                    <div class="size-presets">
+                        <button type="button" data-kb="200">200 KB</button>
+                        <button type="button" data-kb="500">500 KB</button>
+                        <button type="button" data-mb="1">1 MB</button>
+                    </div>
+                    <div class="form-group"><label for="cpFormat">输出格式</label>
+                        <select id="cpFormat">
+                            <option value="image/jpeg">JPEG</option>
+                            <option value="image/webp">WebP</option>
+                        </select>
+                    </div>
+                    <div class="stats" id="cpStats"></div>
+                    <button class="btn-primary" id="cpExport" type="button" disabled>导出</button>
+                    <div class="errors" id="cpErrors"></div>
+                </div>
+            </div>
+        </section>
+    </div>
+    <div id="toastContainer"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="../js/image-processor-core.js"></script>
+    <script>
+        const core = window.ImageProcessorCore;
+        const STORAGE_KEY = '17tools-image-processor';
+        const POS_LABELS = { tl: '左上', t: '上', tr: '右上', l: '左', c: '中', r: '右', bl: '左下', b: '下', br: '右下' };
+        const DEFAULTS = {
+            watermark: { text: '', fontPercent: 5, color: '#ffffff', opacity: 50, rotation: 0, position: 'br', tiled: false, tileGapPercent: 18 },
+            compress: { outputMime: 'image/jpeg' }
+        };
+
+        const state = {
+            watermark: { items: [], selectedId: null },
+            crop: { items: [], selectedId: null, cropper: null, ratio: 'free' },
+            compress: { items: [], selectedId: null, controlMode: 'quality', previewUrl: null, lastBlob: null, lastPlan: null }
+        };
+
+        function loadSettings() {
+            try {
+                const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '');
+                return {
+                    watermark: { ...DEFAULTS.watermark, ...(parsed.watermark || {}) },
+                    compress: { ...DEFAULTS.compress, ...(parsed.compress || {}) }
+                };
+            } catch (error) {
+                return { watermark: { ...DEFAULTS.watermark }, compress: { ...DEFAULTS.compress } };
+            }
+        }
+
+        const settings = loadSettings();
+        function saveSettings() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                watermark: readWatermarkSettings(),
+                compress: { outputMime: document.getElementById('cpFormat').value }
+            }));
+        }
+
+        function showToast(message) {
+            const box = document.createElement('div');
+            box.className = 'toast';
+            const icon = document.createElement('i');
+            icon.className = 'fas fa-info-circle';
+            const span = document.createElement('span');
+            span.textContent = message;
+            box.append(icon, span);
+            document.getElementById('toastContainer').appendChild(box);
+            setTimeout(() => box.remove(), 3200);
+        }
+
+        function setErrors(id, lines) {
+            document.getElementById(id).textContent = lines.join('\n');
+        }
+
+        async function loadBitmap(file) {
+            if (typeof createImageBitmap === 'function') {
+                try {
+                    return await createImageBitmap(file, { imageOrientation: 'from-image' });
+                } catch (error) { /* fall through */ }
+            }
+            const url = URL.createObjectURL(file);
+            const image = new Image();
+            image.src = url;
+            await image.decode();
+            URL.revokeObjectURL(url);
+            return image;
+        }
+
+        function revokeItem(item) {
+            if (item.url) URL.revokeObjectURL(item.url);
+            if (item.bitmap && typeof item.bitmap.close === 'function') item.bitmap.close();
+        }
+
+        async function ingestFiles(tab, fileList, single) {
+            const files = [...fileList];
+            const bucket = state[tab];
+            const errors = [];
+            if (single && files.length > 1) {
+                showToast('裁切一次只能处理一张，已使用第一张');
+            }
+            let incoming = single ? files.slice(0, 1) : files;
+            if (!single && incoming.length > core.MAX_BATCH_COUNT) {
+                showToast('一次最多 20 张，已忽略多余文件');
+                incoming = incoming.slice(0, core.MAX_BATCH_COUNT);
+            }
+            const nextItems = single ? [] : bucket.items.slice();
+            if (single) bucket.items.forEach(revokeItem);
+            for (const file of incoming) {
+                const checked = core.validateFile(file);
+                if (!checked.ok) {
+                    errors.push(file.name + '：' + (checked.reason === 'size' ? '单张不能超过 20 MB' : '仅支持 JPEG / PNG / WebP'));
+                    continue;
+                }
+                try {
+                    const bitmap = await loadBitmap(file);
+                    const item = {
+                        id: `${file.name}-${file.size}-${Math.random()}`,
+                        file,
+                        name: file.name,
+                        mime: core.resolveMime(file.name, file.type),
+                        size: file.size,
+                        url: URL.createObjectURL(file),
+                        bitmap,
+                        width: bitmap.width,
+                        height: bitmap.height
+                    };
+                    nextItems.push(item);
+                } catch (error) {
+                    errors.push(file.name + '：无法读取');
+                }
+            }
+            bucket.items = nextItems.slice(0, core.MAX_BATCH_COUNT);
+            bucket.selectedId = bucket.items[0] ? bucket.items[0].id : null;
+            setErrors(tab === 'watermark' ? 'wmErrors' : tab === 'crop' ? 'cropErrors' : 'cpErrors', errors);
+            if (tab === 'watermark') renderWatermark();
+            if (tab === 'crop') renderCrop();
+            if (tab === 'compress') renderCompress();
+        }
+
+        function selected(tab) {
+            return state[tab].items.find((item) => item.id === state[tab].selectedId) || null;
+        }
+
+        function bindDrop(dropId, inputId, tab, single) {
+            const drop = document.getElementById(dropId);
+            const input = document.getElementById(inputId);
+            drop.addEventListener('click', (event) => {
+                if (event.target.closest('canvas, img, #cropWrap')) return;
+                input.click();
+            });
+            const pick = document.getElementById(dropId.replace('Drop', 'Pick'));
+            if (pick) pick.addEventListener('click', () => input.click());
+            drop.addEventListener('dragover', (event) => { event.preventDefault(); });
+            drop.addEventListener('drop', (event) => {
+                event.preventDefault();
+                ingestFiles(tab, event.dataTransfer.files, single);
+            });
+            input.addEventListener('change', () => ingestFiles(tab, input.files, single));
+        }
+
+        function renderThumbs(containerId, tab, onSelect) {
+            const box = document.getElementById(containerId);
+            box.replaceChildren();
+            state[tab].items.forEach((item) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                if (item.id === state[tab].selectedId) btn.classList.add('active');
+                const img = document.createElement('img');
+                img.src = item.url;
+                img.alt = item.name;
+                const span = document.createElement('span');
+                span.textContent = item.name;
+                btn.append(img, span);
+                btn.addEventListener('click', () => onSelect(item.id));
+                box.appendChild(btn);
+            });
+        }
+
+        function readWatermarkSettings() {
+            return {
+                text: document.getElementById('wmText').value,
+                fontPercent: Number(document.getElementById('wmFont').value),
+                color: document.getElementById('wmColor').value,
+                opacity: Number(document.getElementById('wmOpacity').value),
+                rotation: Number(document.getElementById('wmRotation').value),
+                position: document.querySelector('#wmPosition button.active')?.dataset.pos || 'br',
+                tiled: document.getElementById('wmTiled').checked,
+                tileGapPercent: Number(document.getElementById('wmGap').value)
+            };
+        }
+
+        function drawWatermark(ctx, item, wm) {
+            const { width, height } = item;
+            ctx.clearRect(0, 0, width, height);
+            ctx.drawImage(item.bitmap, 0, 0, width, height);
+            const text = wm.text.trim();
+            if (!text) return;
+            const minSide = Math.min(width, height);
+            const fontPx = core.computeFontPx(minSide, wm.fontPercent);
+            const margin = core.computeMargin(minSide);
+            ctx.save();
+            ctx.font = `${fontPx}px "PingFang SC", "Microsoft YaHei", sans-serif`;
+            ctx.fillStyle = wm.color;
+            ctx.globalAlpha = wm.opacity / 100;
+            if (wm.tiled) {
+                const spacing = minSide * (wm.tileGapPercent / 100);
+                core.computeTileOrigins({ width, height, spacing }).forEach((origin) => {
+                    ctx.save();
+                    ctx.translate(origin.x, origin.y);
+                    ctx.rotate(wm.rotation * Math.PI / 180);
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(text, 0, 0);
+                    ctx.restore();
+                });
+            } else {
+                const anchor = core.computeAnchor(width, height, wm.position, margin);
+                ctx.translate(anchor.x, anchor.y);
+                ctx.rotate(wm.rotation * Math.PI / 180);
+                ctx.textAlign = anchor.textAlign;
+                ctx.textBaseline = anchor.textBaseline;
+                ctx.fillText(text, 0, 0);
+            }
+            ctx.restore();
+        }
+
+        function renderWatermark() {
+            const item = selected('watermark');
+            const canvas = document.getElementById('wmCanvas');
+            const hint = document.getElementById('wmHint');
+            const wm = readWatermarkSettings();
+            document.getElementById('wmExport').disabled = !item || !wm.text.trim();
+            renderThumbs('wmThumbs', 'watermark', (id) => { state.watermark.selectedId = id; renderWatermark(); });
+            if (!item) {
+                canvas.hidden = true;
+                hint.hidden = false;
+                document.getElementById('wmDrop').classList.remove('has-image');
+                return;
+            }
+            hint.hidden = true;
+            canvas.hidden = false;
+            document.getElementById('wmDrop').classList.add('has-image');
+            canvas.width = item.width;
+            canvas.height = item.height;
+            drawWatermark(canvas.getContext('2d'), item, wm);
+        }
+
+        function canvasToBlob(canvas, mime, quality) {
+            return new Promise((resolve, reject) => {
+                canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('toBlob failed')), mime, quality);
+            });
+        }
+
+        function downloadBlob(blob, filename) {
+            const a = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        async function exportBlobs(files, zipName) {
+            if (files.length === 1) {
+                downloadBlob(files[0].blob, files[0].name);
+                return;
+            }
+            try {
+                const zip = new JSZip();
+                files.forEach((file) => zip.file(file.name, file.blob));
+                downloadBlob(await zip.generateAsync({ type: 'blob' }), zipName);
+            } catch (error) {
+                showToast('ZIP 生成失败，改为逐张下载');
+                files.forEach((file) => downloadBlob(file.blob, file.name));
+            }
+        }
+
+        async function exportWatermark() {
+            const wm = readWatermarkSettings();
+            const lines = [];
+            const out = [];
+            for (const item of state.watermark.items) {
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = item.width;
+                    canvas.height = item.height;
+                    drawWatermark(canvas.getContext('2d'), item, wm);
+                    const quality = item.mime === 'image/png' ? undefined : 0.92;
+                    const blob = await canvasToBlob(canvas, item.mime, quality);
+                    out.push({ blob, name: core.buildExportName(item.name, 'watermarked', item.mime) });
+                } catch (error) {
+                    lines.push(item.name + '：无法导出');
+                }
+            }
+            setErrors('wmErrors', lines);
+            if (out.length) await exportBlobs(out, 'watermarked.zip');
+        }
+
+        function renderCrop() {
+            const item = selected('crop');
+            const wrap = document.getElementById('cropWrap');
+            const hint = document.getElementById('cropHint');
+            const image = document.getElementById('cropImage');
+            document.getElementById('cropExport').disabled = !item;
+            if (state.crop.cropper) {
+                state.crop.cropper.destroy();
+                state.crop.cropper = null;
+            }
+            if (!item) {
+                wrap.hidden = true;
+                hint.hidden = false;
+                document.getElementById('cropDrop').classList.remove('has-image');
+                return;
+            }
+            hint.hidden = true;
+            wrap.hidden = false;
+            document.getElementById('cropDrop').classList.add('has-image');
+            image.onload = () => {
+                if (state.crop.cropper) {
+                    state.crop.cropper.destroy();
+                    state.crop.cropper = null;
+                }
+                state.crop.cropper = new Cropper(image, { viewMode: 1, autoCropArea: 0.8, background: false, responsive: true });
+                applyCropRatio();
+            };
+            image.src = item.url;
+        }
+
+        function applyCropRatio() {
+            if (!state.crop.cropper) return;
+            const value = state.crop.ratio;
+            const map = { free: NaN, '1': 1, '4/3': 4 / 3, '16/9': 16 / 9, '3/4': 3 / 4, '9/16': 9 / 16 };
+            state.crop.cropper.setAspectRatio(map[value]);
+        }
+
+        async function exportCrop() {
+            const item = selected('crop');
+            if (!item || !state.crop.cropper) return;
+            try {
+                const canvas = state.crop.cropper.getCroppedCanvas({
+                    fillColor: item.mime === 'image/jpeg' ? '#ffffff' : undefined
+                });
+                if (!canvas) throw new Error('empty');
+                const blob = await canvasToBlob(canvas, item.mime, item.mime === 'image/png' ? undefined : 0.92);
+                downloadBlob(blob, core.buildExportName(item.name, 'cropped', item.mime));
+                setErrors('cropErrors', []);
+            } catch (error) {
+                setErrors('cropErrors', ['裁切失败，请重新选择区域']);
+            }
+        }
+
+        function debounce(fn, wait) {
+            let timer = 0;
+            return (...args) => {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn(...args), wait);
+            };
+        }
+
+        async function encodeBitmap(bitmap, width, height, mime, quality) {
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            canvas.getContext('2d').drawImage(bitmap, 0, 0, width, height);
+            return canvasToBlob(canvas, mime, quality);
+        }
+
+        async function planCompress(item) {
+            const mime = document.getElementById('cpFormat').value;
+            const quality = core.qualityToCanvas(document.getElementById('cpQuality').value);
+            const targetBytes = core.parseTargetSize(document.getElementById('cpSize').value, document.getElementById('cpUnit').value);
+            const encode = async ({ width, height, quality: q }) => {
+                const blob = await encodeBitmap(item.bitmap, width, height, mime, q);
+                return blob.size;
+            };
+            if (state.compress.controlMode === 'quality' || targetBytes == null) {
+                return core.compressToTarget({
+                    sourceWidth: item.width, sourceHeight: item.height, sourceBytes: item.size,
+                    targetBytes: targetBytes || 0, controlMode: 'quality', quality, encode
+                });
+            }
+            return core.compressToTarget({
+                sourceWidth: item.width, sourceHeight: item.height, sourceBytes: item.size,
+                targetBytes, controlMode: 'size', quality, encode
+            });
+        }
+
+        async function renderCompress() {
+            const item = selected('compress');
+            renderThumbs('cpThumbs', 'compress', (id) => { state.compress.selectedId = id; renderCompress(); });
+            const preview = document.getElementById('cpPreview');
+            const hint = document.getElementById('cpHint');
+            document.getElementById('cpExport').disabled = !item;
+            if (!item) {
+                preview.hidden = true;
+                hint.hidden = false;
+                document.getElementById('cpStats').textContent = '';
+                return;
+            }
+            hint.hidden = true;
+            preview.hidden = false;
+            document.getElementById('cpDrop').classList.add('has-image');
+            const plan = await planCompress(item);
+            state.compress.lastPlan = plan;
+            const mime = document.getElementById('cpFormat').value;
+            let blob;
+            if (plan.passthrough) {
+                blob = item.file;
+            } else {
+                blob = await encodeBitmap(item.bitmap, plan.width, plan.height, mime, plan.quality);
+            }
+            state.compress.lastBlob = blob;
+            if (state.compress.previewUrl) URL.revokeObjectURL(state.compress.previewUrl);
+            state.compress.previewUrl = URL.createObjectURL(blob);
+            preview.src = state.compress.previewUrl;
+            if (state.compress.controlMode === 'size') {
+                document.getElementById('cpQuality').value = String(core.canvasToQuality(plan.quality));
+            } else {
+                const formatted = core.formatByteSize(blob.size);
+                document.getElementById('cpSize').value = String(formatted.value);
+                document.getElementById('cpUnit').value = formatted.unit;
+            }
+            const saved = item.size > 0 ? Math.max(0, Math.round((1 - blob.size / item.size) * 100)) : 0;
+            const note = plan.passthrough ? ' · 已小于或等于目标，未再压缩' : '';
+            document.getElementById('cpStats').textContent = `原体积 ${core.formatByteSize(item.size).text} · 结果 ${core.formatByteSize(blob.size).text} · 节省 ${saved}% · ${plan.width}×${plan.height}${note}`;
+        }
+
+        const renderCompressDebounced = debounce(renderCompress, 150);
+
+        async function exportCompress() {
+            const mime = document.getElementById('cpFormat').value;
+            const lines = [];
+            const out = [];
+            for (const item of state.compress.items) {
+                try {
+                    const plan = await planCompress(item);
+                    const blob = plan.passthrough
+                        ? item.file
+                        : await encodeBitmap(item.bitmap, plan.width, plan.height, mime, plan.quality);
+                    if (!plan.hitTarget) {
+                        lines.push(item.name + '：未达到目标体积，实际 ' + core.formatByteSize(blob.size).text);
+                    }
+                    out.push({ blob, name: core.buildExportName(item.name, 'compressed', mime) });
+                } catch (error) {
+                    lines.push(item.name + '：无法读取');
+                }
+            }
+            setErrors('cpErrors', lines);
+            if (out.length) await exportBlobs(out, 'compressed.zip');
+        }
+
+        function initWatermarkUi() {
+            const grid = document.getElementById('wmPosition');
+            core.POSITIONS.forEach((pos) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.dataset.pos = pos;
+                btn.textContent = POS_LABELS[pos];
+                if (pos === settings.watermark.position) btn.classList.add('active');
+                btn.addEventListener('click', () => {
+                    grid.querySelectorAll('button').forEach((el) => el.classList.remove('active'));
+                    btn.classList.add('active');
+                    renderWatermark();
+                    saveSettings();
+                });
+                grid.appendChild(btn);
+            });
+            const wm = settings.watermark;
+            document.getElementById('wmText').value = wm.text;
+            document.getElementById('wmFont').value = String(wm.fontPercent);
+            document.getElementById('wmColor').value = wm.color;
+            document.getElementById('wmOpacity').value = String(wm.opacity);
+            document.getElementById('wmRotation').value = String(wm.rotation);
+            document.getElementById('wmTiled').checked = wm.tiled;
+            document.getElementById('wmGap').value = String(wm.tileGapPercent);
+            ['wmText', 'wmFont', 'wmColor', 'wmOpacity', 'wmRotation', 'wmGap'].forEach((id) => {
+                document.getElementById(id).addEventListener('input', () => { renderWatermark(); saveSettings(); });
+            });
+            document.getElementById('wmTiled').addEventListener('change', () => {
+                if (document.getElementById('wmTiled').checked && Number(document.getElementById('wmRotation').value) === 0) {
+                    document.getElementById('wmRotation').value = '-22';
+                }
+                renderWatermark();
+                saveSettings();
+            });
+            document.getElementById('wmExport').addEventListener('click', exportWatermark);
+        }
+
+        function initCropUi() {
+            const row = document.getElementById('cropRatios');
+            [['free', '自由'], ['1', '1:1'], ['4/3', '4:3'], ['16/9', '16:9'], ['3/4', '3:4'], ['9/16', '9:16']].forEach(([value, label], index) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.dataset.ratio = value;
+                btn.textContent = label;
+                if (index === 0) btn.classList.add('active');
+                btn.addEventListener('click', () => {
+                    row.querySelectorAll('button').forEach((el) => el.classList.remove('active'));
+                    btn.classList.add('active');
+                    state.crop.ratio = value;
+                    applyCropRatio();
+                });
+                row.appendChild(btn);
+            });
+            document.getElementById('cropRotateCw').addEventListener('click', () => state.crop.cropper?.rotate(90));
+            document.getElementById('cropRotateCcw').addEventListener('click', () => state.crop.cropper?.rotate(-90));
+            document.getElementById('cropFlipH').addEventListener('click', () => {
+                const data = state.crop.cropper?.getImageData();
+                if (data) state.crop.cropper.scaleX(-data.scaleX);
+            });
+            document.getElementById('cropFlipV').addEventListener('click', () => {
+                const data = state.crop.cropper?.getImageData();
+                if (data) state.crop.cropper.scaleY(-data.scaleY);
+            });
+            document.getElementById('cropReset').addEventListener('click', () => state.crop.cropper?.reset());
+            document.getElementById('cropExport').addEventListener('click', exportCrop);
+        }
+
+        function initCompressUi() {
+            document.getElementById('cpFormat').value = settings.compress.outputMime;
+            document.getElementById('cpQuality').addEventListener('input', () => {
+                state.compress.controlMode = 'quality';
+                renderCompressDebounced();
+            });
+            const onSize = () => {
+                state.compress.controlMode = 'size';
+                renderCompressDebounced();
+            };
+            document.getElementById('cpSize').addEventListener('input', onSize);
+            document.getElementById('cpUnit').addEventListener('change', onSize);
+            document.querySelectorAll('.size-presets button').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    if (btn.dataset.kb) {
+                        document.getElementById('cpSize').value = btn.dataset.kb;
+                        document.getElementById('cpUnit').value = 'KB';
+                    } else {
+                        document.getElementById('cpSize').value = btn.dataset.mb;
+                        document.getElementById('cpUnit').value = 'MB';
+                    }
+                    state.compress.controlMode = 'size';
+                    renderCompress();
+                });
+            });
+            document.getElementById('cpFormat').addEventListener('change', () => { saveSettings(); renderCompress(); });
+            document.getElementById('cpExport').addEventListener('click', exportCompress);
+            const probe = document.createElement('canvas');
+            probe.toBlob((blob) => {
+                if (!(blob && blob.type === 'image/webp')) {
+                    const option = document.querySelector('#cpFormat option[value="image/webp"]');
+                    option.disabled = true;
+                    option.textContent = 'WebP（当前浏览器不支持）';
+                    document.getElementById('cpFormat').value = 'image/jpeg';
+                }
+            }, 'image/webp');
+        }
+
+        document.querySelectorAll('.tab-btn').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach((el) => el.classList.remove('active'));
+                document.querySelectorAll('.tab-panel').forEach((el) => el.classList.remove('active'));
+                btn.classList.add('active');
+                document.querySelector(`[data-panel="${btn.dataset.tab}"]`).classList.add('active');
+            });
+        });
+
+        bindDrop('wmDrop', 'wmFile', 'watermark', false);
+        bindDrop('cropDrop', 'cropFile', 'crop', true);
+        bindDrop('cpDrop', 'cpFile', 'compress', false);
+        initWatermarkUi();
+        initCropUi();
+        initCompressUi();
+        window.addEventListener('beforeunload', () => {
+            ['watermark', 'crop', 'compress'].forEach((tab) => state[tab].items.forEach(revokeItem));
+            if (state.compress.previewUrl) URL.revokeObjectURL(state.compress.previewUrl);
+        });
+    </script>
+    <script src="../js/theme.js"></script>
+</body>
+</html>
