@@ -25,8 +25,15 @@
     };
     const MSG = {
         textEmpty: '请输入内容',
-        textTooLong: '内容不超过 1200 字'
+        textTooLong: '内容不超过 1200 字',
+        urlEmpty: '请输入链接',
+        urlInvalid: '请输入有效链接',
+        emailEmpty: '请输入邮箱',
+        emailInvalid: '请输入有效邮箱',
+        phoneEmpty: '请输入电话',
+        phoneInvalid: '请输入有效电话'
     };
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     function fail(errors) {
         return { ok: false, errors: errors };
@@ -106,8 +113,81 @@
         return ok(text);
     }
 
+    function isValidEmail(value) {
+        return EMAIL_RE.test(value);
+    }
+
+    function normalizeUrl(raw) {
+        const value = trim(raw);
+        if (!value) return { ok: false, empty: true };
+        const withScheme = /^(https?:)\/\//i.test(value) ? value : 'https://' + value;
+        try {
+            const parsed = new URL(withScheme);
+            if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+                return { ok: false, empty: false };
+            }
+            return { ok: true, url: withScheme };
+        } catch (err) {
+            return { ok: false, empty: false };
+        }
+    }
+
+    function normalizePhone(raw) {
+        const value = trim(raw);
+        if (!value) return { ok: false, empty: true };
+        const compact = value.replace(/ /g, '');
+        if (!/^[+0-9()\-]+$/.test(compact) || !/[0-9]/.test(compact)) {
+            return { ok: false, empty: false };
+        }
+        return { ok: true, phone: compact };
+    }
+
+    function buildUrl(fields) {
+        const result = normalizeUrl(fields.url);
+        if (!result.ok) {
+            return fail({ url: result.empty ? MSG.urlEmpty : MSG.urlInvalid });
+        }
+        return ok(result.url);
+    }
+
+    function buildEmail(fields) {
+        const email = trim(fields.email);
+        if (!email) return fail({ email: MSG.emailEmpty });
+        if (!isValidEmail(email)) return fail({ email: MSG.emailInvalid });
+        const subject = trim(fields.subject);
+        const body = trim(fields.body);
+        let payload = 'mailto:' + email;
+        const params = [];
+        if (subject) params.push('subject=' + encodeURIComponent(subject));
+        if (body) params.push('body=' + encodeURIComponent(body));
+        if (params.length) payload += '?' + params.join('&');
+        return ok(payload);
+    }
+
+    function buildTel(fields) {
+        const result = normalizePhone(fields.phone);
+        if (!result.ok) {
+            return fail({ phone: result.empty ? MSG.phoneEmpty : MSG.phoneInvalid });
+        }
+        return ok('tel:' + result.phone);
+    }
+
+    function buildSms(fields) {
+        const result = normalizePhone(fields.phone);
+        if (!result.ok) {
+            return fail({ phone: result.empty ? MSG.phoneEmpty : MSG.phoneInvalid });
+        }
+        const body = trim(fields.body);
+        return ok(body ? 'SMSTO:' + result.phone + ':' + body : 'SMSTO:' + result.phone);
+    }
+
     function buildPayload(type, fields) {
-        if (type === 'text') return buildText(fields || {});
+        const source = fields || {};
+        if (type === 'text') return buildText(source);
+        if (type === 'url') return buildUrl(source);
+        if (type === 'email') return buildEmail(source);
+        if (type === 'tel') return buildTel(source);
+        if (type === 'sms') return buildSms(source);
         return fail({ type: '未知类型' });
     }
 
@@ -124,6 +204,8 @@
         contrastRatio: contrastRatio,
         isLowContrast: isLowContrast,
         buildFileName: buildFileName,
-        buildPayload: buildPayload
+        buildPayload: buildPayload,
+        normalizeUrl: normalizeUrl,
+        normalizePhone: normalizePhone
     };
 });

@@ -50,4 +50,58 @@ assert.deepEqual(core.buildPayload('text', { text: 'x'.repeat(1201) }), {
     ok: false, errors: { text: '内容不超过 1200 字' }
 });
 
+assert.deepEqual(core.buildPayload('url', { url: 'example.com' }), {
+    ok: true, payload: 'https://example.com'
+});
+assert.deepEqual(core.buildPayload('url', { url: 'https://a.com/x' }), {
+    ok: true, payload: 'https://a.com/x'
+});
+assert.deepEqual(core.buildPayload('url', { url: 'http://a.com' }), {
+    ok: true, payload: 'http://a.com'
+});
+assert.deepEqual(core.buildPayload('url', { url: '  ' }), {
+    ok: false, errors: { url: '请输入链接' }
+});
+assert.deepEqual(core.buildPayload('url', { url: 'https://' }), {
+    ok: false, errors: { url: '请输入有效链接' }
+});
+
+assert.deepEqual(core.buildPayload('email', { email: 'a@b.c' }), {
+    ok: true, payload: 'mailto:a@b.c'
+});
+assert.deepEqual(core.buildPayload('email', {
+    email: 'a@b.c', subject: 'Hi there', body: 'Yo'
+}), {
+    ok: true, payload: 'mailto:a@b.c?subject=Hi%20there&body=Yo'
+});
+assert.deepEqual(core.buildPayload('email', { email: 'a@b.c', body: 'hello' }), {
+    ok: true, payload: 'mailto:a@b.c?body=hello'
+});
+assert.deepEqual(core.buildPayload('email', { email: '' }), {
+    ok: false, errors: { email: '请输入邮箱' }
+});
+assert.deepEqual(core.buildPayload('email', { email: 'not-an-email' }), {
+    ok: false, errors: { email: '请输入有效邮箱' }
+});
+
+assert.deepEqual(core.buildPayload('tel', { phone: '138 0000 0000' }), {
+    ok: true, payload: 'tel:13800000000'
+});
+assert.deepEqual(core.buildPayload('tel', { phone: '+86 138-0000-0000' }), {
+    ok: true, payload: 'tel:+86138-0000-0000'
+});
+assert.deepEqual(core.buildPayload('tel', { phone: '   ' }), {
+    ok: false, errors: { phone: '请输入电话' }
+});
+assert.deepEqual(core.buildPayload('tel', { phone: 'abc' }), {
+    ok: false, errors: { phone: '请输入有效电话' }
+});
+
+assert.deepEqual(core.buildPayload('sms', { phone: '138 0013 8000' }), {
+    ok: true, payload: 'SMSTO:13800138000'
+});
+assert.deepEqual(core.buildPayload('sms', { phone: '13800138000', body: 'hello:world' }), {
+    ok: true, payload: 'SMSTO:13800138000:hello:world'
+});
+
 console.log('qrcode-core regression passed');
