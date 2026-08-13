@@ -1107,6 +1107,9 @@
             handleThemeChange(newTheme) {
                 if (this.isDrawing) {
                     this.stopDrawing();
+                    if (this.history[this.historyIndex]) {
+                        this.history[this.historyIndex].theme = newTheme === 'dark' ? 'light' : 'dark';
+                    }
                 }
 
                 this.invertPixels(this.canvas);
