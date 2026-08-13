@@ -925,7 +925,10 @@
                 // 保存当前状态到内存
                 const currentData = this.canvas.toDataURL();
                 this.slots[this.currentSlot] = {
-                    snapshot: currentData,
+                    snapshot: {
+                        dataUrl: currentData,
+                        theme: this.getBoardTheme()
+                    },
                     history: [...this.history], // 复制数组
                     index: this.historyIndex
                 };
@@ -1068,18 +1071,52 @@
                 document.getElementById('stroke-color').value = this.strokeColor;
             }
 
+            getBoardTheme() {
+                return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+            }
+
+            invertHexColor(hex) {
+                const raw = String(hex || '').replace('#', '');
+                const full = raw.length === 3
+                    ? raw.split('').map((ch) => ch + ch).join('')
+                    : raw.padStart(6, '0').slice(0, 6);
+                const n = parseInt(full, 16);
+                if (Number.isNaN(n)) {
+                    return hex;
+                }
+                const inverted = (0xFFFFFF ^ n) & 0xFFFFFF;
+                return '#' + inverted.toString(16).padStart(6, '0');
+            }
+
+            invertPixels(targetCanvas) {
+                const ctx = targetCanvas.getContext('2d');
+                const imageData = ctx.getImageData(0, 0, targetCanvas.width, targetCanvas.height);
+                const data = imageData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    const alpha = data[i + 3];
+                    if (alpha === 0) {
+                        continue;
+                    }
+                    data[i] = 255 - data[i];
+                    data[i + 1] = 255 - data[i + 1];
+                    data[i + 2] = 255 - data[i + 2];
+                }
+                ctx.putImageData(imageData, 0, 0);
+            }
+
             handleThemeChange(newTheme) {
-                // 只在当前颜色是黑色或白色时才自动切换
-                if (this.strokeColor === '#000000' || this.strokeColor === '#ffffff') {
-                    const newColor = newTheme === 'dark' ? '#ffffff' : '#000000';
-                    this.strokeColor = newColor;
-                    document.getElementById('stroke-color').value = newColor;
-                    console.log(`主题切换为${newTheme}模式，画笔颜色自动切换为${newColor}`);
-                } else {
-                    console.log(`主题切换为${newTheme}模式，保持当前颜色${this.strokeColor}`);
+                if (this.isDrawing) {
+                    this.stopDrawing();
                 }
 
-                // 如果当前是橡皮擦工具，更新光标以适应新主题
+                this.invertPixels(this.canvas);
+                this.snapshot = null;
+
+                this.strokeColor = this.invertHexColor(this.strokeColor);
+                this.colorHistory = this.colorHistory.map((color) => this.invertHexColor(color));
+                document.getElementById('stroke-color').value = this.strokeColor;
+                this.updatePresetColors();
+
                 if (this.currentTool === 'eraser') {
                     this.setEraserCursor();
                 }
@@ -1313,7 +1350,10 @@
                     this.history.length = this.historyIndex;
                 }
 
-                this.history.push(this.canvas.toDataURL());
+                this.history.push({
+                    dataUrl: this.canvas.toDataURL(),
+                    theme: this.getBoardTheme()
+                });
 
                 if (this.history.length > this.maxHistory) {
                     this.history.shift();
@@ -1335,13 +1375,19 @@
                 }
             }
 
-            restoreState(dataUrl) {
+            restoreState(entry) {
+                if (!entry || !entry.dataUrl) {
+                    return;
+                }
                 const img = new Image();
                 img.onload = () => {
                     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
                     this.ctx.drawImage(img, 0, 0);
+                    if (entry.theme !== this.getBoardTheme()) {
+                        this.invertPixels(this.canvas);
+                    }
                 };
-                img.src = dataUrl;
+                img.src = entry.dataUrl;
             }
 
             clearCanvas() {
