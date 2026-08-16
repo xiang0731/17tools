@@ -304,6 +304,28 @@
         </header>
 
         <div class="timeline">
+            <!-- 版本 2.16.1 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 2.16.1</div>
+                    <div class="version-date">2026-08-16</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">新功能</div>
+                    <ul>
+                        <li><span class="tag new">新增</span>未保存输入保护：工具页已输入内容时切换模块会二次确认，避免误操作丢失内容</li>
+                    </ul>
+                    <div class="feature-category">逻辑改动与优化</div>
+                    <ul>
+                        <li><span class="tag ux">体验</span>万年历和正则表达式不弹出离开确认；确认离开后不再叠加浏览器系统确认框</li>
+                    </ul>
+                    <div class="feature-category">缺陷修复</div>
+                    <ul>
+                        <li><span class="tag fixed">修复</span>直接打开本地文件时，离开确认不生效</li>
+                    </ul>
+                </div>
+            </div>
             <!-- 版本 2.16.0 -->
             <div class="version-entry">
                 <div class="version-dot"></div>
@@ -1026,6 +1048,7 @@
         </div>
     </div>
 
+    <script src="../js/unsaved-guard.js"></script>
     <script src="../js/theme.js"></script>
 
     <script>

@@ -403,4 +403,29 @@ if (window.parent !== window) {
             window.themeManager = initializeTheme();
         }
     });
-} 
+}
+
+(function loadUnsavedGuard() {
+    if (document.documentElement.getAttribute('data-unsaved-guard') === 'off') {
+        return;
+    }
+    const markEarlyInput = () => {
+        window.__17toolsEarlyInput = true;
+    };
+    document.addEventListener('input', markEarlyInput, true);
+    document.addEventListener('change', markEarlyInput, true);
+
+    function install() {
+        if (window.UnsavedGuard) {
+            window.UnsavedGuard.install(window);
+        }
+    }
+    if (window.UnsavedGuard) {
+        install();
+        return;
+    }
+    const script = document.createElement('script');
+    script.src = '../js/unsaved-guard.js';
+    script.onload = install;
+    document.head.appendChild(script);
+})(); 

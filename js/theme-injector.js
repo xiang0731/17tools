@@ -646,4 +646,20 @@
         init();
     }
 
+    (function loadUnsavedGuard() {
+        function install() {
+            if (window.UnsavedGuard) {
+                window.UnsavedGuard.install(window);
+            }
+        }
+        if (window.UnsavedGuard) {
+            install();
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = '../js/unsaved-guard.js';
+        script.onload = install;
+        document.head.appendChild(script);
+    })();
+
 })(); 

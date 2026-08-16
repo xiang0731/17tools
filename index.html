@@ -568,6 +568,15 @@
             display: none;
         }
 
+        .password-btn.danger {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        .password-btn.danger:hover {
+            background-color: #dc2626;
+        }
+
         /* 研发中项目样式 */
         .dev-item {
             opacity: 0.7;
@@ -580,6 +589,7 @@
 
     <!-- 认证管理模块 -->
     <script src="js/auth.js"></script>
+    <script src="js/unsaved-guard.js"></script>
 </head>
 
 <body>
@@ -882,6 +892,7 @@
                 this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
                 this.userPreferDesktop = localStorage.getItem('preferDesktop') === 'true';
                 this.currentMobileMode = this.isMobile && !this.userPreferDesktop;
+                this.leaveDialogOpen = false;
                 this.init();
             }
 
@@ -967,19 +978,136 @@
                 }
             }
 
-            navigateToPage(navItem) {
-                const isProtected = navItem.getAttribute('data-protected') === 'true';
+            isCurrentPage(navItem) {
+                const fileName = navItem && navItem.getAttribute('data-file');
+                const iframe = document.getElementById('content-frame');
+                const currentSrc = iframe ? (iframe.getAttribute('src') || '') : '';
+                return UnsavedGuard.isSameToolPage(currentSrc, fileName);
+            }
 
-                if (isProtected) {
-                    // 如果是受保护的页面，需要密码验证
-                    passwordManager.checkAccess(() => {
-                        this.performNavigation(navItem);
-                        passwordManager.updateProtectedItemNames();
-                    });
-                } else {
-                    // 普通页面直接导航
-                    this.performNavigation(navItem);
+            hasUnsavedContent() {
+                try {
+                    const iframe = document.getElementById('content-frame');
+                    const currentSrc = iframe ? (iframe.getAttribute('src') || iframe.src || '') : '';
+                    if (UnsavedGuard.isExcludedPage(currentSrc)) {
+                        return false;
+                    }
+                    const frameWindow = iframe && iframe.contentWindow;
+                    const guard = frameWindow && frameWindow.__17toolsUnsaved;
+                    return !!(guard && guard.isDirty(frameWindow.document));
+                } catch (e) {
+                    return false;
                 }
+            }
+
+            checkUnsaved(callback) {
+                const iframe = document.getElementById('content-frame');
+                if (!iframe || typeof UnsavedGuard === 'undefined' || !UnsavedGuard.requestDirty) {
+                    callback(false);
+                    return;
+                }
+                UnsavedGuard.requestDirty(iframe, callback);
+            }
+
+            confirmLeave(onLeave) {
+                if (this.leaveDialogOpen) {
+                    return;
+                }
+                this.leaveDialogOpen = true;
+
+                const overlay = document.createElement('div');
+                overlay.className = 'password-overlay';
+                overlay.id = 'unsaved-leave-overlay';
+                overlay.setAttribute('role', 'dialog');
+                overlay.setAttribute('aria-modal', 'true');
+                overlay.setAttribute('aria-labelledby', 'unsaved-leave-title');
+
+                const modal = document.createElement('div');
+                modal.className = 'password-modal';
+
+                const title = document.createElement('h3');
+                title.id = 'unsaved-leave-title';
+                title.textContent = '确定离开？';
+
+                const message = document.createElement('p');
+                message.textContent = '已输入的内容将不会保留。';
+
+                const buttons = document.createElement('div');
+                buttons.className = 'password-buttons';
+
+                const stayBtn = document.createElement('button');
+                stayBtn.type = 'button';
+                stayBtn.className = 'password-btn primary';
+                stayBtn.textContent = '留下';
+
+                const leaveBtn = document.createElement('button');
+                leaveBtn.type = 'button';
+                leaveBtn.className = 'password-btn danger';
+                leaveBtn.textContent = '离开';
+
+                buttons.appendChild(stayBtn);
+                buttons.appendChild(leaveBtn);
+                modal.appendChild(title);
+                modal.appendChild(message);
+                modal.appendChild(buttons);
+                overlay.appendChild(modal);
+                document.body.appendChild(overlay);
+                stayBtn.focus();
+
+                const close = (shouldLeave) => {
+                    if (!this.leaveDialogOpen) {
+                        return;
+                    }
+                    this.leaveDialogOpen = false;
+                    document.removeEventListener('keydown', onKeyDown);
+                    overlay.remove();
+                    if (shouldLeave) {
+                        onLeave();
+                    }
+                };
+
+                const onKeyDown = (event) => {
+                    if (event.key === 'Escape') {
+                        event.preventDefault();
+                        close(false);
+                    }
+                };
+
+                stayBtn.addEventListener('click', () => close(false));
+                leaveBtn.addEventListener('click', () => close(true));
+                overlay.addEventListener('click', (event) => {
+                    if (event.target === overlay) {
+                        close(false);
+                    }
+                });
+                document.addEventListener('keydown', onKeyDown);
+            }
+
+            navigateToPage(navItem) {
+                if (!navItem || this.isCurrentPage(navItem)) {
+                    return;
+                }
+
+                const proceed = () => {
+                    const isProtected = navItem.getAttribute('data-protected') === 'true';
+
+                    if (isProtected) {
+                        passwordManager.checkAccess(() => {
+                            this.performNavigation(navItem);
+                            passwordManager.updateProtectedItemNames();
+                        });
+                    } else {
+                        this.performNavigation(navItem);
+                    }
+                };
+
+                this.checkUnsaved((dirty) => {
+                    if (dirty) {
+                        this.confirmLeave(proceed);
+                        return;
+                    }
+                    proceed();
+                });
             }
 
             performNavigation(navItem) {
@@ -991,9 +1119,17 @@
                 // 添加活动状态到当前项
                 navItem.classList.add('active');
 
-                // 加载页面
+                // 加载页面；先放行本次卸载，避免自定义确认后再弹出浏览器原生框
                 const fileName = navItem.getAttribute('data-file');
-                document.getElementById('content-frame').src = 'items/' + fileName;
+                const iframe = document.getElementById('content-frame');
+                const loadPage = () => {
+                    iframe.src = 'items/' + fileName;
+                };
+                if (typeof UnsavedGuard !== 'undefined' && UnsavedGuard.allowUnload) {
+                    UnsavedGuard.allowUnload(iframe, loadPage);
+                } else {
+                    loadPage();
+                }
 
                 // 在移动模式下，点击后收起侧边栏
                 if (this.currentMobileMode) {
@@ -1030,20 +1166,29 @@
             }, 100);
         });
 
-        // iframe加载完成后应用主题
+        // iframe加载完成后应用主题，并安装未保存内容检测
         document.getElementById('content-frame').addEventListener('load', function () {
             try {
                 const frameDoc = this.contentDocument || this.contentWindow.document;
                 frameDoc.documentElement.setAttribute('data-theme', themeManager.currentTheme);
                 console.log('iframe加载完成，应用主题:', themeManager.currentTheme);
+                UnsavedGuard.install(this.contentWindow);
 
-                // 延迟一下确保主题注入器完全加载
+                // 延迟一下确保主题注入器完全加载；若页面随后写入默认值且用户尚未编辑，刷新基线避免误报
                 setTimeout(() => {
                     frameDoc.documentElement.setAttribute('data-theme', themeManager.currentTheme);
+                    const guard = this.contentWindow && this.contentWindow.__17toolsUnsaved;
+                    if (guard && !guard.isDirty(this.contentWindow.document)) {
+                        guard.captureBaseline(this.contentWindow.document);
+                    }
                 }, 100);
             } catch (e) {
                 console.log('无法访问iframe内容，可能是跨域限制');
             }
+        });
+
+        window.addEventListener('beforeunload', (event) => {
+            UnsavedGuard.applyBeforeUnload(event, appManager.hasUnsavedContent());
         });
 
         // 禁用右键菜单和开发者工具（保持原有功能）
