@@ -570,6 +570,20 @@
             </div>
 
             <div class="toolbar-group">
+                <button class="tool-btn tooltip" id="zoom-out" data-tooltip="缩小 (Ctrl+-)">
+                    <i class="fas fa-minus"></i>
+                </button>
+                <button class="tool-btn tooltip" id="zoom-percent" data-tooltip="重置缩放到 100%">100%</button>
+                <button class="tool-btn tooltip" id="zoom-in" data-tooltip="放大 (Ctrl++)">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <button class="tool-btn tooltip" id="reset-view" data-tooltip="复位到原点">
+                    <i class="fas fa-crosshairs"></i>
+                    复位
+                </button>
+            </div>
+
+            <div class="toolbar-group">
                 <button class="tool-btn slot-btn active-slot tooltip" id="slot-1" data-slot="1"
                     data-tooltip="临时存档 1">1</button>
                 <button class="tool-btn slot-btn tooltip" id="slot-2" data-slot="2" data-tooltip="临时存档 2">2</button>
@@ -612,11 +626,10 @@
             <div class="status-info">
                 <span>工具: <span id="current-tool">画笔</span></span>
                 <span>坐标: (<span id="mouse-x">0</span>, <span id="mouse-y">0</span>)</span>
-                <span class="status-action tooltip" id="reset-zoom" data-tooltip="点击重置缩放">缩放: <span
-                        id="zoom-level">100%</span></span>
+                <span>缩放: <span id="zoom-level">100%</span></span>
             </div>
             <div class="status-info">
-                <span style="font-size: 10px; opacity: 0.7;">Shift+滚轮缩放</span>
+                <span style="font-size: 10px; opacity: 0.7;">Ctrl+滚轮缩放 · 右键拖动平移</span>
             </div>
         </div>
     </div>
@@ -625,6 +638,7 @@
     <input type="file" id="file-input" accept=".json,.png,.jpg,.jpeg" style="display: none;">
 
     <script src="../js/unsaved-guard.js"></script>
+    <script src="../js/board-world.js"></script>
     <script>
         class WhiteBoard {
             constructor() {
@@ -847,18 +861,30 @@
                     }
                 });
 
-                // 缩放支持 (Shift + 滚轮)
+                // 缩放支持 (Ctrl + 滚轮)
                 this.container.addEventListener('wheel', (e) => {
-                    if (e.shiftKey || e.ctrlKey) {
+                    if (e.ctrlKey) {
                         e.preventDefault();
                         const delta = e.deltaY > 0 ? -0.1 : 0.1;
                         this.updateZoom(delta);
                     }
                 }, { passive: false });
 
-                // 重置缩放
-                document.getElementById('reset-zoom').addEventListener('click', () => {
+                this.container.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                });
+
+                document.getElementById('zoom-out').addEventListener('click', () => {
+                    this.updateZoom(-BoardWorld.SCALE_STEP);
+                });
+                document.getElementById('zoom-in').addEventListener('click', () => {
+                    this.updateZoom(BoardWorld.SCALE_STEP);
+                });
+                document.getElementById('zoom-percent').addEventListener('click', () => {
                     this.setZoom(1);
+                });
+                document.getElementById('reset-view').addEventListener('click', () => {
+                    this.resetView();
                 });
 
                 // 操作按钮
@@ -955,8 +981,11 @@
             }
 
             updateZoom(delta) {
-                const newScale = Math.min(Math.max(this.scale + delta, this.minScale), this.maxScale);
-                this.setZoom(newScale);
+                this.setZoom(BoardWorld.clampScale(this.scale + delta));
+            }
+
+            resetView() {
+                this.setZoom(this.scale);
             }
 
             setZoom(scale) {
