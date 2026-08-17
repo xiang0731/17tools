@@ -694,6 +694,10 @@
                     3: { history: [], index: -1, tiles: {}, camera: { offsetX: 0, offsetY: 0, scale: 1 } }
                 };
 
+                // 块恢复期间禁止切槽：此时块还是空的，快照会把空内容写回槽位
+                this.restorePending = false;
+                this.restoreToken = 0;
+
                 // 窗口调整防抖定时器
                 this.resizeTimeout = null;
 
@@ -865,10 +869,21 @@
                 const entries = tiles || {};
                 const keys = Object.keys(entries);
                 let pending = keys.length;
+                this.restorePending = true;
+                // 后一次恢复接管标记，避免前一次的回调提前解除禁用
+                const token = ++this.restoreToken;
+                const finish = () => {
+                    if (this.restoreToken === token) {
+                        this.restorePending = false;
+                    }
+                    if (onDone) {
+                        onDone();
+                    }
+                };
                 const settle = () => {
                     pending--;
-                    if (pending === 0 && onDone) {
-                        onDone();
+                    if (pending === 0) {
+                        finish();
                     }
                 };
                 keys.forEach((key) => {
@@ -894,9 +909,7 @@
                 });
                 if (keys.length === 0) {
                     this.redrawDisplay();
-                    if (onDone) {
-                        onDone();
-                    }
+                    finish();
                 }
             }
 
@@ -1249,6 +1262,8 @@
 
             switchSlot(slotId) {
                 if (this.currentSlot === slotId) return;
+                // 上一次恢复还没填完块，现在切槽会把空快照写回当前槽位
+                if (this.restorePending) return;
 
                 // 保存当前状态到内存
                 this.slots[this.currentSlot] = {
