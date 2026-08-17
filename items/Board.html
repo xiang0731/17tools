@@ -1254,6 +1254,7 @@
                 this.slots[this.currentSlot] = {
                     tiles: this.snapshotTiles(),
                     camera: this.getCamera(),
+                    theme: this.getBoardTheme(),
                     history: this.history.slice(),
                     index: this.historyIndex
                 };
@@ -1272,9 +1273,8 @@
                 this.history = nextSlot.history.slice();
                 this.historyIndex = nextSlot.index;
 
-                // 恢复视野与画布内容；块的主题跟着对应的历史条目走
-                const entry = this.history[this.historyIndex];
-                const needsInvert = Boolean(entry && entry.theme) && entry.theme !== this.getBoardTheme();
+                // 恢复视野与画布内容；块按存入槽位时的主题判断是否需要反色
+                const needsInvert = Boolean(nextSlot.theme) && nextSlot.theme !== this.getBoardTheme();
                 this.applyCamera(nextSlot.camera);
                 this.restoreTiles(nextSlot.tiles, needsInvert);
 
