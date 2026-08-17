@@ -266,6 +266,7 @@
         }
 
         .content-wrapper {
+            position: relative;
             flex: 1;
             padding: 16px;
             display: flex;
@@ -390,6 +391,10 @@
             .content-wrapper {
                 padding: 12px;
             }
+
+            .tool-load-overlay {
+                inset: 12px;
+            }
         }
 
         /* 滚动条样式 */
@@ -418,6 +423,62 @@
             height: 100%;
             font-size: 14px;
             color: var(--text-secondary);
+        }
+
+        .tool-load-overlay {
+            position: absolute;
+            inset: 16px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            background-color: var(--background-primary);
+            z-index: 20;
+            pointer-events: auto;
+        }
+
+        .tool-load-overlay.is-visible {
+            display: flex;
+        }
+
+        .tool-load-card {
+            width: min(360px, 82%);
+            text-align: center;
+        }
+
+        .tool-load-label {
+            margin: 0 0 14px;
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .tool-load-track {
+            height: 6px;
+            border-radius: 999px;
+            background-color: var(--background-tertiary);
+            overflow: hidden;
+        }
+
+        .tool-load-bar {
+            height: 100%;
+            width: 0%;
+            border-radius: inherit;
+            background-color: var(--primary-color);
+            transition: width 0.16s linear;
+        }
+
+        .tool-load-pct {
+            margin: 10px 0 0;
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-variant-numeric: tabular-nums;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .tool-load-bar {
+                transition: none;
+            }
         }
 
         /* 动画效果 */
@@ -590,6 +651,7 @@
     <!-- 认证管理模块 -->
     <script src="js/auth.js"></script>
     <script src="js/unsaved-guard.js"></script>
+    <script src="js/load-progress.js"></script>
 </head>
 
 <body>
@@ -753,6 +815,15 @@
         <!-- 主内容区 -->
         <main class="main-content" id="main-content">
             <div class="content-wrapper">
+                <div id="tool-load-overlay" class="tool-load-overlay" hidden aria-hidden="true">
+                    <div class="tool-load-card">
+                        <p class="tool-load-label" id="tool-load-label">正在加载</p>
+                        <div class="tool-load-track">
+                            <div class="tool-load-bar" id="tool-load-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-labelledby="tool-load-label"></div>
+                        </div>
+                        <p class="tool-load-pct" id="tool-load-pct">0%</p>
+                    </div>
+                </div>
                 <iframe class="content-frame" id="content-frame" src="items/Welcome.html">
                     <div class="loading">
                         <i class="fas fa-spinner fa-spin"></i>
@@ -1122,7 +1193,10 @@
                 // 加载页面；先放行本次卸载，避免自定义确认后再弹出浏览器原生框
                 const fileName = navItem.getAttribute('data-file');
                 const iframe = document.getElementById('content-frame');
+                const labelNode = navItem.querySelector('span');
+                const toolLabel = labelNode ? labelNode.textContent.trim() : '';
                 const loadPage = () => {
+                    startToolLoad(fileName, toolLabel);
                     iframe.src = 'items/' + fileName;
                 };
                 if (typeof UnsavedGuard !== 'undefined' && UnsavedGuard.allowUnload) {
@@ -1150,6 +1224,76 @@
             }
         }
 
+        const loadProgress = typeof LoadProgress !== 'undefined' ? LoadProgress.createController() : null;
+        let loadProgressRaf = 0;
+        let loadProgressHideTimer = 0;
+
+        function renderLoadProgress(state) {
+            const overlay = document.getElementById('tool-load-overlay');
+            const bar = document.getElementById('tool-load-bar');
+            const labelEl = document.getElementById('tool-load-label');
+            const pctEl = document.getElementById('tool-load-pct');
+            if (!overlay || !bar || !labelEl || !pctEl || !state) {
+                return;
+            }
+
+            overlay.classList.toggle('is-visible', state.visible);
+            if (state.visible) {
+                overlay.removeAttribute('hidden');
+                overlay.setAttribute('aria-hidden', 'false');
+            } else {
+                overlay.setAttribute('hidden', '');
+                overlay.setAttribute('aria-hidden', 'true');
+            }
+
+            labelEl.textContent = state.label;
+            pctEl.textContent = state.percent + '%';
+            bar.style.width = (state.progress * 100) + '%';
+            bar.setAttribute('aria-valuenow', String(state.percent));
+        }
+
+        function tickLoadProgress() {
+            if (!loadProgress) {
+                return;
+            }
+            const state = loadProgress.getState(Date.now());
+            renderLoadProgress(state);
+            if (state.active || (state.visible && state.progress < 1)) {
+                loadProgressRaf = window.requestAnimationFrame(tickLoadProgress);
+            } else {
+                loadProgressRaf = 0;
+            }
+        }
+
+        function startToolLoad(fileName, label) {
+            if (!loadProgress) {
+                return;
+            }
+            window.clearTimeout(loadProgressHideTimer);
+            loadProgress.start({ fileName: fileName, label: label }, Date.now());
+            renderLoadProgress(loadProgress.getState(Date.now()));
+            if (!loadProgressRaf) {
+                loadProgressRaf = window.requestAnimationFrame(tickLoadProgress);
+            }
+        }
+
+        function finishToolLoad() {
+            if (!loadProgress) {
+                return;
+            }
+            const state = loadProgress.complete(Date.now());
+            renderLoadProgress(state);
+            if (state.visible) {
+                window.clearTimeout(loadProgressHideTimer);
+                loadProgressHideTimer = window.setTimeout(() => {
+                    renderLoadProgress(loadProgress.hide(Date.now()));
+                }, 220);
+            }
+            if (!loadProgressRaf) {
+                loadProgressRaf = window.requestAnimationFrame(tickLoadProgress);
+            }
+        }
+
         // 初始化应用
         const themeManager = new ThemeManager();
         const passwordManager = new PasswordManager();
@@ -1168,6 +1312,7 @@
 
         // iframe加载完成后应用主题，并安装未保存内容检测
         document.getElementById('content-frame').addEventListener('load', function () {
+            finishToolLoad();
             try {
                 const frameDoc = this.contentDocument || this.contentWindow.document;
                 frameDoc.documentElement.setAttribute('data-theme', themeManager.currentTheme);
