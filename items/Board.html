@@ -648,10 +648,15 @@
                 this.isDrawing = false;
                 this.currentTool = 'pen';
 
-                // 缩放相关
+                // 相机与分块世界
                 this.scale = 1;
-                this.minScale = 0.5;
-                this.maxScale = 3.0;
+                this.offsetX = 0;
+                this.offsetY = 0;
+                this.tiles = new Map();
+                this.isPanning = false;
+                this.panLast = null;
+                this.minScale = BoardWorld.MIN_SCALE;
+                this.maxScale = BoardWorld.MAX_SCALE;
 
                 // 根据当前主题设置默认颜色
                 const currentTheme = document.documentElement.getAttribute('data-theme');
@@ -662,9 +667,12 @@
                 this.startY = 0;
                 this.snapshot = null; // 用于存储绘制形状前的画布快照
 
-                // 用于平滑绘制的点记录
+                // 用于平滑绘制的点记录（世界坐标）
                 this.lastX = 0;
                 this.lastY = 0;
+                // 上一段曲线的终点，用于让相邻分段首尾相接
+                this.penPrevX = 0;
+                this.penPrevY = 0;
 
                 // 性能优化：RAF
                 this.rafId = null;
@@ -715,48 +723,21 @@
                 const container = this.canvas.parentElement;
                 const newWidth = container.clientWidth;
                 const newHeight = container.clientHeight;
+                const dpr = this.getDpr();
 
-                // 获取设备像素比，支持高DPI显示
-                const dpr = window.devicePixelRatio || 1;
-
-                // 如果尺寸没有变化，不需要做任何事
+                // 显示层只是世界的取景框，尺寸没变时重绘即可
                 if (this.canvas.width === newWidth * dpr && this.canvas.height === newHeight * dpr) {
+                    this.redrawDisplay();
                     return;
                 }
 
-                // 如果画布已经有内容，保存它
-                let imageData = null;
-                if (this.canvas.width > 0 && this.canvas.height > 0) {
-                    try {
-                        // 将当前画布内容保存为图像
-                        imageData = this.canvas.toDataURL();
-                    } catch (e) {
-                        console.warn('无法保存画布内容:', e);
-                    }
-                }
-
-                // 设置canvas实际像素大小（考虑设备像素比）
                 this.canvas.width = newWidth * dpr;
                 this.canvas.height = newHeight * dpr;
-
-                // 设置canvas显示大小
                 this.canvas.style.width = newWidth + 'px';
                 this.canvas.style.height = newHeight + 'px';
-
-                // 缩放绘图上下文以匹配设备像素比
-                this.ctx.scale(dpr, dpr);
-
+                this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
                 this.setupCanvas();
-
-                // 如果有保存的图像，恢复它
-                if (imageData) {
-                    const img = new Image();
-                    img.onload = () => {
-                        // 恢复图像到画布
-                        this.ctx.drawImage(img, 0, 0, newWidth, newHeight);
-                    };
-                    img.src = imageData;
-                }
+                this.redrawDisplay();
             }
 
             setupCanvas() {
@@ -765,6 +746,135 @@
                 this.ctx.imageSmoothingEnabled = true;
                 // 设置最高质量的抗锯齿
                 this.ctx.imageSmoothingQuality = 'high';
+            }
+
+            getCamera() {
+                return { offsetX: this.offsetX, offsetY: this.offsetY, scale: this.scale };
+            }
+
+            getDpr() {
+                return window.devicePixelRatio || 1;
+            }
+
+            ensureTile(tx, ty) {
+                const key = BoardWorld.tileKey(tx, ty);
+                const existing = this.tiles.get(key);
+                if (existing) {
+                    return existing;
+                }
+                const dpr = this.getDpr();
+                const size = BoardWorld.TILE_SIZE;
+                const canvas = document.createElement('canvas');
+                canvas.width = size * dpr;
+                canvas.height = size * dpr;
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                const tile = { canvas: canvas, ctx: ctx, tx: tx, ty: ty };
+                this.tiles.set(key, tile);
+                return tile;
+            }
+
+            forEachTilesInWorldRect(minX, minY, maxX, maxY, padding, fn) {
+                const pad = padding || 0;
+                const t0 = BoardWorld.worldToTile(Math.min(minX, maxX) - pad, Math.min(minY, maxY) - pad);
+                const t1 = BoardWorld.worldToTile(Math.max(minX, maxX) + pad, Math.max(minY, maxY) + pad);
+                for (let ty = Math.min(t0.ty, t1.ty); ty <= Math.max(t0.ty, t1.ty); ty++) {
+                    for (let tx = Math.min(t0.tx, t1.tx); tx <= Math.max(t0.tx, t1.tx); tx++) {
+                        fn(this.ensureTile(tx, ty));
+                    }
+                }
+            }
+
+            // 把块的坐标系平移到世界坐标，回调里可以直接用世界坐标作画
+            withWorldCtx(tile, fn) {
+                const origin = BoardWorld.tileOrigin(tile.tx, tile.ty);
+                tile.ctx.save();
+                tile.ctx.translate(-origin.x, -origin.y);
+                fn(tile.ctx);
+                tile.ctx.restore();
+            }
+
+            redrawDisplay() {
+                const dpr = this.getDpr();
+                const viewW = this.canvas.clientWidth;
+                const viewH = this.canvas.clientHeight;
+                this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                this.ctx.globalCompositeOperation = 'source-over';
+                this.ctx.clearRect(0, 0, viewW, viewH);
+                const camera = this.getCamera();
+                BoardWorld.visibleTiles(camera, viewW, viewH).forEach((info) => {
+                    const tile = this.tiles.get(info.key);
+                    if (!tile) {
+                        return;
+                    }
+                    const origin = BoardWorld.tileOrigin(tile.tx, tile.ty);
+                    const screen = BoardWorld.worldToScreen(origin.x, origin.y, camera);
+                    const drawSize = BoardWorld.TILE_SIZE * camera.scale;
+                    this.ctx.drawImage(tile.canvas, screen.x, screen.y, drawSize, drawSize);
+                });
+                this.syncGrid();
+                this.syncZoomUI();
+            }
+
+            syncGrid() {
+                const background = document.querySelector('.canvas-background');
+                const camera = this.getCamera();
+                const size = 20 * camera.scale;
+                const posX = -camera.offsetX * camera.scale;
+                const posY = -camera.offsetY * camera.scale;
+                background.style.backgroundSize = size + 'px ' + size + 'px';
+                background.style.backgroundPosition = posX + 'px ' + posY + 'px';
+                background.style.transform = 'none';
+            }
+
+            syncZoomUI() {
+                const label = Math.round(this.scale * 100) + '%';
+                const top = document.getElementById('zoom-percent');
+                const bottom = document.getElementById('zoom-level');
+                if (top) {
+                    top.textContent = label;
+                }
+                if (bottom) {
+                    bottom.textContent = label;
+                }
+            }
+
+            snapshotTiles() {
+                const tiles = {};
+                this.tiles.forEach((tile, key) => {
+                    tiles[key] = tile.canvas.toDataURL();
+                });
+                return tiles;
+            }
+
+            restoreTiles(tiles, needsInvert) {
+                this.tiles = new Map();
+                const entries = tiles || {};
+                const keys = Object.keys(entries);
+                keys.forEach((key) => {
+                    const parsed = BoardWorld.parseTileKey(key);
+                    const tile = this.ensureTile(parsed.tx, parsed.ty);
+                    const img = new Image();
+                    img.onload = () => {
+                        const dpr = this.getDpr();
+                        tile.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                        tile.ctx.clearRect(0, 0, tile.canvas.width, tile.canvas.height);
+                        tile.ctx.drawImage(img, 0, 0);
+                        tile.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                        if (needsInvert) {
+                            this.invertPixels(tile.canvas);
+                        }
+                        this.redrawDisplay();
+                    };
+                    img.src = entries[key];
+                });
+                if (keys.length === 0) {
+                    this.redrawDisplay();
+                }
             }
 
             bindEvents() {
@@ -814,8 +924,8 @@
                 // 画布事件
                 this.canvas.addEventListener('mousedown', (e) => this.startDrawing(e));
                 this.canvas.addEventListener('mousemove', (e) => this.draw(e));
-                this.canvas.addEventListener('mouseup', (e) => this.stopDrawing(e));
-                this.canvas.addEventListener('mouseout', (e) => this.stopDrawing(e));
+                this.canvas.addEventListener('mouseup', () => this.stopDrawing());
+                this.canvas.addEventListener('mouseout', () => this.stopDrawing());
 
                 // 触摸事件支持
                 this.canvas.addEventListener('touchstart', (e) => {
@@ -872,6 +982,40 @@
 
                 this.container.addEventListener('contextmenu', (e) => {
                     e.preventDefault();
+                });
+
+                // 右键拖动平移；mousemove/mouseup 绑在 window 上，拖出画布也不会中断
+                this.container.addEventListener('mousedown', (e) => {
+                    if (e.button !== 2) {
+                        return;
+                    }
+                    e.preventDefault();
+                    this.isPanning = true;
+                    this.panLast = { x: e.clientX, y: e.clientY };
+                    this.container.style.cursor = 'grabbing';
+                });
+
+                window.addEventListener('mousemove', (e) => {
+                    if (!this.isPanning || !this.panLast) {
+                        return;
+                    }
+                    const next = BoardWorld.panByScreenDelta(
+                        this.getCamera(),
+                        e.clientX - this.panLast.x,
+                        e.clientY - this.panLast.y
+                    );
+                    this.offsetX = next.offsetX;
+                    this.offsetY = next.offsetY;
+                    this.panLast = { x: e.clientX, y: e.clientY };
+                    this.redrawDisplay();
+                });
+
+                window.addEventListener('mouseup', (e) => {
+                    if (e.button === 2 || this.isPanning) {
+                        this.isPanning = false;
+                        this.panLast = null;
+                        this.updateCursor();
+                    }
                 });
 
                 document.getElementById('zoom-out').addEventListener('click', () => {
@@ -985,21 +1129,14 @@
             }
 
             resetView() {
-                this.setZoom(this.scale);
+                this.offsetX = 0;
+                this.offsetY = 0;
+                this.redrawDisplay();
             }
 
             setZoom(scale) {
-                this.scale = scale;
-                document.getElementById('zoom-level').textContent = Math.round(this.scale * 100) + '%';
-
-                // 应用缩放
-                const wrapper = document.querySelector('.canvas-wrapper');
-                const background = document.querySelector('.canvas-background');
-
-                // 设置 transform
-                const transformValue = `scale(${this.scale})`;
-                wrapper.style.transform = transformValue;
-                background.style.transform = transformValue;
+                this.scale = BoardWorld.clampScale(scale);
+                this.redrawDisplay();
             }
 
             selectTool(tool) {
@@ -1033,10 +1170,10 @@
                 if (this.currentSlot === slotId) return;
 
                 // 保存当前状态到内存
-                const currentData = this.canvas.toDataURL();
                 this.slots[this.currentSlot] = {
                     snapshot: {
-                        dataUrl: currentData,
+                        tiles: this.snapshotTiles(),
+                        camera: this.getCamera(),
                         theme: this.getBoardTheme()
                     },
                     history: [...this.history], // 复制数组
@@ -1065,7 +1202,7 @@
                     this.restoreState(this.history[this.historyIndex]);
                 } else {
                     // 空白画布
-                    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                    this.restoreTiles({}, false);
                     // 初始化该槽位的历史记录
                     if (this.history.length === 0) {
                         this.saveState();
@@ -1075,6 +1212,7 @@
 
             updateCursor() {
                 const wrapper = document.querySelector('.canvas-wrapper');
+                this.container.style.cursor = '';
                 switch (this.currentTool) {
                     case 'pen':
                         wrapper.style.cursor = 'crosshair';
@@ -1222,8 +1360,11 @@
                     }
                 }
 
-                this.invertPixels(this.canvas);
+                this.tiles.forEach((tile) => {
+                    this.invertPixels(tile.canvas);
+                });
                 this.snapshot = null;
+                this.redrawDisplay();
 
                 this.strokeColor = this.invertHexColor(this.strokeColor);
                 this.colorHistory = this.colorHistory.map((color) => this.invertHexColor(color));
@@ -1236,17 +1377,12 @@
             }
 
             getMousePos(e) {
-                const rect = this.canvas.getBoundingClientRect();
-                const cssWidth = this.canvas.clientWidth || rect.width;
-                const cssHeight = this.canvas.clientHeight || rect.height;
-                const scaleX = rect.width ? cssWidth / rect.width : 1;
-                const scaleY = rect.height ? cssHeight / rect.height : 1;
-
-                // 只还原 CSS transform 缩放；DPR 已由 ctx.scale(dpr, dpr) 处理。
-                return {
-                    x: (e.clientX - rect.left) * scaleX,
-                    y: (e.clientY - rect.top) * scaleY
-                };
+                const rect = this.container.getBoundingClientRect();
+                return BoardWorld.screenToWorld(
+                    e.clientX - rect.left,
+                    e.clientY - rect.top,
+                    this.getCamera()
+                );
             }
 
             startDrawing(e) {
@@ -1256,31 +1392,135 @@
                 const pos = this.getMousePos(e);
                 this.startX = pos.x;
                 this.startY = pos.y;
+                this.lastX = pos.x;
+                this.lastY = pos.y;
+                this.penPrevX = pos.x;
+                this.penPrevY = pos.y;
 
-                // 保存当前画布状态用于形状工具的实时预览
-                if (['line', 'arrow', 'rectangle', 'circle'].includes(this.currentTool)) {
-                    this.snapshot = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+                if (this.currentTool === 'eraser') {
+                    this.paintSegment(pos.x, pos.y, pos.x, pos.y, true);
+                    this.redrawDisplay();
                 }
+            }
 
-                if (this.currentTool === 'pen') {
-                    // 初始化平滑绘制的点记录
-                    this.lastX = pos.x;
-                    this.lastY = pos.y;
+            // 在世界坐标下把一段直线（或橡皮圆）写进碰到的每个块
+            paintSegment(x0, y0, x1, y1, eraser) {
+                const pad = eraser ? this.brushSize * 2 : this.brushSize;
+                this.forEachTilesInWorldRect(x0, y0, x1, y1, pad, (tile) => {
+                    this.withWorldCtx(tile, (ctx) => {
+                        if (eraser) {
+                            ctx.globalCompositeOperation = 'destination-out';
+                            ctx.beginPath();
+                            ctx.arc(x1, y1, this.brushSize * 2, 0, 2 * Math.PI);
+                            ctx.fill();
+                            ctx.globalCompositeOperation = 'source-over';
+                            return;
+                        }
+                        ctx.globalCompositeOperation = 'source-over';
+                        ctx.strokeStyle = this.strokeColor;
+                        ctx.lineWidth = this.brushSize;
+                        ctx.lineCap = 'round';
+                        ctx.lineJoin = 'round';
+                        ctx.beginPath();
+                        ctx.moveTo(x0, y0);
+                        ctx.lineTo(x1, y1);
+                        ctx.stroke();
+                    });
+                });
+            }
 
-                    // 开始新的路径
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(pos.x, pos.y);
+            // 同一条世界曲线画到每个相关块上，跨块处自然接续
+            paintCurve(x0, y0, cx, cy, x1, y1) {
+                const minX = Math.min(x0, cx, x1);
+                const minY = Math.min(y0, cy, y1);
+                const maxX = Math.max(x0, cx, x1);
+                const maxY = Math.max(y0, cy, y1);
+                this.forEachTilesInWorldRect(minX, minY, maxX, maxY, this.brushSize, (tile) => {
+                    this.withWorldCtx(tile, (ctx) => {
+                        ctx.globalCompositeOperation = 'source-over';
+                        ctx.strokeStyle = this.strokeColor;
+                        ctx.lineWidth = this.brushSize;
+                        ctx.lineCap = 'round';
+                        ctx.lineJoin = 'round';
+                        ctx.beginPath();
+                        ctx.moveTo(x0, y0);
+                        ctx.quadraticCurveTo(cx, cy, x1, y1);
+                        ctx.stroke();
+                    });
+                });
+            }
 
-                    // 设置绘制样式
-                    this.ctx.globalCompositeOperation = 'source-over';
-                    this.ctx.strokeStyle = this.strokeColor;
-                    this.ctx.lineWidth = this.brushSize;
-                } else if (this.currentTool === 'eraser') {
-                    this.ctx.globalCompositeOperation = 'destination-out';
-                    this.ctx.beginPath();
-                    this.ctx.arc(pos.x, pos.y, this.brushSize * 2, 0, 2 * Math.PI);
-                    this.ctx.fill();
+            shapeBounds(tool, x0, y0, x1, y1) {
+                if (tool === 'circle') {
+                    const centerX = (x0 + x1) / 2;
+                    const centerY = (y0 + y1) / 2;
+                    const radius = Math.sqrt(Math.pow(x1 - x0, 2) + Math.pow(y1 - y0, 2)) / 2;
+                    return {
+                        minX: centerX - radius,
+                        minY: centerY - radius,
+                        maxX: centerX + radius,
+                        maxY: centerY + radius
+                    };
                 }
+                return {
+                    minX: Math.min(x0, x1),
+                    minY: Math.min(y0, y1),
+                    maxX: Math.max(x0, x1),
+                    maxY: Math.max(y0, y1)
+                };
+            }
+
+            strokeShape(ctx, tool, x0, y0, x1, y1, scaleFactor) {
+                const factor = scaleFactor || 1;
+                ctx.beginPath();
+                if (tool === 'line') {
+                    ctx.moveTo(x0, y0);
+                    ctx.lineTo(x1, y1);
+                    ctx.stroke();
+                } else if (tool === 'arrow') {
+                    this.drawArrow(ctx, x0, y0, x1, y1, factor);
+                } else if (tool === 'rectangle') {
+                    ctx.rect(x0, y0, x1 - x0, y1 - y0);
+                    ctx.stroke();
+                } else if (tool === 'circle') {
+                    // 以起点到终点的距离作为直径
+                    const centerX = (x0 + x1) / 2;
+                    const centerY = (y0 + y1) / 2;
+                    const radius = Math.sqrt(Math.pow(x1 - x0, 2) + Math.pow(y1 - y0, 2)) / 2;
+                    ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                    ctx.stroke();
+                }
+            }
+
+            commitShape(x0, y0, x1, y1) {
+                const tool = this.currentTool;
+                const bounds = this.shapeBounds(tool, x0, y0, x1, y1);
+                const pad = Math.max(10, this.brushSize * 3) + this.brushSize;
+                this.forEachTilesInWorldRect(bounds.minX, bounds.minY, bounds.maxX, bounds.maxY, pad, (tile) => {
+                    this.withWorldCtx(tile, (ctx) => {
+                        ctx.globalCompositeOperation = 'source-over';
+                        ctx.strokeStyle = this.strokeColor;
+                        ctx.lineWidth = this.brushSize;
+                        ctx.lineCap = 'round';
+                        ctx.lineJoin = 'round';
+                        this.strokeShape(ctx, tool, x0, y0, x1, y1);
+                    });
+                });
+            }
+
+            previewShape(pos) {
+                this.redrawDisplay();
+                const camera = this.getCamera();
+                const s0 = BoardWorld.worldToScreen(this.startX, this.startY, camera);
+                const s1 = BoardWorld.worldToScreen(pos.x, pos.y, camera);
+                this.ctx.save();
+                this.ctx.globalCompositeOperation = 'source-over';
+                this.ctx.strokeStyle = this.strokeColor;
+                this.ctx.lineWidth = this.brushSize * camera.scale;
+                this.ctx.lineCap = 'round';
+                this.ctx.lineJoin = 'round';
+                this.strokeShape(this.ctx, this.currentTool, s0.x, s0.y, s1.x, s1.y, camera.scale);
+                this.ctx.restore();
             }
 
             draw(e) {
@@ -1301,74 +1541,30 @@
                             return;
                         }
 
-                        // 使用二次贝塞尔曲线进行平滑绘制
-                        // 计算控制点
-                        const controlX = this.lastX;
-                        const controlY = this.lastY;
-
-                        // 计算目标点（当前点和上一点的中点）
+                        // 二次贝塞尔平滑：以上一点为控制点，画到两点中点
                         const targetX = (this.lastX + pos.x) / 2;
                         const targetY = (this.lastY + pos.y) / 2;
+                        this.paintCurve(this.penPrevX, this.penPrevY, this.lastX, this.lastY, targetX, targetY);
+                        this.penPrevX = targetX;
+                        this.penPrevY = targetY;
 
-                        // 绘制平滑曲线
-                        this.ctx.quadraticCurveTo(controlX, controlY, targetX, targetY);
-                        this.ctx.stroke();
-
-                        // 从目标点继续路径，保持连续性
-                        this.ctx.beginPath();
-                        this.ctx.moveTo(targetX, targetY);
-
-                        // 更新点的记录
                         this.lastX = pos.x;
                         this.lastY = pos.y;
+                        this.redrawDisplay();
                         break;
 
                     case 'eraser':
-                        this.ctx.globalCompositeOperation = 'destination-out';
-                        this.ctx.beginPath();
-                        this.ctx.arc(pos.x, pos.y, this.brushSize * 2, 0, 2 * Math.PI);
-                        this.ctx.fill();
+                        this.paintSegment(this.lastX, this.lastY, pos.x, pos.y, true);
+                        this.lastX = pos.x;
+                        this.lastY = pos.y;
+                        this.redrawDisplay();
                         break;
 
                     case 'line':
                     case 'arrow':
                     case 'rectangle':
                     case 'circle':
-                        // 恢复快照以清除之前的预览
-                        if (this.snapshot) {
-                            this.ctx.putImageData(this.snapshot, 0, 0);
-                        }
-
-                        // 设置绘制样式
-                        this.ctx.globalCompositeOperation = 'source-over';
-                        this.ctx.strokeStyle = this.strokeColor;
-                        this.ctx.lineWidth = this.brushSize;
-
-                        // 绘制实时预览
-                        this.ctx.beginPath();
-                        if (this.currentTool === 'line') {
-                            this.ctx.moveTo(this.startX, this.startY);
-                            this.ctx.lineTo(pos.x, pos.y);
-                            this.ctx.stroke();
-                        } else if (this.currentTool === 'arrow') {
-                            this.drawArrow(this.startX, this.startY, pos.x, pos.y);
-                        } else if (this.currentTool === 'rectangle') {
-                            const width = pos.x - this.startX;
-                            const height = pos.y - this.startY;
-                            this.ctx.rect(this.startX, this.startY, width, height);
-                            this.ctx.stroke();
-                        } else if (this.currentTool === 'circle') {
-                            // 修改为直径绘制逻辑
-                            const centerX = (this.startX + pos.x) / 2;
-                            const centerY = (this.startY + pos.y) / 2;
-                            const diameter = Math.sqrt(
-                                Math.pow(pos.x - this.startX, 2) +
-                                Math.pow(pos.y - this.startY, 2)
-                            );
-                            const radius = diameter / 2;
-                            this.ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-                            this.ctx.stroke();
-                        }
+                        this.previewShape(pos);
                         this.lastX = pos.x;
                         this.lastY = pos.y;
                         break;
@@ -1376,85 +1572,55 @@
             }
 
             // 绘制箭头辅助函数
-            drawArrow(fromX, fromY, toX, toY) {
-                const headLength = Math.max(10, this.brushSize * 3); // 箭头头部长度
+            drawArrow(ctx, fromX, fromY, toX, toY, scaleFactor) {
+                const factor = scaleFactor || 1;
+                const headLength = Math.max(10, this.brushSize * 3) * factor; // 箭头头部长度
                 const dx = toX - fromX;
                 const dy = toY - fromY;
                 const angle = Math.atan2(dy, dx);
 
                 // 绘制主线
-                this.ctx.moveTo(fromX, fromY);
-                this.ctx.lineTo(toX, toY);
-                this.ctx.stroke();
+                ctx.moveTo(fromX, fromY);
+                ctx.lineTo(toX, toY);
+                ctx.stroke();
 
                 // 绘制箭头头部
-                this.ctx.beginPath();
-                this.ctx.moveTo(toX, toY);
-                this.ctx.lineTo(toX - headLength * Math.cos(angle - Math.PI / 6), toY - headLength * Math.sin(angle - Math.PI / 6));
-                this.ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(toX, toY);
+                ctx.lineTo(toX - headLength * Math.cos(angle - Math.PI / 6), toY - headLength * Math.sin(angle - Math.PI / 6));
+                ctx.stroke();
 
-                this.ctx.beginPath();
-                this.ctx.moveTo(toX, toY);
-                this.ctx.lineTo(toX - headLength * Math.cos(angle + Math.PI / 6), toY - headLength * Math.sin(angle + Math.PI / 6));
-                this.ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(toX, toY);
+                ctx.lineTo(toX - headLength * Math.cos(angle + Math.PI / 6), toY - headLength * Math.sin(angle + Math.PI / 6));
+                ctx.stroke();
             }
 
-            stopDrawing(e) {
+            stopDrawing() {
                 if (!this.isDrawing) return;
                 this.isDrawing = false;
 
-                // 获取终点位置
-                const endPos = e ? this.getMousePos(e) : { x: this.lastX, y: this.lastY };
-
-                this.ctx.globalCompositeOperation = 'source-over';
-                this.ctx.strokeStyle = this.strokeColor;
-                this.ctx.lineWidth = this.brushSize;
+                // 终点用最后一次移动记录的世界坐标：touchend 合成的 mouseup 没有可用坐标
+                const endPos = { x: this.lastX, y: this.lastY };
 
                 switch (this.currentTool) {
                     case 'pen':
-                        // 绘制最后一段到终点的线条
-                        this.ctx.lineTo(endPos.x, endPos.y);
-                        this.ctx.stroke();
-                        // 结束当前路径
-                        this.ctx.closePath();
+                        // 补上最后一段到终点的线条
+                        this.paintSegment(this.penPrevX, this.penPrevY, endPos.x, endPos.y, false);
+                        break;
+
+                    case 'eraser':
                         break;
 
                     case 'line':
-                        this.ctx.beginPath();
-                        this.ctx.moveTo(this.startX, this.startY);
-                        this.ctx.lineTo(endPos.x, endPos.y);
-                        this.ctx.stroke();
-                        break;
-
                     case 'arrow':
-                        this.ctx.beginPath();
-                        this.drawArrow(this.startX, this.startY, endPos.x, endPos.y);
-                        break;
-
                     case 'rectangle':
-                        const width = endPos.x - this.startX;
-                        const height = endPos.y - this.startY;
-                        this.ctx.beginPath();
-                        this.ctx.rect(this.startX, this.startY, width, height);
-                        this.ctx.stroke();
-                        break;
-
                     case 'circle':
-                        // 修改为直径绘制逻辑
-                        const centerX = (this.startX + endPos.x) / 2;
-                        const centerY = (this.startY + endPos.y) / 2;
-                        const diameter = Math.sqrt(
-                            Math.pow(endPos.x - this.startX, 2) +
-                            Math.pow(endPos.y - this.startY, 2)
-                        );
-                        const radius = diameter / 2;
-
-                        this.ctx.beginPath();
-                        this.ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-                        this.ctx.stroke();
+                        this.commitShape(this.startX, this.startY, endPos.x, endPos.y);
                         break;
                 }
 
+                this.redrawDisplay();
                 this.saveState();
             }
 
@@ -1465,8 +1631,19 @@
                     this.history.length = this.historyIndex;
                 }
 
+                // 未改动的块与上一步共用同一份 dataUrl 字符串，避免整图复制
+                const previous = this.history[this.historyIndex - 1];
+                const tiles = this.snapshotTiles();
+                if (previous && previous.tiles) {
+                    Object.keys(tiles).forEach((key) => {
+                        if (previous.tiles[key] === tiles[key]) {
+                            tiles[key] = previous.tiles[key];
+                        }
+                    });
+                }
+
                 this.history.push({
-                    dataUrl: this.canvas.toDataURL(),
+                    tiles: tiles,
                     theme: this.getBoardTheme()
                 });
 
@@ -1491,23 +1668,18 @@
             }
 
             restoreState(entry) {
-                if (!entry || !entry.dataUrl) {
+                if (!entry || !entry.tiles) {
                     return;
                 }
-                const img = new Image();
-                img.onload = () => {
-                    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                    this.ctx.drawImage(img, 0, 0);
-                    if (entry.theme !== this.getBoardTheme()) {
-                        this.invertPixels(this.canvas);
-                    }
-                };
-                img.src = entry.dataUrl;
+                // 反相在每个块的图片加载完之后做，空 Map 时无从反相
+                const needsInvert = Boolean(entry.theme) && entry.theme !== this.getBoardTheme();
+                this.restoreTiles(entry.tiles, needsInvert);
             }
 
             clearCanvas() {
                 if (confirm('确定要清空画布吗？此操作不可撤销。')) {
-                    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                    this.tiles = new Map();
+                    this.redrawDisplay();
                     this.saveState();
                 }
             }

@@ -16,4 +16,15 @@ assert.match(page, /e\.ctrlKey/);
 assert.equal(/wheel[\s\S]{0,400}e\.shiftKey/.test(page), false);
 assert.equal(page.includes('Shift+滚轮缩放'), false);
 
+assert.match(page, /this\.tiles\s*=\s*new Map/);
+assert.match(page, /getCamera\s*\(/);
+assert.match(page, /redrawDisplay\s*\(/);
+assert.match(page, /panByScreenDelta/);
+assert.match(page, /e\.button === 2/);
+assert.match(page, /resetView\s*\(/);
+assert.match(page, /this\.offsetX\s*=\s*0/);
+assert.match(page, /this\.offsetY\s*=\s*0/);
+assert.equal(page.includes('wrapper.style.transform = transformValue'), false);
+assert.equal(page.includes("const transformValue = `scale(${this.scale})`"), false);
+
 console.log('board-infinite-page regression passed');
