@@ -819,7 +819,8 @@
                     <div class="tool-load-card">
                         <p class="tool-load-label" id="tool-load-label">正在加载</p>
                         <div class="tool-load-track">
-                            <div class="tool-load-bar" id="tool-load-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-labelledby="tool-load-label"></div>
+                            <div class="tool-load-bar" id="tool-load-bar" role="progressbar" aria-valuemin="0"
+                                aria-valuemax="100" aria-valuenow="0" aria-labelledby="tool-load-label"></div>
                         </div>
                         <p class="tool-load-pct" id="tool-load-pct">0%</p>
                     </div>
@@ -912,9 +913,12 @@
                 const getIframeTargetOrigin = () => {
                     try {
                         const frameUrl = new URL(iframe.src || iframe.getAttribute('src'), window.location.href);
-                        return frameUrl.origin === 'null' ? window.location.origin : frameUrl.origin;
+                        if (frameUrl.origin === 'null' || window.location.origin === 'null') {
+                            return '*';
+                        }
+                        return frameUrl.origin;
                     } catch (e) {
-                        return window.location.origin;
+                        return window.location.origin === 'null' ? '*' : window.location.origin;
                     }
                 };
 

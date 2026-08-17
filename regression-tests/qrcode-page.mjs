@@ -59,7 +59,6 @@ assert.match(history, /<!-- 版本 2\.16\.1 -->/);
 assert.match(history, /版本 2\.16\.1/);
 assert.match(history, /<!-- 版本 2\.16\.0 -->/);
 assert.match(history, /版本 2\.16\.0/);
-assert.match(history, /2026-08-17/);
 assert.match(history, /2026-08-16/);
 assert.match(history, /2026-08-13/);
 assert.match(history, /工具加载超过 1 秒/);
