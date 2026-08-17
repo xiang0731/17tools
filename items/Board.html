@@ -689,9 +689,9 @@
                 // 多槽位支持
                 this.currentSlot = 1;
                 this.slots = {
-                    1: { history: [], index: -1, snapshot: null },
-                    2: { history: [], index: -1, snapshot: null },
-                    3: { history: [], index: -1, snapshot: null }
+                    1: { history: [], index: -1, tiles: {}, camera: { offsetX: 0, offsetY: 0, scale: 1 } },
+                    2: { history: [], index: -1, tiles: {}, camera: { offsetX: 0, offsetY: 0, scale: 1 } },
+                    3: { history: [], index: -1, tiles: {}, camera: { offsetX: 0, offsetY: 0, scale: 1 } }
                 };
 
                 // 窗口调整防抖定时器
@@ -750,6 +750,14 @@
 
             getCamera() {
                 return { offsetX: this.offsetX, offsetY: this.offsetY, scale: this.scale };
+            }
+
+            applyCamera(camera) {
+                const next = camera || BoardWorld.createCamera();
+                this.offsetX = next.offsetX || 0;
+                this.offsetY = next.offsetY || 0;
+                this.scale = BoardWorld.clampScale(next.scale == null ? 1 : next.scale);
+                this.redrawDisplay();
             }
 
             getDpr() {
@@ -851,10 +859,18 @@
                 return tiles;
             }
 
-            restoreTiles(tiles, needsInvert) {
+            // onDone 在所有块的图片都解码完之后调用：块是异步填的，之后才能拍快照
+            restoreTiles(tiles, needsInvert, onDone) {
                 this.tiles = new Map();
                 const entries = tiles || {};
                 const keys = Object.keys(entries);
+                let pending = keys.length;
+                const settle = () => {
+                    pending--;
+                    if (pending === 0 && onDone) {
+                        onDone();
+                    }
+                };
                 keys.forEach((key) => {
                     const parsed = BoardWorld.parseTileKey(key);
                     const tile = this.ensureTile(parsed.tx, parsed.ty);
@@ -869,12 +885,77 @@
                             this.invertPixels(tile.canvas);
                         }
                         this.redrawDisplay();
+                        settle();
+                    };
+                    img.onerror = () => {
+                        settle();
                     };
                     img.src = entries[key];
                 });
                 if (keys.length === 0) {
                     this.redrawDisplay();
+                    if (onDone) {
+                        onDone();
+                    }
                 }
+            }
+
+            // 把一张图按世界坐标写进它覆盖到的每个块
+            stampImageAtWorld(img, worldX, worldY, width, height) {
+                const w = width || img.width;
+                const h = height || img.height;
+                this.forEachTilesInWorldRect(worldX, worldY, worldX + w, worldY + h, 0, (tile) => {
+                    this.withWorldCtx(tile, (ctx) => {
+                        ctx.globalCompositeOperation = 'source-over';
+                        ctx.drawImage(img, worldX, worldY, w, h);
+                    });
+                });
+            }
+
+            // 所有块里非透明像素的世界包围盒（CSS 像素），全空时为 null
+            getContentBounds() {
+                const dpr = this.getDpr();
+                let bounds = null;
+                this.tiles.forEach((tile) => {
+                    const width = tile.canvas.width;
+                    const height = tile.canvas.height;
+                    const data = tile.ctx.getImageData(0, 0, width, height).data;
+                    let minPx = width;
+                    let minPy = height;
+                    let maxPx = -1;
+                    let maxPy = -1;
+                    for (let py = 0; py < height; py++) {
+                        const rowStart = py * width * 4;
+                        for (let px = 0; px < width; px++) {
+                            if (data[rowStart + px * 4 + 3] === 0) {
+                                continue;
+                            }
+                            if (px < minPx) minPx = px;
+                            if (px > maxPx) maxPx = px;
+                            if (py < minPy) minPy = py;
+                            if (py > maxPy) maxPy = py;
+                        }
+                    }
+                    if (maxPx < 0) {
+                        return;
+                    }
+                    const origin = BoardWorld.tileOrigin(tile.tx, tile.ty);
+                    const tileBounds = {
+                        minX: origin.x + minPx / dpr,
+                        minY: origin.y + minPy / dpr,
+                        maxX: origin.x + (maxPx + 1) / dpr,
+                        maxY: origin.y + (maxPy + 1) / dpr
+                    };
+                    if (!bounds) {
+                        bounds = tileBounds;
+                        return;
+                    }
+                    bounds.minX = Math.min(bounds.minX, tileBounds.minX);
+                    bounds.minY = Math.min(bounds.minY, tileBounds.minY);
+                    bounds.maxX = Math.max(bounds.maxX, tileBounds.maxX);
+                    bounds.maxY = Math.max(bounds.maxY, tileBounds.maxY);
+                });
+                return bounds;
             }
 
             bindEvents() {
@@ -1171,12 +1252,9 @@
 
                 // 保存当前状态到内存
                 this.slots[this.currentSlot] = {
-                    snapshot: {
-                        tiles: this.snapshotTiles(),
-                        camera: this.getCamera(),
-                        theme: this.getBoardTheme()
-                    },
-                    history: [...this.history], // 复制数组
+                    tiles: this.snapshotTiles(),
+                    camera: this.getCamera(),
+                    history: this.history.slice(),
                     index: this.historyIndex
                 };
 
@@ -1191,22 +1269,18 @@
                 const nextSlot = this.slots[slotId];
 
                 // 恢复历史记录
-                this.history = [...nextSlot.history];
+                this.history = nextSlot.history.slice();
                 this.historyIndex = nextSlot.index;
 
-                // 恢复画布内容
-                if (nextSlot.snapshot) {
-                    this.restoreState(nextSlot.snapshot);
-                } else if (this.history.length > 0 && this.historyIndex >= 0) {
-                    // 如果没有快照但有历史记录（应该不会发生，除非初始状态），恢复历史
-                    this.restoreState(this.history[this.historyIndex]);
-                } else {
-                    // 空白画布
-                    this.restoreTiles({}, false);
-                    // 初始化该槽位的历史记录
-                    if (this.history.length === 0) {
-                        this.saveState();
-                    }
+                // 恢复视野与画布内容；块的主题跟着对应的历史条目走
+                const entry = this.history[this.historyIndex];
+                const needsInvert = Boolean(entry && entry.theme) && entry.theme !== this.getBoardTheme();
+                this.applyCamera(nextSlot.camera);
+                this.restoreTiles(nextSlot.tiles, needsInvert);
+
+                // 空槽位第一次进入时给它一个初始历史
+                if (this.history.length === 0) {
+                    this.saveState();
                 }
             }
 
@@ -1679,6 +1753,9 @@
             clearCanvas() {
                 if (confirm('确定要清空画布吗？此操作不可撤销。')) {
                     this.tiles = new Map();
+                    this.offsetX = 0;
+                    this.offsetY = 0;
+                    this.scale = 1;
                     this.redrawDisplay();
                     this.saveState();
                 }
@@ -1687,9 +1764,11 @@
             // 保存和加载
             saveToLocal() {
                 const data = {
-                    version: '1.1',
+                    version: '1.2',
                     timestamp: new Date().toISOString(),
-                    canvas: this.canvas.toDataURL(),
+                    tileSize: BoardWorld.TILE_SIZE,
+                    tiles: this.snapshotTiles(),
+                    camera: this.getCamera(),
                     settings: {
                         strokeColor: this.strokeColor,
                         colorHistory: this.colorHistory,
@@ -1720,12 +1799,12 @@
                             const data = JSON.parse(e.target.result);
                             this.loadFromData(data);
                         } else {
-                            // 图片文件
+                            // 图片文件：贴到当前视野左上角，用户能直接看见
                             const img = new Image();
                             img.onload = () => {
-                                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                                this.ctx.drawImage(img, 0, 0, this.canvas.width, this.canvas.height);
+                                this.stampImageAtWorld(img, this.offsetX, this.offsetY, img.width, img.height);
                                 this.saveState();
+                                this.redrawDisplay();
                             };
                             img.src = e.target.result;
                         }
@@ -1738,12 +1817,25 @@
             }
 
             loadFromData(data) {
-                if (data.canvas) {
+                // 历史记录要等块真正填好再拍，否则第一条会是空画布
+                const resetHistory = () => {
+                    this.history = [];
+                    this.historyIndex = -1;
+                    this.saveState();
+                };
+
+                if (data.tiles) {
+                    this.restoreTiles(data.tiles, false, resetHistory);
+                    this.applyCamera(data.camera);
+                } else if (data.canvas) {
+                    // 旧文件只有一张视口图：从世界原点铺开，视野回到原点
                     const img = new Image();
                     img.onload = () => {
-                        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                        this.ctx.drawImage(img, 0, 0);
-                        this.saveState();
+                        this.tiles = new Map();
+                        this.stampImageAtWorld(img, 0, 0, img.width, img.height);
+                        this.applyCamera(BoardWorld.createCamera());
+                        resetHistory();
+                        this.redrawDisplay();
                     };
                     img.src = data.canvas;
                 }
@@ -1780,19 +1872,47 @@
 
             exportImageWithTheme(targetTheme) {
                 const theme = targetTheme === 'dark' ? 'dark' : 'light';
-                const src = this.canvas;
+                const bounds = this.getContentBounds();
+                const dpr = this.getDpr();
+                let widthCss;
+                let heightCss;
+                let originX = 0;
+                let originY = 0;
+                if (!bounds) {
+                    if (!confirm('当前画布是空的，确定仍要导出？')) {
+                        return;
+                    }
+                    widthCss = this.canvas.clientWidth;
+                    heightCss = this.canvas.clientHeight;
+                } else {
+                    widthCss = Math.max(1, bounds.maxX - bounds.minX);
+                    heightCss = Math.max(1, bounds.maxY - bounds.minY);
+                    originX = bounds.minX;
+                    originY = bounds.minY;
+                }
+
                 const strokes = document.createElement('canvas');
-                strokes.width = src.width;
-                strokes.height = src.height;
+                strokes.width = Math.ceil(widthCss * dpr);
+                strokes.height = Math.ceil(heightCss * dpr);
                 const strokesCtx = strokes.getContext('2d');
-                strokesCtx.drawImage(src, 0, 0);
+                strokesCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                this.tiles.forEach((tile) => {
+                    const origin = BoardWorld.tileOrigin(tile.tx, tile.ty);
+                    strokesCtx.drawImage(
+                        tile.canvas,
+                        origin.x - originX,
+                        origin.y - originY,
+                        BoardWorld.TILE_SIZE,
+                        BoardWorld.TILE_SIZE
+                    );
+                });
                 if (theme !== this.getBoardTheme()) {
                     this.invertPixels(strokes);
                 }
 
                 const output = document.createElement('canvas');
-                output.width = src.width;
-                output.height = src.height;
+                output.width = strokes.width;
+                output.height = strokes.height;
                 const outputCtx = output.getContext('2d');
                 outputCtx.fillStyle = theme === 'dark' ? '#111827' : '#ffffff';
                 outputCtx.fillRect(0, 0, output.width, output.height);

@@ -27,4 +27,19 @@ assert.match(page, /this\.offsetY\s*=\s*0/);
 assert.equal(page.includes('wrapper.style.transform = transformValue'), false);
 assert.equal(page.includes("const transformValue = `scale(${this.scale})`"), false);
 
+assert.match(page, /version:\s*'1\.2'/);
+assert.match(page, /tileSize:\s*BoardWorld\.TILE_SIZE/);
+assert.match(page, /tiles:\s*this\.snapshotTiles\(\)/);
+assert.match(page, /camera:\s*this\.getCamera\(\)/);
+assert.match(page, /saveToLocal[\s\S]*?version:\s*'1\.2'/);
+assert.equal(/saveToLocal\s*\(\)\s*\{[\s\S]*?canvas:\s*this\.canvas\.toDataURL\(\)/.test(page), false);
+assert.match(page, /if \(data\.tiles\)/);
+assert.match(page, /data\.canvas/);
+assert.match(page, /当前画布是空的，确定仍要导出？/);
+assert.match(page, /getContentBounds\s*\(/);
+assert.match(page, /clearCanvas[\s\S]*?this\.offsetX\s*=\s*0/);
+assert.match(page, /clearCanvas[\s\S]*?this\.offsetY\s*=\s*0/);
+assert.match(page, /clearCanvas[\s\S]*?this\.scale\s*=\s*1/);
+assert.match(page, /camera:\s*\{\s*offsetX:/);
+
 console.log('board-infinite-page regression passed');
