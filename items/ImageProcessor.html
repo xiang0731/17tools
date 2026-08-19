@@ -30,6 +30,7 @@
         .drop-hint i { font-size: 32px; color: var(--primary-color); }
         [hidden] { display: none !important; }
         #wmCanvas:not([hidden]), #cpPreview:not([hidden]), #rdCanvas:not([hidden]) { max-width: 100%; max-height: 420px; display: block; margin: 0 auto; }
+        #rdCanvas { touch-action: none; }
         #rdDrop.has-image { cursor: crosshair; padding: var(--spacing-lg); }
         .tool-row button.active, .emoji-grid button.active { background: var(--primary-light); border-color: var(--primary-color); color: var(--primary-color); }
         .emoji-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
@@ -385,6 +386,7 @@
                 state.redact.selectedRegionId = null;
                 state.redact.undo = [];
                 state.redact.drag = null;
+                setErrors('rdErrors', []);
             }
             const input = document.getElementById(
                 tab === 'watermark' ? 'wmFile' : tab === 'crop' ? 'cropFile' : tab === 'redact' ? 'rdFile' : 'cpFile'
@@ -660,10 +662,11 @@
         }
 
         function applyRedactRegion(destCtx, region) {
+            if (region.w < 1 || region.h < 1) return;
             const effectCanvas = document.createElement('canvas');
             effectCanvas.width = Math.max(1, region.w);
             effectCanvas.height = Math.max(1, region.h);
-            const ectx = effectCanvas.getContext('2d');
+            const ectx = effectCanvas.getContext('2d', { willReadFrequently: true });
             ectx.drawImage(destCtx.canvas, region.x, region.y, region.w, region.h, 0, 0, region.w, region.h);
             paintEffect(ectx, region);
             ectx.globalCompositeOperation = 'destination-in';
@@ -738,6 +741,7 @@
         function commitNewRegion(region) {
             if (state.redact.regions.length >= REDACT_MAX) {
                 showToast('最多 50 处打码');
+                renderRedact();
                 return;
             }
             pushRedactUndo();
@@ -957,13 +961,35 @@
                         renderRedact();
                         return;
                     }
-                    if (drag.preview) {
-                        commitNewRegion(drag.preview);
+                    let preview = drag.preview;
+                    if (!preview) {
+                        const start = clampPoint(item, drag.start);
+                        const radius = core.brushRadiusFromPercent(
+                            Math.min(item.width, item.height),
+                            readRedactSettings().brushPercent
+                        );
+                        const box = brushBounds([start], radius, item.width, item.height);
+                        preview = box ? makeRedactRegion('brush', item, {
+                            ...box,
+                            points: core.simplifyPoints([start], 1),
+                            brushRadius: radius
+                        }) : null;
+                    }
+                    if (preview) {
+                        commitNewRegion(preview);
                         return;
                     }
                     renderRedact();
                     return;
                 }
+                if (drag.mode === 'move' && drag.moved) {
+                    const moved = state.redact.regions.find((r) => r.id === drag.id);
+                    if (moved) {
+                        moved.x = Math.round(moved.x);
+                        moved.y = Math.round(moved.y);
+                    }
+                }
+                let skipUndo = false;
                 if (drag.mode === 'resize' && drag.moved) {
                     const live = state.redact.regions.find((rg) => rg.id === state.redact.selectedRegionId);
                     if (live) {
@@ -974,10 +1000,11 @@
                             live.y = drag.origin.y;
                             live.w = drag.origin.w;
                             live.h = drag.origin.h;
+                            skipUndo = true;
                         }
                     }
                 }
-                if ((drag.mode === 'move' || drag.mode === 'resize') && drag.moved) {
+                if ((drag.mode === 'move' || drag.mode === 'resize') && drag.moved && !skipUndo) {
                     state.redact.undo.push({
                         regions: drag.originRegions,
                         selectedRegionId: state.redact.selectedRegionId
@@ -994,10 +1021,6 @@
                 const drag = state.redact.drag;
                 const item = selected('redact');
                 if (!drag || !item) return;
-                if (event.buttons === 0) {
-                    finishRedactPointer(event);
-                    return;
-                }
                 const pt = canvasImagePoint(canvas, event);
                 if (Math.hypot(pt.x - drag.start.x, pt.y - drag.start.y) >= REDACT_MIN_DRAG) drag.moved = true;
                 if (drag.mode === 'rect' && drag.moved) {

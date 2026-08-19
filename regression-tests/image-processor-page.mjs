@@ -80,6 +80,12 @@ assert.match(ingestFn, /state\.redact\.drag = null/);
 assert.match(page, /#cropDrop\.has-image/);
 assert.match(page, /viewMode:\s*2/);
 assert.match(page, /fitCropperCanvas\(\)/);
+assert.match(page, /#rdCanvas\s*\{\s*touch-action:\s*none/);
+assert.match(page, /getContext\('2d', \{ willReadFrequently: true \}\)/);
+assert.equal(page.includes('event.buttons === 0'), false);
+const clearFn = page.match(/function clearImages\(tab\) \{[\s\S]*?\n        \}/)[0];
+assert.match(clearFn, /setErrors\('rdErrors', \[\]\)/);
+assert.match(page, /if \(region\.w < 1 \|\| region\.h < 1\) return;/);
 
 const index = fs.readFileSync('index.html', 'utf8');
 const welcome = fs.readFileSync('items/Welcome.html', 'utf8');
