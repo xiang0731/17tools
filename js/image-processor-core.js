@@ -263,6 +263,128 @@
         };
     }
 
+    function clampRect(rect, width, height) {
+        let x = Number(rect && rect.x);
+        let y = Number(rect && rect.y);
+        let w = Number(rect && rect.w);
+        let h = Number(rect && rect.h);
+        if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(w) || !Number.isFinite(h)) {
+            return null;
+        }
+        if (w < 0) {
+            x += w;
+            w = -w;
+        }
+        if (h < 0) {
+            y += h;
+            h = -h;
+        }
+        const left = Math.max(0, Math.round(x));
+        const top = Math.max(0, Math.round(y));
+        const right = Math.min(width, Math.round(x + w));
+        const bottom = Math.min(height, Math.round(y + h));
+        const nw = right - left;
+        const nh = bottom - top;
+        if (nw < 1 || nh < 1) return null;
+        return { x: left, y: top, w: nw, h: nh };
+    }
+
+    function computeMosaicCells(rect, mosaicSize) {
+        const size = Math.min(64, Math.max(8, Math.round(Number(mosaicSize) || 16)));
+        const x0 = Math.round(rect.x);
+        const y0 = Math.round(rect.y);
+        const w = Math.round(rect.w);
+        const h = Math.round(rect.h);
+        const cells = [];
+        for (let y = y0; y < y0 + h; y += size) {
+            for (let x = x0; x < x0 + w; x += size) {
+                cells.push({
+                    x,
+                    y,
+                    w: Math.max(1, Math.min(size, x0 + w - x)),
+                    h: Math.max(1, Math.min(size, y0 + h - y))
+                });
+            }
+        }
+        return cells;
+    }
+
+    function computeEmojiTiles(rect) {
+        const x0 = Math.round(rect.x);
+        const y0 = Math.round(rect.y);
+        const w = Math.max(0, Math.round(rect.w));
+        const h = Math.max(0, Math.round(rect.h));
+        const cellSize = Math.min(64, Math.max(1, Math.min(w, h)));
+        const tiles = [];
+        const cols = Math.floor(w / cellSize);
+        const rows = Math.floor(h / cellSize);
+        for (let row = 0; row < rows; row += 1) {
+            for (let col = 0; col < cols; col += 1) {
+                tiles.push({
+                    x: x0 + col * cellSize,
+                    y: y0 + row * cellSize,
+                    size: cellSize
+                });
+            }
+        }
+        return tiles;
+    }
+
+    function simplifyPoints(points, minDist) {
+        const list = Array.isArray(points) ? points : [];
+        const threshold = minDist == null ? 1 : Number(minDist);
+        if (list.length <= 1) return list.map((p) => ({ x: p.x, y: p.y }));
+        const out = [{ x: list[0].x, y: list[0].y }];
+        for (let i = 1; i < list.length - 1; i += 1) {
+            const prev = out[out.length - 1];
+            const cur = list[i];
+            if (Math.hypot(cur.x - prev.x, cur.y - prev.y) >= threshold) {
+                out.push({ x: cur.x, y: cur.y });
+            }
+        }
+        const last = list[list.length - 1];
+        const tail = out[out.length - 1];
+        if (tail.x !== last.x || tail.y !== last.y) {
+            out.push({ x: last.x, y: last.y });
+        }
+        return out;
+    }
+
+    function hitTestRect(rect, x, y) {
+        return x >= rect.x && y >= rect.y && x <= rect.x + rect.w && y <= rect.y + rect.h;
+    }
+
+    function distToSegment(px, py, ax, ay, bx, by) {
+        const dx = bx - ax;
+        const dy = by - ay;
+        const len2 = dx * dx + dy * dy;
+        if (len2 === 0) return Math.hypot(px - ax, py - ay);
+        let t = ((px - ax) * dx + (py - ay) * dy) / len2;
+        t = Math.max(0, Math.min(1, t));
+        return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+    }
+
+    function hitTestStroke(points, radius, x, y) {
+        const list = Array.isArray(points) ? points : [];
+        const r = Number(radius) || 0;
+        if (!list.length) return false;
+        if (list.length === 1) {
+            return Math.hypot(x - list[0].x, y - list[0].y) <= r;
+        }
+        for (let i = 1; i < list.length; i += 1) {
+            const a = list[i - 1];
+            const b = list[i];
+            if (distToSegment(x, y, a.x, a.y, b.x, b.y) <= r) return true;
+        }
+        return false;
+    }
+
+    function brushRadiusFromPercent(minSide, percent) {
+        const p = Math.min(12, Math.max(1, Number(percent) || 4));
+        const diameter = Math.max(4, (Number(minSide) * p) / 100);
+        return diameter / 2;
+    }
+
     return {
         ACCEPTED_MIMES,
         ACCEPTED_EXTENSIONS,
@@ -282,6 +404,13 @@
         canvasToQuality,
         SEARCH_MIN_QUALITY,
         nextScaleSize,
-        compressToTarget
+        compressToTarget,
+        clampRect,
+        computeMosaicCells,
+        computeEmojiTiles,
+        simplifyPoints,
+        hitTestRect,
+        hitTestStroke,
+        brushRadiusFromPercent
     };
 });

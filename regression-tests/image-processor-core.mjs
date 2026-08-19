@@ -129,4 +129,54 @@ const missed = await core.compressToTarget({
 assert.equal(missed.hitTarget, false);
 assert.ok(Math.min(missed.width, missed.height) <= 256);
 
+assert.equal(core.buildExportName('photo.jpg', 'redacted', 'image/jpeg'), 'photo_redacted.jpg');
+assert.equal(core.buildExportName('my.photo.png', 'redacted', 'image/png'), 'my.photo_redacted.png');
+assert.equal(core.buildExportName('中文.webp', 'redacted', 'image/webp'), '中文_redacted.webp');
+
+assert.deepEqual(core.clampRect({ x: -10, y: 10, w: 50, h: 50 }, 100, 100), {
+    x: 0, y: 10, w: 40, h: 50
+});
+assert.equal(core.clampRect({ x: 200, y: 0, w: 10, h: 10 }, 100, 100), null);
+assert.equal(core.clampRect({ x: 0, y: 0, w: 0, h: 10 }, 100, 100), null);
+assert.deepEqual(core.clampRect({ x: 50, y: 10, w: -20, h: 10 }, 100, 100), {
+    x: 30, y: 10, w: 20, h: 10
+});
+
+const mosaic = core.computeMosaicCells({ x: 0, y: 0, w: 100, h: 80 }, 30);
+assert.equal(mosaic.length, 12);
+assert.deepEqual(mosaic[0], { x: 0, y: 0, w: 30, h: 30 });
+assert.deepEqual(mosaic[3], { x: 90, y: 0, w: 10, h: 30 });
+assert.deepEqual(mosaic[11], { x: 90, y: 60, w: 10, h: 20 });
+assert.equal(core.computeMosaicCells({ x: 0, y: 0, w: 10, h: 10 }, 4)[0].w, 8);
+assert.equal(core.computeMosaicCells({ x: 0, y: 0, w: 10, h: 10 }, 80)[0].w, 10);
+
+const strip = core.computeEmojiTiles({ x: 0, y: 0, w: 200, h: 40 });
+assert.equal(strip.length, 5);
+assert.equal(strip[0].size, 40);
+assert.equal(strip.every((tile) => tile.y === 0), true);
+const capped = core.computeEmojiTiles({ x: 10, y: 20, w: 200, h: 100 });
+assert.equal(capped[0].size, 64);
+assert.equal(capped[0].x, 10);
+assert.equal(capped[0].y, 20);
+assert.ok(capped.every((tile) => tile.x + tile.size <= 210 && tile.y + tile.size <= 120));
+
+assert.deepEqual(
+    core.simplifyPoints([{ x: 0, y: 0 }, { x: 0.4, y: 0 }, { x: 10, y: 0 }], 1),
+    [{ x: 0, y: 0 }, { x: 10, y: 0 }]
+);
+assert.deepEqual(core.simplifyPoints([{ x: 1, y: 1 }]), [{ x: 1, y: 1 }]);
+
+assert.equal(core.hitTestRect({ x: 0, y: 0, w: 10, h: 10 }, 0, 0), true);
+assert.equal(core.hitTestRect({ x: 0, y: 0, w: 10, h: 10 }, 10, 10), true);
+assert.equal(core.hitTestRect({ x: 0, y: 0, w: 10, h: 10 }, 11, 5), false);
+
+assert.equal(core.hitTestStroke([{ x: 0, y: 0 }, { x: 10, y: 0 }], 2, 5, 1), true);
+assert.equal(core.hitTestStroke([{ x: 0, y: 0 }, { x: 10, y: 0 }], 2, 5, 3), false);
+assert.equal(core.hitTestStroke([{ x: 5, y: 5 }], 3, 5, 5), true);
+assert.equal(core.hitTestStroke([{ x: 5, y: 5 }], 3, 5, 9), false);
+
+assert.equal(core.brushRadiusFromPercent(1000, 4), 20);
+assert.equal(core.brushRadiusFromPercent(1000, 1), 5);
+assert.equal(core.brushRadiusFromPercent(50, 1), 2);
+
 console.log('image-processor-core regression passed');
