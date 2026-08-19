@@ -813,31 +813,35 @@
                 renderRedact();
             }
             let paramSnapshot = null;
+            function snapshotRedactParams() {
+                paramSnapshot = {
+                    regions: cloneRegions(state.redact.regions),
+                    selectedRegionId: state.redact.selectedRegionId
+                };
+            }
+            function commitRedactParams() {
+                if (!paramSnapshot) return;
+                if (JSON.stringify(paramSnapshot.regions) !== JSON.stringify(state.redact.regions)) {
+                    state.redact.undo.push(paramSnapshot);
+                    if (state.redact.undo.length > REDACT_UNDO_MAX) state.redact.undo.shift();
+                }
+                paramSnapshot = null;
+                saveSettings();
+                document.getElementById('rdUndo').disabled = state.redact.undo.length === 0;
+            }
             ['rdMosaic', 'rdBlur', 'rdBrush'].forEach((id) => {
                 const el = document.getElementById(id);
-                el.addEventListener('pointerdown', () => {
-                    paramSnapshot = {
-                        regions: cloneRegions(state.redact.regions),
-                        selectedRegionId: state.redact.selectedRegionId
-                    };
-                });
+                el.addEventListener('pointerdown', snapshotRedactParams);
                 el.addEventListener('input', () => {
+                    if (!paramSnapshot) snapshotRedactParams();
                     onParamInput((region) => {
                         region.mosaicSize = Number(document.getElementById('rdMosaic').value);
                         region.blurStrength = Number(document.getElementById('rdBlur').value);
                         if (id === 'rdBrush') return;
                     });
                 });
-                el.addEventListener('pointerup', () => {
-                    if (!paramSnapshot) return;
-                    if (JSON.stringify(paramSnapshot.regions) !== JSON.stringify(state.redact.regions)) {
-                        state.redact.undo.push(paramSnapshot);
-                        if (state.redact.undo.length > REDACT_UNDO_MAX) state.redact.undo.shift();
-                    }
-                    paramSnapshot = null;
-                    saveSettings();
-                    document.getElementById('rdUndo').disabled = state.redact.undo.length === 0;
-                });
+                el.addEventListener('pointerup', commitRedactParams);
+                el.addEventListener('change', commitRedactParams);
             });
             document.getElementById('rdColor').addEventListener('change', () => {
                 const region = state.redact.regions.find((r) => r.id === state.redact.selectedRegionId);
@@ -924,62 +928,7 @@
                     moved: false
                 };
             });
-            canvas.addEventListener('pointermove', (event) => {
-                const drag = state.redact.drag;
-                const item = selected('redact');
-                if (!drag || !item) return;
-                const pt = canvasImagePoint(canvas, event);
-                if (Math.hypot(pt.x - drag.start.x, pt.y - drag.start.y) >= REDACT_MIN_DRAG) drag.moved = true;
-                if (drag.mode === 'rect' && drag.moved) {
-                    const box = applyRectFromPoints(drag.start.x, drag.start.y, pt.x, pt.y, item);
-                    drag.preview = box ? makeRedactRegion('rect', item, box) : null;
-                    renderRedact();
-                    return;
-                }
-                if (drag.mode === 'brush' && drag.moved) {
-                    drag.points.push(clampPoint(item, pt));
-                    const radius = core.brushRadiusFromPercent(Math.min(item.width, item.height), readRedactSettings().brushPercent);
-                    const box = brushBounds(drag.points, radius, item.width, item.height);
-                    drag.preview = box ? makeRedactRegion('brush', item, {
-                        ...box,
-                        points: core.simplifyPoints(drag.points, 1),
-                        brushRadius: radius
-                    }) : null;
-                    renderRedact();
-                    return;
-                }
-                if (drag.mode === 'move' && drag.moved) {
-                    const region = state.redact.regions.find((r) => r.id === drag.id);
-                    if (!region) return;
-                    const dx = pt.x - drag.start.x;
-                    const dy = pt.y - drag.start.y;
-                    const next = core.clampRect({
-                        x: drag.origin.x + dx,
-                        y: drag.origin.y + dy,
-                        w: drag.origin.w,
-                        h: drag.origin.h
-                    }, item.width, item.height);
-                    if (next) Object.assign(region, next);
-                    renderRedact();
-                    return;
-                }
-                if (drag.mode === 'resize' && drag.moved) {
-                    const o = drag.origin;
-                    let x = o.x;
-                    let y = o.y;
-                    let r = o.x + o.w;
-                    let b = o.y + o.h;
-                    if (drag.handle.includes('n')) y = pt.y;
-                    if (drag.handle.includes('s')) b = pt.y;
-                    if (drag.handle.includes('w')) x = pt.x;
-                    if (drag.handle.includes('e')) r = pt.x;
-                    const live = state.redact.regions.find((rg) => rg.id === state.redact.selectedRegionId);
-                    const next = core.clampRect({ x, y, w: r - x, h: b - y }, item.width, item.height);
-                    if (live && next) Object.assign(live, next);
-                    renderRedact();
-                }
-            });
-            canvas.addEventListener('pointerup', (event) => {
+            function finishRedactPointer(event) {
                 const drag = state.redact.drag;
                 const item = selected('redact');
                 state.redact.drag = null;
@@ -1015,6 +964,19 @@
                     renderRedact();
                     return;
                 }
+                if (drag.mode === 'resize' && drag.moved) {
+                    const live = state.redact.regions.find((rg) => rg.id === state.redact.selectedRegionId);
+                    if (live) {
+                        const next = core.clampRect({ x: live.x, y: live.y, w: live.w, h: live.h }, item.width, item.height);
+                        if (next) Object.assign(live, next);
+                        else {
+                            live.x = drag.origin.x;
+                            live.y = drag.origin.y;
+                            live.w = drag.origin.w;
+                            live.h = drag.origin.h;
+                        }
+                    }
+                }
                 if ((drag.mode === 'move' || drag.mode === 'resize') && drag.moved) {
                     state.redact.undo.push({
                         regions: drag.originRegions,
@@ -1027,7 +989,70 @@
                     syncRedactSidebarFromRegion(drag.region);
                 }
                 renderRedact();
+            }
+            canvas.addEventListener('pointermove', (event) => {
+                const drag = state.redact.drag;
+                const item = selected('redact');
+                if (!drag || !item) return;
+                if (event.buttons === 0) {
+                    finishRedactPointer(event);
+                    return;
+                }
+                const pt = canvasImagePoint(canvas, event);
+                if (Math.hypot(pt.x - drag.start.x, pt.y - drag.start.y) >= REDACT_MIN_DRAG) drag.moved = true;
+                if (drag.mode === 'rect' && drag.moved) {
+                    const box = applyRectFromPoints(drag.start.x, drag.start.y, pt.x, pt.y, item);
+                    drag.preview = box ? makeRedactRegion('rect', item, box) : null;
+                    renderRedact();
+                    return;
+                }
+                if (drag.mode === 'brush' && drag.moved) {
+                    drag.points.push(clampPoint(item, pt));
+                    const radius = core.brushRadiusFromPercent(Math.min(item.width, item.height), readRedactSettings().brushPercent);
+                    const box = brushBounds(drag.points, radius, item.width, item.height);
+                    drag.preview = box ? makeRedactRegion('brush', item, {
+                        ...box,
+                        points: core.simplifyPoints(drag.points, 1),
+                        brushRadius: radius
+                    }) : null;
+                    renderRedact();
+                    return;
+                }
+                if (drag.mode === 'move' && drag.moved) {
+                    const region = state.redact.regions.find((r) => r.id === drag.id);
+                    if (!region) return;
+                    const dx = pt.x - drag.start.x;
+                    const dy = pt.y - drag.start.y;
+                    region.x = Math.min(Math.max(0, drag.origin.x + dx), item.width - drag.origin.w);
+                    region.y = Math.min(Math.max(0, drag.origin.y + dy), item.height - drag.origin.h);
+                    region.w = drag.origin.w;
+                    region.h = drag.origin.h;
+                    renderRedact();
+                    return;
+                }
+                if (drag.mode === 'resize' && drag.moved) {
+                    const o = drag.origin;
+                    let x = o.x;
+                    let y = o.y;
+                    let r = o.x + o.w;
+                    let b = o.y + o.h;
+                    if (drag.handle.includes('n')) y = pt.y;
+                    if (drag.handle.includes('s')) b = pt.y;
+                    if (drag.handle.includes('w')) x = pt.x;
+                    if (drag.handle.includes('e')) r = pt.x;
+                    const live = state.redact.regions.find((rg) => rg.id === state.redact.selectedRegionId);
+                    if (live) {
+                        live.x = Math.min(x, r);
+                        live.y = Math.min(y, b);
+                        live.w = Math.abs(r - x);
+                        live.h = Math.abs(b - y);
+                    }
+                    renderRedact();
+                }
             });
+            canvas.addEventListener('pointerup', finishRedactPointer);
+            canvas.addEventListener('pointercancel', finishRedactPointer);
+            canvas.addEventListener('lostpointercapture', finishRedactPointer);
             document.addEventListener('keydown', (event) => {
                 const panel = document.querySelector('[data-panel="redact"]');
                 if (!panel || !panel.classList.contains('active')) return;
