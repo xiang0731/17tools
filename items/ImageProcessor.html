@@ -29,7 +29,11 @@
         .drop-hint { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--spacing-sm); text-align: center; color: var(--text-secondary); pointer-events: none; }
         .drop-hint i { font-size: 32px; color: var(--primary-color); }
         [hidden] { display: none !important; }
-        #wmCanvas:not([hidden]), #cpPreview:not([hidden]) { max-width: 100%; max-height: 420px; display: block; margin: 0 auto; }
+        #wmCanvas:not([hidden]), #cpPreview:not([hidden]), #rdCanvas:not([hidden]) { max-width: 100%; max-height: 420px; display: block; margin: 0 auto; }
+        #rdDrop.has-image { cursor: crosshair; padding: var(--spacing-lg); }
+        .tool-row button.active, .emoji-grid button.active { background: var(--primary-light); border-color: var(--primary-color); color: var(--primary-color); }
+        .emoji-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+        .emoji-grid button { border: 1px solid var(--border-color); background: var(--background-primary); border-radius: 8px; padding: 8px; cursor: pointer; font-size: 20px; line-height: 1; }
         #cropWrap:not([hidden]) { width: 100%; height: 480px; overflow: hidden; }
         #cropWrap .cropper-container { width: 100% !important; height: 100% !important; }
         #cropImage { display: block; max-width: 100%; }
@@ -64,6 +68,7 @@
             <button class="tab-btn active" data-tab="watermark" type="button">添加水印</button>
             <button class="tab-btn" data-tab="crop" type="button">图片裁切</button>
             <button class="tab-btn" data-tab="compress" type="button">图片压缩</button>
+            <button class="tab-btn" data-tab="redact" type="button">图片打码</button>
         </div>
 
         <section class="tab-panel active" data-panel="watermark">
@@ -181,6 +186,48 @@
                 </div>
             </div>
         </section>
+        <section class="tab-panel" data-panel="redact">
+            <div class="layout">
+                <div class="preview-pane">
+                    <div class="preview-toolbar">
+                        <button class="btn btn-secondary pick-btn" id="rdPick" type="button">选择图片</button>
+                        <button class="btn btn-secondary" id="rdClear" type="button">重置</button>
+                    </div>
+                    <div class="dropzone" id="rdDrop">
+                        <input class="hidden-file" id="rdFile" type="file" accept="image/jpeg,image/png,image/webp">
+                        <div class="drop-hint" id="rdHint"><i class="fas fa-eraser"></i><div>点击或拖拽上传一张图片</div></div>
+                        <canvas id="rdCanvas" hidden></canvas>
+                    </div>
+                </div>
+                <div class="control-pane">
+                    <div class="form-group"><label>工具</label>
+                        <div class="tool-row" id="rdTools">
+                            <button type="button" id="rdToolRect" data-tool="rect" class="active">矩形</button>
+                            <button type="button" id="rdToolBrush" data-tool="brush">画笔</button>
+                        </div>
+                    </div>
+                    <div class="form-group"><label>效果</label>
+                        <div class="tool-row" id="rdEffects">
+                            <button type="button" data-effect="mosaic" class="active">马赛克</button>
+                            <button type="button" data-effect="blur">模糊</button>
+                            <button type="button" data-effect="solid">纯色</button>
+                            <button type="button" data-effect="emoji">表情</button>
+                        </div>
+                    </div>
+                    <div class="form-group" id="rdMosaicGroup"><label for="rdMosaic">马赛克块大小</label><input id="rdMosaic" type="range" min="8" max="64" value="16"></div>
+                    <div class="form-group" id="rdBlurGroup" hidden><label for="rdBlur">模糊强度</label><input id="rdBlur" type="range" min="1" max="20" value="8"></div>
+                    <div class="form-group" id="rdColorGroup" hidden><label for="rdColor">颜色</label><input id="rdColor" type="color" value="#000000"></div>
+                    <div class="form-group" id="rdEmojiGroup" hidden><label>表情</label><div class="emoji-grid" id="rdEmojis"></div></div>
+                    <div class="form-group" id="rdBrushGroup" hidden><label for="rdBrush">画笔直径（短边百分比）</label><input id="rdBrush" type="range" min="1" max="12" value="4"></div>
+                    <div class="tool-row">
+                        <button type="button" id="rdUndo" disabled>撤销</button>
+                        <button type="button" id="rdDelete" disabled>删除选中</button>
+                    </div>
+                    <button class="btn btn-primary export-btn" id="rdExport" type="button" disabled>导出</button>
+                    <div class="errors" id="rdErrors"></div>
+                </div>
+            </div>
+        </section>
     </div>
     <div id="toastContainer"></div>
 
@@ -196,6 +243,7 @@
             serif: '"Songti SC", "SimSun", serif',
             mono: '"SF Mono", Menlo, monospace'
         };
+        const REDACT_EMOJIS = ['🫣', '🙈', '😀', '⭐', '🚫', '💦', '💩', '❤️', '🔥', '✅'];
         const DEFAULTS = {
             watermark: {
                 text: '', fontPercent: 5, color: '#ffffff', opacity: 50, rotation: 0,
@@ -208,7 +256,11 @@
         const state = {
             watermark: { items: [], selectedId: null },
             crop: { items: [], selectedId: null, cropper: null, cropImageUrl: null, ratio: 'free' },
-            compress: { items: [], selectedId: null, controlMode: 'quality', previewUrl: null, lastBlob: null, lastPlan: null, runId: 0 }
+            compress: { items: [], selectedId: null, controlMode: 'quality', previewUrl: null, lastBlob: null, lastPlan: null, runId: 0 },
+            redact: {
+                items: [], selectedId: null, regions: [], selectedRegionId: null,
+                tool: 'rect', undo: [], drag: null
+            }
         };
 
         function loadSettings() {
@@ -267,7 +319,7 @@
         }
 
         function isBatch(tab) {
-            if (tab === 'crop') return false;
+            if (tab === 'crop' || tab === 'redact') return false;
             const box = document.getElementById(tab === 'watermark' ? 'wmBatch' : 'cpBatch');
             return !!(box && box.checked);
         }
@@ -312,11 +364,20 @@
                 state.compress.lastBlob = null;
                 state.compress.lastPlan = null;
             }
-            const input = document.getElementById(tab === 'watermark' ? 'wmFile' : tab === 'crop' ? 'cropFile' : 'cpFile');
+            if (tab === 'redact') {
+                state.redact.regions = [];
+                state.redact.selectedRegionId = null;
+                state.redact.undo = [];
+                state.redact.drag = null;
+            }
+            const input = document.getElementById(
+                tab === 'watermark' ? 'wmFile' : tab === 'crop' ? 'cropFile' : tab === 'redact' ? 'rdFile' : 'cpFile'
+            );
             if (input) input.value = '';
             if (tab === 'watermark') renderWatermark();
             if (tab === 'crop') renderCrop();
             if (tab === 'compress') renderCompress();
+            if (tab === 'redact') renderRedact();
         }
 
         async function ingestFiles(tab, fileList, single) {
@@ -364,21 +425,45 @@
             }
             bucket.items = nextItems;
             bucket.selectedId = bucket.items[0] ? bucket.items[0].id : null;
-            setErrors(tab === 'watermark' ? 'wmErrors' : tab === 'crop' ? 'cropErrors' : 'cpErrors', errors);
+            setErrors(tab === 'watermark' ? 'wmErrors' : tab === 'crop' ? 'cropErrors' : tab === 'redact' ? 'rdErrors' : 'cpErrors', errors);
             if (tab === 'watermark') renderWatermark();
             if (tab === 'crop') renderCrop();
             if (tab === 'compress') renderCompress();
+            if (tab === 'redact') {
+                state.redact.regions = [];
+                state.redact.selectedRegionId = null;
+                state.redact.undo = [];
+                renderRedact();
+            }
         }
 
         function selected(tab) {
             return state[tab].items.find((item) => item.id === state[tab].selectedId) || null;
         }
 
+        function renderRedact() {
+            const item = selected('redact');
+            const canvas = document.getElementById('rdCanvas');
+            const hint = document.getElementById('rdHint');
+            document.getElementById('rdExport').disabled = !item || !(state.redact.regions && state.redact.regions.length);
+            document.getElementById('rdUndo').disabled = !(state.redact.undo && state.redact.undo.length);
+            document.getElementById('rdDelete').disabled = !state.redact.selectedRegionId;
+            if (!item) {
+                canvas.hidden = true;
+                hint.hidden = false;
+                document.getElementById('rdDrop').classList.remove('has-image');
+                return;
+            }
+            hint.hidden = true;
+            canvas.hidden = false;
+            document.getElementById('rdDrop').classList.add('has-image');
+        }
+
         function bindDrop(dropId, inputId, tab) {
             const drop = document.getElementById(dropId);
             const input = document.getElementById(inputId);
             drop.addEventListener('click', (event) => {
-                if (tab === 'crop' && state.crop.items.length) return;
+                if ((tab === 'crop' || tab === 'redact') && state[tab].items.length) return;
                 if (event.target.closest('.cropper-container, canvas, img, #cropWrap')) return;
                 input.click();
             });
@@ -387,7 +472,7 @@
             drop.addEventListener('dragover', (event) => { event.preventDefault(); });
             drop.addEventListener('drop', (event) => {
                 event.preventDefault();
-                if (tab === 'crop' && state.crop.items.length) return;
+                if ((tab === 'crop' || tab === 'redact') && state[tab].items.length) return;
                 ingestFiles(tab, event.dataTransfer.files, !isBatch(tab));
             });
             input.addEventListener('change', () => {
@@ -960,6 +1045,19 @@
             }, 'image/webp');
         }
 
+        function initRedactUi() {
+            const grid = document.getElementById('rdEmojis');
+            REDACT_EMOJIS.forEach((emoji, index) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.dataset.emoji = emoji;
+                btn.textContent = emoji;
+                if (index === 0) btn.classList.add('active');
+                grid.appendChild(btn);
+            });
+            document.getElementById('rdClear').addEventListener('click', () => clearImages('redact'));
+        }
+
         document.querySelectorAll('.tab-btn').forEach((btn) => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.tab-btn').forEach((el) => el.classList.remove('active'));
@@ -972,11 +1070,13 @@
         bindDrop('wmDrop', 'wmFile', 'watermark');
         bindDrop('cropDrop', 'cropFile', 'crop');
         bindDrop('cpDrop', 'cpFile', 'compress');
+        bindDrop('rdDrop', 'rdFile', 'redact');
         initWatermarkUi();
         initCropUi();
         initCompressUi();
+        initRedactUi();
         window.addEventListener('beforeunload', () => {
-            ['watermark', 'crop', 'compress'].forEach((tab) => state[tab].items.forEach(revokeItem));
+            ['watermark', 'crop', 'compress', 'redact'].forEach((tab) => state[tab].items.forEach(revokeItem));
             if (state.compress.previewUrl) URL.revokeObjectURL(state.compress.previewUrl);
             revokeCropImageUrl();
         });
