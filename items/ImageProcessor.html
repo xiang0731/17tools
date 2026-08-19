@@ -250,7 +250,11 @@
                 position: 'br', tiled: false, tileGapPercent: 18,
                 style: 'fill', font: 'sans', bold: false
             },
-            compress: { outputMime: 'image/jpeg' }
+            compress: { outputMime: 'image/jpeg' },
+            redact: {
+                mosaicSize: 16, blurStrength: 8, solidColor: '#000000',
+                emoji: '🫣', brushPercent: 4, effect: 'mosaic'
+            }
         };
 
         const state = {
@@ -268,10 +272,15 @@
                 const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '');
                 return {
                     watermark: { ...DEFAULTS.watermark, ...(parsed.watermark || {}) },
-                    compress: { ...DEFAULTS.compress, ...(parsed.compress || {}) }
+                    compress: { ...DEFAULTS.compress, ...(parsed.compress || {}) },
+                    redact: { ...DEFAULTS.redact, ...(parsed.redact || {}) }
                 };
             } catch (error) {
-                return { watermark: { ...DEFAULTS.watermark }, compress: { ...DEFAULTS.compress } };
+                return {
+                    watermark: { ...DEFAULTS.watermark },
+                    compress: { ...DEFAULTS.compress },
+                    redact: { ...DEFAULTS.redact }
+                };
             }
         }
 
@@ -279,7 +288,14 @@
         function saveSettings() {
             localStorage.setItem(STORAGE_KEY, JSON.stringify({
                 watermark: readWatermarkSettings(),
-                compress: { outputMime: document.getElementById('cpFormat').value }
+                compress: { outputMime: document.getElementById('cpFormat').value },
+                redact: {
+                    mosaicSize: Number(document.getElementById('rdMosaic').value),
+                    blurStrength: Number(document.getElementById('rdBlur').value),
+                    solidColor: document.getElementById('rdColor').value,
+                    emoji: document.querySelector('#rdEmojis button.active')?.dataset.emoji || '🫣',
+                    brushPercent: Number(document.getElementById('rdBrush').value)
+                }
             }));
         }
 
@@ -433,6 +449,7 @@
                 state.redact.regions = [];
                 state.redact.selectedRegionId = null;
                 state.redact.undo = [];
+                state.redact.drag = null;
                 renderRedact();
             }
         }
@@ -441,13 +458,268 @@
             return state[tab].items.find((item) => item.id === state[tab].selectedId) || null;
         }
 
+        const REDACT_MAX = 50;
+        const REDACT_UNDO_MAX = 40;
+        const REDACT_MIN_DRAG = 4;
+        const REDACT_EMOJI_FONT = '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
+
+        function readRedactSettings() {
+            return {
+                mosaicSize: Number(document.getElementById('rdMosaic').value),
+                blurStrength: Number(document.getElementById('rdBlur').value),
+                solidColor: document.getElementById('rdColor').value,
+                emoji: document.querySelector('#rdEmojis button.active')?.dataset.emoji || '🫣',
+                brushPercent: Number(document.getElementById('rdBrush').value),
+                effect: document.querySelector('#rdEffects button.active')?.dataset.effect || 'mosaic'
+            };
+        }
+
+        function showRedactParams(effect, tool) {
+            document.getElementById('rdMosaicGroup').hidden = effect !== 'mosaic';
+            document.getElementById('rdBlurGroup').hidden = effect !== 'blur';
+            document.getElementById('rdColorGroup').hidden = effect !== 'solid';
+            document.getElementById('rdEmojiGroup').hidden = effect !== 'emoji';
+            document.getElementById('rdBrushGroup').hidden = tool !== 'brush';
+        }
+
+        function syncRedactSidebarFromRegion(region) {
+            const wm = readRedactSettings();
+            const effect = region ? region.effect : wm.effect;
+            document.querySelectorAll('#rdEffects button').forEach((btn) => {
+                btn.classList.toggle('active', btn.dataset.effect === effect);
+            });
+            if (region) {
+                document.getElementById('rdMosaic').value = String(region.mosaicSize);
+                document.getElementById('rdBlur').value = String(region.blurStrength);
+                document.getElementById('rdColor').value = region.solidColor;
+                document.querySelectorAll('#rdEmojis button').forEach((btn) => {
+                    btn.classList.toggle('active', btn.dataset.emoji === region.emoji);
+                });
+            }
+            showRedactParams(effect, state.redact.tool);
+        }
+
+        function canvasImagePoint(canvas, event) {
+            const rect = canvas.getBoundingClientRect();
+            const cssW = rect.width || 1;
+            const cssH = rect.height || 1;
+            return {
+                x: (event.clientX - rect.left) * (canvas.width / cssW),
+                y: (event.clientY - rect.top) * (canvas.height / cssH)
+            };
+        }
+
+        function cloneRegions(regions) {
+            return JSON.parse(JSON.stringify(regions));
+        }
+
+        function pushRedactUndo() {
+            state.redact.undo.push({
+                regions: cloneRegions(state.redact.regions),
+                selectedRegionId: state.redact.selectedRegionId
+            });
+            if (state.redact.undo.length > REDACT_UNDO_MAX) state.redact.undo.shift();
+        }
+
+        function hitRedactRegion(x, y) {
+            const list = state.redact.regions;
+            for (let i = list.length - 1; i >= 0; i -= 1) {
+                const region = list[i];
+                const hit = region.kind === 'brush'
+                    ? core.hitTestStroke(region.points, region.brushRadius, x, y)
+                    : core.hitTestRect(region, x, y);
+                if (hit) return region;
+            }
+            return null;
+        }
+
+        function handleAt(region, x, y, scale) {
+            if (!region || region.kind !== 'rect') return null;
+            const size = 10 * scale;
+            const corners = [
+                { name: 'nw', x: region.x, y: region.y },
+                { name: 'ne', x: region.x + region.w, y: region.y },
+                { name: 'sw', x: region.x, y: region.y + region.h },
+                { name: 'se', x: region.x + region.w, y: region.y + region.h }
+            ];
+            return corners.find((c) => Math.hypot(x - c.x, y - c.y) <= size)?.name || null;
+        }
+
+        function brushBounds(points, radius, width, height) {
+            let minX = Infinity;
+            let minY = Infinity;
+            let maxX = -Infinity;
+            let maxY = -Infinity;
+            points.forEach((p) => {
+                minX = Math.min(minX, p.x);
+                minY = Math.min(minY, p.y);
+                maxX = Math.max(maxX, p.x);
+                maxY = Math.max(maxY, p.y);
+            });
+            return core.clampRect({
+                x: minX - radius,
+                y: minY - radius,
+                w: (maxX - minX) + radius * 2,
+                h: (maxY - minY) + radius * 2
+            }, width, height);
+        }
+
+        function makeRedactRegion(kind, item, extra) {
+            const settings = readRedactSettings();
+            return {
+                id: `${kind}-${Date.now()}-${Math.random()}`,
+                kind,
+                points: null,
+                brushRadius: null,
+                effect: settings.effect,
+                mosaicSize: settings.mosaicSize,
+                blurStrength: settings.blurStrength,
+                solidColor: settings.solidColor,
+                emoji: settings.emoji,
+                ...extra
+            };
+        }
+
+        function regionMask(region) {
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, region.w);
+            canvas.height = Math.max(1, region.h);
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#000';
+            ctx.strokeStyle = '#000';
+            if (region.kind === 'rect') {
+                ctx.fillRect(0, 0, region.w, region.h);
+            } else {
+                const radius = region.brushRadius || 1;
+                ctx.lineWidth = radius * 2;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                const pts = region.points || [];
+                if (pts.length === 1) {
+                    ctx.beginPath();
+                    ctx.arc(pts[0].x - region.x, pts[0].y - region.y, radius, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (pts.length) {
+                    ctx.beginPath();
+                    pts.forEach((p, i) => {
+                        const x = p.x - region.x;
+                        const y = p.y - region.y;
+                        if (i === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    });
+                    ctx.stroke();
+                }
+            }
+            return canvas;
+        }
+
+        function paintEffect(ectx, region) {
+            const box = { x: 0, y: 0, w: region.w, h: region.h };
+            if (region.effect === 'mosaic') {
+                core.computeMosaicCells(box, region.mosaicSize).forEach((cell) => {
+                    const data = ectx.getImageData(cell.x, cell.y, cell.w, cell.h);
+                    let r = 0;
+                    let g = 0;
+                    let b = 0;
+                    const n = data.data.length / 4;
+                    for (let i = 0; i < data.data.length; i += 4) {
+                        r += data.data[i];
+                        g += data.data[i + 1];
+                        b += data.data[i + 2];
+                    }
+                    ectx.fillStyle = `rgb(${Math.round(r / n)},${Math.round(g / n)},${Math.round(b / n)})`;
+                    ectx.fillRect(cell.x, cell.y, cell.w, cell.h);
+                });
+                return;
+            }
+            if (region.effect === 'blur') {
+                const sw = Math.max(1, Math.round(region.w / region.blurStrength));
+                const sh = Math.max(1, Math.round(region.h / region.blurStrength));
+                const small = document.createElement('canvas');
+                small.width = sw;
+                small.height = sh;
+                const sctx = small.getContext('2d');
+                sctx.imageSmoothingEnabled = true;
+                sctx.drawImage(ectx.canvas, 0, 0, sw, sh);
+                ectx.clearRect(0, 0, region.w, region.h);
+                ectx.imageSmoothingEnabled = true;
+                ectx.drawImage(small, 0, 0, region.w, region.h);
+                return;
+            }
+            if (region.effect === 'solid') {
+                ectx.fillStyle = region.solidColor;
+                ectx.fillRect(0, 0, region.w, region.h);
+                return;
+            }
+            ectx.textAlign = 'center';
+            ectx.textBaseline = 'middle';
+            core.computeEmojiTiles(box).forEach((tile) => {
+                ectx.font = `${tile.size * 0.82}px ${REDACT_EMOJI_FONT}`;
+                ectx.fillText(region.emoji, tile.x + tile.size / 2, tile.y + tile.size / 2);
+            });
+        }
+
+        function applyRedactRegion(destCtx, region) {
+            const effectCanvas = document.createElement('canvas');
+            effectCanvas.width = Math.max(1, region.w);
+            effectCanvas.height = Math.max(1, region.h);
+            const ectx = effectCanvas.getContext('2d');
+            ectx.drawImage(destCtx.canvas, region.x, region.y, region.w, region.h, 0, 0, region.w, region.h);
+            paintEffect(ectx, region);
+            ectx.globalCompositeOperation = 'destination-in';
+            ectx.drawImage(regionMask(region), 0, 0);
+            destCtx.drawImage(effectCanvas, region.x, region.y);
+        }
+
+        function drawRedactSelection(ctx, region, scale) {
+            ctx.save();
+            ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim() || '#3b82f6';
+            ctx.lineWidth = Math.max(1, 2 * scale);
+            ctx.setLineDash([6 * scale, 4 * scale]);
+            if (region.kind === 'rect') {
+                ctx.strokeRect(region.x, region.y, region.w, region.h);
+                ctx.setLineDash([]);
+                const hs = 5 * scale;
+                [[region.x, region.y], [region.x + region.w, region.y], [region.x, region.y + region.h], [region.x + region.w, region.y + region.h]].forEach(([hx, hy]) => {
+                    ctx.fillStyle = ctx.strokeStyle;
+                    ctx.fillRect(hx - hs, hy - hs, hs * 2, hs * 2);
+                });
+            } else {
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.lineWidth = (region.brushRadius || 1) * 2 + 4 * scale;
+                const pts = region.points || [];
+                ctx.beginPath();
+                pts.forEach((p, i) => {
+                    if (i === 0) ctx.moveTo(p.x, p.y);
+                    else ctx.lineTo(p.x, p.y);
+                });
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        function compositeRedact(ctx, item, { highlight, draft } = {}) {
+            ctx.clearRect(0, 0, item.width, item.height);
+            ctx.drawImage(item.bitmap, 0, 0, item.width, item.height);
+            state.redact.regions.forEach((region) => applyRedactRegion(ctx, region));
+            if (draft) applyRedactRegion(ctx, draft);
+            if (highlight) {
+                const css = document.getElementById('rdCanvas').getBoundingClientRect();
+                const scale = item.width / (css.width || item.width);
+                drawRedactSelection(ctx, highlight, scale);
+            }
+        }
+
         function renderRedact() {
             const item = selected('redact');
             const canvas = document.getElementById('rdCanvas');
             const hint = document.getElementById('rdHint');
-            document.getElementById('rdExport').disabled = !item || !(state.redact.regions && state.redact.regions.length);
-            document.getElementById('rdUndo').disabled = !(state.redact.undo && state.redact.undo.length);
-            document.getElementById('rdDelete').disabled = !state.redact.selectedRegionId;
+            const selectedRegion = state.redact.regions.find((r) => r.id === state.redact.selectedRegionId) || null;
+            document.getElementById('rdExport').disabled = !item || state.redact.regions.length === 0;
+            document.getElementById('rdUndo').disabled = state.redact.undo.length === 0;
+            document.getElementById('rdDelete').disabled = !selectedRegion;
+            showRedactParams(readRedactSettings().effect, state.redact.tool);
             if (!item) {
                 canvas.hidden = true;
                 hint.hidden = false;
@@ -457,6 +729,336 @@
             hint.hidden = true;
             canvas.hidden = false;
             document.getElementById('rdDrop').classList.add('has-image');
+            canvas.width = item.width;
+            canvas.height = item.height;
+            const draft = state.redact.drag && state.redact.drag.preview ? state.redact.drag.preview : null;
+            compositeRedact(canvas.getContext('2d'), item, { highlight: selectedRegion, draft });
+        }
+
+        function commitNewRegion(region) {
+            if (state.redact.regions.length >= REDACT_MAX) {
+                showToast('最多 50 处打码');
+                return;
+            }
+            pushRedactUndo();
+            state.redact.regions.push(region);
+            state.redact.selectedRegionId = region.id;
+            syncRedactSidebarFromRegion(region);
+            renderRedact();
+        }
+
+        function applyRectFromPoints(x0, y0, x1, y1, item) {
+            return core.clampRect({ x: x0, y: y0, w: x1 - x0, h: y1 - y0 }, item.width, item.height);
+        }
+
+        function clampPoint(item, pt) {
+            return {
+                x: Math.min(item.width, Math.max(0, pt.x)),
+                y: Math.min(item.height, Math.max(0, pt.y))
+            };
+        }
+
+        function initRedactUi() {
+            const stored = { ...DEFAULTS.redact, ...(loadSettings().redact || {}) };
+            document.getElementById('rdMosaic').value = String(stored.mosaicSize || 16);
+            document.getElementById('rdBlur').value = String(stored.blurStrength || 8);
+            document.getElementById('rdColor').value = stored.solidColor || '#000000';
+            document.getElementById('rdBrush').value = String(stored.brushPercent || 4);
+            const grid = document.getElementById('rdEmojis');
+            grid.replaceChildren();
+            REDACT_EMOJIS.forEach((emoji) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.dataset.emoji = emoji;
+                btn.textContent = emoji;
+                if (emoji === (stored.emoji || '🫣')) btn.classList.add('active');
+                btn.addEventListener('click', () => {
+                    grid.querySelectorAll('button').forEach((el) => el.classList.remove('active'));
+                    btn.classList.add('active');
+                    const region = state.redact.regions.find((r) => r.id === state.redact.selectedRegionId);
+                    if (region) {
+                        pushRedactUndo();
+                        region.emoji = emoji;
+                    }
+                    saveSettings();
+                    renderRedact();
+                });
+                grid.appendChild(btn);
+            });
+            document.querySelectorAll('#rdTools button').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('#rdTools button').forEach((el) => el.classList.remove('active'));
+                    btn.classList.add('active');
+                    state.redact.tool = btn.dataset.tool;
+                    showRedactParams(readRedactSettings().effect, state.redact.tool);
+                });
+            });
+            document.querySelectorAll('#rdEffects button').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('#rdEffects button').forEach((el) => el.classList.remove('active'));
+                    btn.classList.add('active');
+                    const region = state.redact.regions.find((r) => r.id === state.redact.selectedRegionId);
+                    if (region) {
+                        pushRedactUndo();
+                        region.effect = btn.dataset.effect;
+                    }
+                    showRedactParams(btn.dataset.effect, state.redact.tool);
+                    renderRedact();
+                });
+            });
+            function onParamInput(write) {
+                const region = state.redact.regions.find((r) => r.id === state.redact.selectedRegionId);
+                if (region) write(region);
+                else saveSettings();
+                renderRedact();
+            }
+            let paramSnapshot = null;
+            ['rdMosaic', 'rdBlur', 'rdBrush'].forEach((id) => {
+                const el = document.getElementById(id);
+                el.addEventListener('pointerdown', () => {
+                    paramSnapshot = {
+                        regions: cloneRegions(state.redact.regions),
+                        selectedRegionId: state.redact.selectedRegionId
+                    };
+                });
+                el.addEventListener('input', () => {
+                    onParamInput((region) => {
+                        region.mosaicSize = Number(document.getElementById('rdMosaic').value);
+                        region.blurStrength = Number(document.getElementById('rdBlur').value);
+                        if (id === 'rdBrush') return;
+                    });
+                });
+                el.addEventListener('pointerup', () => {
+                    if (!paramSnapshot) return;
+                    if (JSON.stringify(paramSnapshot.regions) !== JSON.stringify(state.redact.regions)) {
+                        state.redact.undo.push(paramSnapshot);
+                        if (state.redact.undo.length > REDACT_UNDO_MAX) state.redact.undo.shift();
+                    }
+                    paramSnapshot = null;
+                    saveSettings();
+                    document.getElementById('rdUndo').disabled = state.redact.undo.length === 0;
+                });
+            });
+            document.getElementById('rdColor').addEventListener('change', () => {
+                const region = state.redact.regions.find((r) => r.id === state.redact.selectedRegionId);
+                if (region) {
+                    pushRedactUndo();
+                    region.solidColor = document.getElementById('rdColor').value;
+                }
+                saveSettings();
+                renderRedact();
+            });
+            document.getElementById('rdUndo').addEventListener('click', () => {
+                const prev = state.redact.undo.pop();
+                if (!prev) return;
+                state.redact.regions = prev.regions;
+                state.redact.selectedRegionId = prev.regions.some((r) => r.id === prev.selectedRegionId)
+                    ? prev.selectedRegionId
+                    : null;
+                syncRedactSidebarFromRegion(
+                    state.redact.regions.find((r) => r.id === state.redact.selectedRegionId) || null
+                );
+                renderRedact();
+            });
+            document.getElementById('rdDelete').addEventListener('click', () => {
+                if (!state.redact.selectedRegionId) return;
+                pushRedactUndo();
+                state.redact.regions = state.redact.regions.filter((r) => r.id !== state.redact.selectedRegionId);
+                state.redact.selectedRegionId = null;
+                renderRedact();
+            });
+            document.getElementById('rdExport').addEventListener('click', exportRedact);
+            document.getElementById('rdClear').addEventListener('click', () => clearImages('redact'));
+
+            const canvas = document.getElementById('rdCanvas');
+            canvas.addEventListener('pointerdown', (event) => {
+                const item = selected('redact');
+                if (!item) return;
+                event.preventDefault();
+                canvas.setPointerCapture(event.pointerId);
+                const pt = canvasImagePoint(canvas, event);
+                const css = canvas.getBoundingClientRect();
+                const scale = item.width / (css.width || item.width);
+                const selectedRegion = state.redact.regions.find((r) => r.id === state.redact.selectedRegionId) || null;
+                if (state.redact.tool === 'rect') {
+                    const handle = handleAt(selectedRegion, pt.x, pt.y, scale);
+                    if (handle) {
+                        state.redact.drag = {
+                            mode: 'resize',
+                            handle,
+                            start: pt,
+                            origin: { ...selectedRegion },
+                            originRegions: cloneRegions(state.redact.regions),
+                            moved: false
+                        };
+                        return;
+                    }
+                    const hit = hitRedactRegion(pt.x, pt.y);
+                    if (hit && hit.kind === 'rect') {
+                        state.redact.selectedRegionId = hit.id;
+                        state.redact.drag = {
+                            mode: 'move',
+                            start: pt,
+                            origin: { ...hit },
+                            originRegions: cloneRegions(state.redact.regions),
+                            id: hit.id,
+                            moved: false
+                        };
+                        syncRedactSidebarFromRegion(hit);
+                        renderRedact();
+                        return;
+                    }
+                    if (hit && hit.kind === 'brush') {
+                        state.redact.drag = { mode: 'select', start: pt, region: hit, moved: false };
+                        return;
+                    }
+                    state.redact.drag = { mode: 'rect', start: pt, moved: false };
+                    return;
+                }
+                const hitBrush = hitRedactRegion(pt.x, pt.y);
+                state.redact.drag = {
+                    mode: 'brush',
+                    start: pt,
+                    points: [{ x: pt.x, y: pt.y }],
+                    hit: hitBrush,
+                    moved: false
+                };
+            });
+            canvas.addEventListener('pointermove', (event) => {
+                const drag = state.redact.drag;
+                const item = selected('redact');
+                if (!drag || !item) return;
+                const pt = canvasImagePoint(canvas, event);
+                if (Math.hypot(pt.x - drag.start.x, pt.y - drag.start.y) >= REDACT_MIN_DRAG) drag.moved = true;
+                if (drag.mode === 'rect' && drag.moved) {
+                    const box = applyRectFromPoints(drag.start.x, drag.start.y, pt.x, pt.y, item);
+                    drag.preview = box ? makeRedactRegion('rect', item, box) : null;
+                    renderRedact();
+                    return;
+                }
+                if (drag.mode === 'brush' && drag.moved) {
+                    drag.points.push(clampPoint(item, pt));
+                    const radius = core.brushRadiusFromPercent(Math.min(item.width, item.height), readRedactSettings().brushPercent);
+                    const box = brushBounds(drag.points, radius, item.width, item.height);
+                    drag.preview = box ? makeRedactRegion('brush', item, {
+                        ...box,
+                        points: core.simplifyPoints(drag.points, 1),
+                        brushRadius: radius
+                    }) : null;
+                    renderRedact();
+                    return;
+                }
+                if (drag.mode === 'move' && drag.moved) {
+                    const region = state.redact.regions.find((r) => r.id === drag.id);
+                    if (!region) return;
+                    const dx = pt.x - drag.start.x;
+                    const dy = pt.y - drag.start.y;
+                    const next = core.clampRect({
+                        x: drag.origin.x + dx,
+                        y: drag.origin.y + dy,
+                        w: drag.origin.w,
+                        h: drag.origin.h
+                    }, item.width, item.height);
+                    if (next) Object.assign(region, next);
+                    renderRedact();
+                    return;
+                }
+                if (drag.mode === 'resize' && drag.moved) {
+                    const o = drag.origin;
+                    let x = o.x;
+                    let y = o.y;
+                    let r = o.x + o.w;
+                    let b = o.y + o.h;
+                    if (drag.handle.includes('n')) y = pt.y;
+                    if (drag.handle.includes('s')) b = pt.y;
+                    if (drag.handle.includes('w')) x = pt.x;
+                    if (drag.handle.includes('e')) r = pt.x;
+                    const live = state.redact.regions.find((rg) => rg.id === state.redact.selectedRegionId);
+                    const next = core.clampRect({ x, y, w: r - x, h: b - y }, item.width, item.height);
+                    if (live && next) Object.assign(live, next);
+                    renderRedact();
+                }
+            });
+            canvas.addEventListener('pointerup', (event) => {
+                const drag = state.redact.drag;
+                const item = selected('redact');
+                state.redact.drag = null;
+                if (!drag || !item) {
+                    renderRedact();
+                    return;
+                }
+                const pt = canvasImagePoint(canvas, event);
+                const dist = Math.hypot(pt.x - drag.start.x, pt.y - drag.start.y);
+                if (drag.mode === 'rect') {
+                    if (dist < REDACT_MIN_DRAG) {
+                        const hit = hitRedactRegion(drag.start.x, drag.start.y);
+                        state.redact.selectedRegionId = hit ? hit.id : null;
+                        syncRedactSidebarFromRegion(hit);
+                    } else if (drag.preview) {
+                        commitNewRegion(drag.preview);
+                        return;
+                    }
+                    renderRedact();
+                    return;
+                }
+                if (drag.mode === 'brush') {
+                    if (dist < REDACT_MIN_DRAG && drag.hit) {
+                        state.redact.selectedRegionId = drag.hit.id;
+                        syncRedactSidebarFromRegion(drag.hit);
+                        renderRedact();
+                        return;
+                    }
+                    if (drag.preview) {
+                        commitNewRegion(drag.preview);
+                        return;
+                    }
+                    renderRedact();
+                    return;
+                }
+                if ((drag.mode === 'move' || drag.mode === 'resize') && drag.moved) {
+                    state.redact.undo.push({
+                        regions: drag.originRegions,
+                        selectedRegionId: state.redact.selectedRegionId
+                    });
+                    if (state.redact.undo.length > REDACT_UNDO_MAX) state.redact.undo.shift();
+                }
+                if (drag.mode === 'select' && dist < REDACT_MIN_DRAG) {
+                    state.redact.selectedRegionId = drag.region.id;
+                    syncRedactSidebarFromRegion(drag.region);
+                }
+                renderRedact();
+            });
+            document.addEventListener('keydown', (event) => {
+                const panel = document.querySelector('[data-panel="redact"]');
+                if (!panel || !panel.classList.contains('active')) return;
+                const tag = (event.target && event.target.tagName) || '';
+                if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+                if (event.key === 'Escape') {
+                    state.redact.selectedRegionId = null;
+                    renderRedact();
+                }
+                if ((event.key === 'Backspace' || event.key === 'Delete') && state.redact.selectedRegionId) {
+                    event.preventDefault();
+                    document.getElementById('rdDelete').click();
+                }
+            });
+            showRedactParams(stored.effect || 'mosaic', 'rect');
+        }
+
+        async function exportRedact() {
+            const item = selected('redact');
+            if (!item || !state.redact.regions.length) return;
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = item.width;
+                canvas.height = item.height;
+                compositeRedact(canvas.getContext('2d'), item, { highlight: null, draft: null });
+                const blob = await canvasToBlob(canvas, item.mime, item.mime === 'image/png' ? undefined : 0.92);
+                downloadBlob(blob, core.buildExportName(item.name, 'redacted', item.mime));
+                setErrors('rdErrors', []);
+            } catch (error) {
+                setErrors('rdErrors', ['无法导出']);
+            }
         }
 
         function bindDrop(dropId, inputId, tab) {
@@ -1043,19 +1645,6 @@
                     document.getElementById('cpFormat').value = 'image/jpeg';
                 }
             }, 'image/webp');
-        }
-
-        function initRedactUi() {
-            const grid = document.getElementById('rdEmojis');
-            REDACT_EMOJIS.forEach((emoji, index) => {
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.dataset.emoji = emoji;
-                btn.textContent = emoji;
-                if (index === 0) btn.classList.add('active');
-                grid.appendChild(btn);
-            });
-            document.getElementById('rdClear').addEventListener('click', () => clearImages('redact'));
         }
 
         document.querySelectorAll('.tab-btn').forEach((btn) => {
