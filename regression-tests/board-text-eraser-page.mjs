@@ -37,9 +37,12 @@ assert.equal(page.includes("case 'e':"), false);
 assert.equal(page.includes("case '1':"), false);
 assert.equal(page.includes("case 's':"), false);
 assert.equal(page.includes("e.key === 's' || e.key === 'S'"), false);
+assert.match(page, /\.toolbar-group\[hidden\],\s*\.tool-btn\[hidden\]/);
+assert.match(page, /switch \(e\.key\.toLowerCase\(\)\)/);
 assert.match(page, /case 'z':/);
 assert.match(page, /case 'y':/);
 assert.match(page, /case '0':/);
+assert.match(page, /this\.updatePresetColors\(\);\s*this\.updateToolOptionsUI\(\);\s*this\.updateCursor\(\);/);
 assert.match(page, /id="eraser-cursor"/);
 assert.match(page, /['"]text-editor['"]/);
 assert.match(page, /this\.eraserMode/);
@@ -124,40 +127,59 @@ try {
         const { context, page } = await openBoard(browser);
         const initial = await page.evaluate(() => {
             const hidden = (id) => document.getElementById(id).hidden;
+            const display = (id) => getComputedStyle(document.getElementById(id)).display;
             return {
                 tool: window.whiteboard.currentTool,
                 brush: hidden('brush-size-group'),
+                brushDisplay: display('brush-size-group'),
                 text: hidden('text-size-group'),
+                textDisplay: display('text-size-group'),
                 eraser: hidden('eraser-options-group'),
+                eraserDisplay: display('eraser-options-group'),
                 color: hidden('color-group'),
-                arrow: hidden('line-arrow-toggle')
+                colorDisplay: display('color-group'),
+                arrow: hidden('line-arrow-toggle'),
+                arrowDisplay: display('line-arrow-toggle')
             };
         });
         assert.equal(initial.tool, 'pen');
         assert.equal(initial.brush, false);
+        assert.notEqual(initial.brushDisplay, 'none');
         assert.equal(initial.text, true);
+        assert.equal(initial.textDisplay, 'none');
         assert.equal(initial.eraser, true);
+        assert.equal(initial.eraserDisplay, 'none');
         assert.equal(initial.color, false);
+        assert.notEqual(initial.colorDisplay, 'none');
         assert.equal(initial.arrow, true);
+        assert.equal(initial.arrowDisplay, 'none');
 
         await page.click('#text-tool');
         const onText = await page.evaluate(() => ({
             brush: document.getElementById('brush-size-group').hidden,
-            text: document.getElementById('text-size-group').hidden
+            brushDisplay: getComputedStyle(document.getElementById('brush-size-group')).display,
+            text: document.getElementById('text-size-group').hidden,
+            textDisplay: getComputedStyle(document.getElementById('text-size-group')).display
         }));
         assert.equal(onText.brush, true);
+        assert.equal(onText.brushDisplay, 'none');
         assert.equal(onText.text, false);
+        assert.notEqual(onText.textDisplay, 'none');
 
         await page.click('#eraser-tool');
         const onEraser = await page.evaluate(() => ({
             color: document.getElementById('color-group').hidden,
+            colorDisplay: getComputedStyle(document.getElementById('color-group')).display,
             eraser: document.getElementById('eraser-options-group').hidden,
+            eraserDisplay: getComputedStyle(document.getElementById('eraser-options-group')).display,
             geometry: document.getElementById('eraser-geometry-group').hidden,
             sizeText: document.getElementById('eraser-size-display').textContent,
             mode: window.whiteboard.eraserMode
         }));
         assert.equal(onEraser.color, true);
+        assert.equal(onEraser.colorDisplay, 'none');
         assert.equal(onEraser.eraser, false);
+        assert.notEqual(onEraser.eraserDisplay, 'none');
         assert.equal(onEraser.geometry, false);
         assert.equal(onEraser.sizeText, '24px');
         assert.equal(onEraser.mode, 'point');
@@ -192,9 +214,11 @@ try {
         await page.click('#line-tool');
         const onLine = await page.evaluate(() => ({
             arrowHidden: document.getElementById('line-arrow-toggle').hidden,
+            arrowDisplay: getComputedStyle(document.getElementById('line-arrow-toggle')).display,
             enabled: window.whiteboard.arrowEnabled
         }));
         assert.equal(onLine.arrowHidden, false);
+        assert.notEqual(onLine.arrowDisplay, 'none');
         assert.equal(onLine.enabled, false);
         await page.click('#line-arrow-toggle');
         const afterToggle = await page.evaluate(() => window.whiteboard.arrowEnabled);
@@ -350,6 +374,61 @@ try {
         assert.ok(result.after < result.before * 0.2, `expected most ink gone, before=${result.before} after=${result.after}`);
         assert.equal(result.blankCleared, 0);
         assert.equal(result.historyIndex, result.blankIndex);
+        await context.close();
+    }
+
+    {
+        const { context, page } = await openBoard(browser);
+        const result = await page.evaluate(() => {
+            const wb = window.whiteboard;
+            wb.selectTool('eraser');
+            wb.setEraserMode('clear');
+            const beforeCursor = document.querySelector('.canvas-wrapper').style.cursor;
+            wb.loadFromData({
+                settings: {
+                    strokeColor: '#000000',
+                    brushSize: 4,
+                    fontSize: 24,
+                    eraserSize: 24
+                }
+            });
+            return {
+                beforeCursor,
+                mode: wb.eraserMode,
+                shape: wb.eraserShape,
+                cursor: document.querySelector('.canvas-wrapper').style.cursor
+            };
+        });
+        assert.equal(result.beforeCursor, 'crosshair');
+        assert.equal(result.mode, 'point');
+        assert.equal(result.shape, 'round');
+        assert.equal(result.cursor, 'none');
+        await context.close();
+    }
+
+    {
+        const { context, page } = await openBoard(browser);
+        const drawn = await page.evaluate(() => {
+            const wb = window.whiteboard;
+            wb.paintSegment(80, 120, 220, 120, false);
+            wb.saveState();
+            const afterDraw = wb.historyIndex;
+            wb.undo();
+            return { afterDraw, afterUndo: wb.historyIndex };
+        });
+        assert.ok(drawn.afterUndo < drawn.afterDraw);
+        await page.evaluate(() => {
+            document.dispatchEvent(new KeyboardEvent('keydown', {
+                key: 'Z',
+                code: 'KeyZ',
+                ctrlKey: true,
+                shiftKey: true,
+                bubbles: true,
+                cancelable: true
+            }));
+        });
+        const afterRedo = await page.evaluate(() => window.whiteboard.historyIndex);
+        assert.equal(afterRedo, drawn.afterDraw);
         await context.close();
     }
 } finally {
