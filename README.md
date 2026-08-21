@@ -15,7 +15,7 @@
 ### 主要工具
 
 - 主页：项目欢迎页和工具概览。
-- 智能白板：无限画布，画笔、橡皮擦、形状、撤销/重做、右键平移、Ctrl+滚轮缩放、JSON 保存/加载、PNG 导出。
+- 智能白板：无限画布，画笔、橡皮擦（点擦/消除、圆/方）、文字、形状、撤销/重做、右键平移、Ctrl+滚轮缩放、JSON 保存/加载、PNG 导出。
 - 极速计算：多行算术表达式求和，支持括号、小数、加减乘除和幂运算。
 - 优惠计算器：折扣、满减和优惠方案对比。
 - 图片处理：本地添加文字水印（多种样式）、单张裁切、单张打码（马赛克/模糊/纯色/表情），以及按目标体积或质量压缩图片；水印和压缩可按需批量处理。
@@ -129,6 +129,8 @@ node regression-tests/image-processor-page.mjs
 node regression-tests/board-world.mjs
 node regression-tests/board-infinite-page.mjs
 node regression-tests/board-theme.mjs
+node regression-tests/board-flood.mjs
+node regression-tests/board-text-eraser-page.mjs
 node regression-tests/load-progress-core.mjs
 node regression-tests/load-progress-page.mjs
 node regression-tests/history-layout.mjs

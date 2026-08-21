@@ -58,11 +58,16 @@ assert.equal(/Math\.min\(Math\.max\(size,\s*16\),\s*64\)/.test(page), false);
 
 const history = fs.readFileSync('items/History.html', 'utf8');
 const readme = fs.readFileSync('README.md', 'utf8');
+assert.match(history, /<!-- 版本 2\.16\.4 -->/);
+assert.match(history, /版本 2\.16\.4/);
+assert.match(history, /点擦/);
+assert.match(history, /消除/);
 assert.match(history, /<!-- 版本 2\.16\.3 -->/);
 assert.match(history, /文字工具/);
 assert.match(history, /连通擦/);
 assert.match(readme, /文字/);
-assert.match(readme, /连通/);
+assert.match(readme, /点擦/);
+assert.match(readme, /消除/);
 
 console.log('board-text-eraser-page source regression passed');
 
