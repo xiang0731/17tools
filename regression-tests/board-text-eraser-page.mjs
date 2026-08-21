@@ -115,6 +115,103 @@ const browser = await chromium.launch({
 try {
     {
         const { context, page } = await openBoard(browser);
+        const initial = await page.evaluate(() => {
+            const hidden = (id) => document.getElementById(id).hidden;
+            return {
+                tool: window.whiteboard.currentTool,
+                brush: hidden('brush-size-group'),
+                text: hidden('text-size-group'),
+                eraser: hidden('eraser-options-group'),
+                color: hidden('color-group'),
+                arrow: hidden('line-arrow-toggle')
+            };
+        });
+        assert.equal(initial.tool, 'pen');
+        assert.equal(initial.brush, false);
+        assert.equal(initial.text, true);
+        assert.equal(initial.eraser, true);
+        assert.equal(initial.color, false);
+        assert.equal(initial.arrow, true);
+
+        await page.click('#text-tool');
+        const onText = await page.evaluate(() => ({
+            brush: document.getElementById('brush-size-group').hidden,
+            text: document.getElementById('text-size-group').hidden
+        }));
+        assert.equal(onText.brush, true);
+        assert.equal(onText.text, false);
+
+        await page.click('#eraser-tool');
+        const onEraser = await page.evaluate(() => ({
+            color: document.getElementById('color-group').hidden,
+            eraser: document.getElementById('eraser-options-group').hidden,
+            geometry: document.getElementById('eraser-geometry-group').hidden,
+            sizeText: document.getElementById('eraser-size-display').textContent,
+            mode: window.whiteboard.eraserMode
+        }));
+        assert.equal(onEraser.color, true);
+        assert.equal(onEraser.eraser, false);
+        assert.equal(onEraser.geometry, false);
+        assert.equal(onEraser.sizeText, '24px');
+        assert.equal(onEraser.mode, 'point');
+
+        await page.click('#eraser-mode-clear');
+        const onClear = await page.evaluate(() => document.getElementById('eraser-geometry-group').hidden);
+        assert.equal(onClear, true);
+        await page.click('#eraser-mode-point');
+        const onPoint = await page.evaluate(() => document.getElementById('eraser-geometry-group').hidden);
+        assert.equal(onPoint, false);
+
+        await page.click('#pen-tool');
+        await page.locator('#brush-size').evaluate((el) => {
+            el.value = '8';
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        await page.click('#eraser-tool');
+        const eraserStill = await page.evaluate(() => document.getElementById('eraser-size-display').textContent);
+        assert.equal(eraserStill, '24px');
+        await page.locator('#eraser-size').evaluate((el) => {
+            el.value = '40';
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        await page.click('#pen-tool');
+        const brushBack = await page.evaluate(() => ({
+            value: window.whiteboard.brushSize,
+            text: document.getElementById('size-display').textContent
+        }));
+        assert.equal(brushBack.value, 8);
+        assert.equal(brushBack.text, '8px');
+
+        await page.click('#line-tool');
+        const onLine = await page.evaluate(() => ({
+            arrowHidden: document.getElementById('line-arrow-toggle').hidden,
+            enabled: window.whiteboard.arrowEnabled
+        }));
+        assert.equal(onLine.arrowHidden, false);
+        assert.equal(onLine.enabled, false);
+        await page.click('#line-arrow-toggle');
+        const afterToggle = await page.evaluate(() => window.whiteboard.arrowEnabled);
+        assert.equal(afterToggle, true);
+        assert.equal(await page.locator('#arrow-tool').count(), 0);
+
+        const beforeTool = await page.evaluate(() => window.whiteboard.currentTool);
+        await page.keyboard.press('e');
+        await page.keyboard.press('t');
+        await page.keyboard.press('a');
+        const afterKeys = await page.evaluate(() => window.whiteboard.currentTool);
+        assert.equal(afterKeys, beforeTool);
+
+        await page.evaluate(() => window.whiteboard.setZoom(1.5));
+        await page.keyboard.down('Control');
+        await page.keyboard.press('0');
+        await page.keyboard.up('Control');
+        const zoom = await page.evaluate(() => window.whiteboard.scale);
+        assert.equal(zoom, 1);
+        await context.close();
+    }
+
+    {
+        const { context, page } = await openBoard(browser);
         await page.evaluate(() => window.whiteboard.selectTool('text'));
         const start = await canvasPoint(page, 120, 90);
         const end = await canvasPoint(page, 340, 210);
