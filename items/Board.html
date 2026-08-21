@@ -1435,8 +1435,13 @@
                         wrapper.style.cursor = 'crosshair';
                         break;
                     case 'eraser':
-                        wrapper.style.cursor = 'none';
-                        this.syncEraserCursorSize();
+                        if (this.eraserMode === 'clear') {
+                            wrapper.style.cursor = 'crosshair';
+                            this.hideEraserCursor();
+                        } else {
+                            wrapper.style.cursor = 'none';
+                            this.syncEraserCursorSize();
+                        }
                         break;
                     case 'line':
                     case 'rectangle':
@@ -1517,8 +1522,12 @@
                 return this.eraserCursorEl;
             }
 
+            eraserHalf() {
+                return this.eraserSize / 2;
+            }
+
             eraserScreenRadius() {
-                return this.brushSize * 2 * this.scale;
+                return this.eraserSize * this.scale / 2;
             }
 
             syncEraserCursorSize() {
@@ -1529,9 +1538,14 @@
                 const diameter = this.eraserScreenRadius() * 2;
                 el.style.width = diameter + 'px';
                 el.style.height = diameter + 'px';
+                el.style.borderRadius = this.eraserShape === 'square' ? '0' : '50%';
             }
 
             updateEraserCursor(e) {
+                if (this.eraserMode === 'clear') {
+                    this.hideEraserCursor();
+                    return;
+                }
                 const el = this.getEraserCursorEl();
                 if (!el || this.currentTool !== 'eraser') {
                     this.hideEraserCursor();
@@ -1687,14 +1701,19 @@
 
             // 在世界坐标下把一段直线（或橡皮圆）写进碰到的每个块
             paintSegment(x0, y0, x1, y1, eraser) {
-                const pad = eraser ? this.brushSize * 2 : this.brushSize;
+                const pad = eraser ? this.eraserHalf() : this.brushSize;
                 this.forEachTilesInWorldRect(x0, y0, x1, y1, pad, (tile) => {
                     this.withWorldCtx(tile, (ctx) => {
                         if (eraser) {
                             ctx.globalCompositeOperation = 'destination-out';
-                            ctx.beginPath();
-                            ctx.arc(x1, y1, this.brushSize * 2, 0, 2 * Math.PI);
-                            ctx.fill();
+                            const half = this.eraserHalf();
+                            if (this.eraserShape === 'square') {
+                                ctx.fillRect(x1 - half, y1 - half, this.eraserSize, this.eraserSize);
+                            } else {
+                                ctx.beginPath();
+                                ctx.arc(x1, y1, half, 0, 2 * Math.PI);
+                                ctx.fill();
+                            }
                             ctx.globalCompositeOperation = 'source-over';
                             return;
                         }
@@ -2201,7 +2220,8 @@
                         strokeColor: this.strokeColor,
                         colorHistory: this.colorHistory,
                         brushSize: this.brushSize,
-                        fontSize: this.fontSize
+                        fontSize: this.fontSize,
+                        eraserSize: this.eraserSize
                     }
                 };
 
@@ -2274,6 +2294,10 @@
                     this.colorHistory = data.settings.colorHistory || this.colorHistory;
                     this.brushSize = data.settings.brushSize || this.brushSize;
                     this.fontSize = data.settings.fontSize || 24;
+                    this.eraserSize = data.settings.eraserSize || 24;
+                    this.eraserShape = 'round';
+                    this.eraserMode = 'point';
+                    this.arrowEnabled = false;
 
                     // 更新UI
                     document.getElementById('stroke-color').value = this.strokeColor;
@@ -2281,7 +2305,10 @@
                     document.getElementById('size-display').textContent = this.brushSize + 'px';
                     document.getElementById('text-font-size').value = this.fontSize;
                     document.getElementById('text-font-size-display').textContent = this.fontSize + 'px';
+                    document.getElementById('eraser-size').value = this.eraserSize;
+                    document.getElementById('eraser-size-display').textContent = this.eraserSize + 'px';
                     this.updatePresetColors();
+                    this.updateToolOptionsUI();
                 }
             }
 

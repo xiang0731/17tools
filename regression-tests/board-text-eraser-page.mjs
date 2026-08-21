@@ -47,6 +47,9 @@ assert.match(page, /this\.fontSize/);
 assert.match(page, /this\.eraserSize/);
 assert.match(page, /this\.arrowEnabled/);
 assert.match(page, /settings:[\s\S]*fontSize/);
+assert.match(page, /settings:[\s\S]*eraserSize/);
+assert.match(page, /eraserSize \* (this\.scale|camera\.scale|scale)/);
+assert.equal(/eraserScreenRadius\(\) \{\s*return this\.brushSize \* 2 \* this\.scale;/.test(page), false);
 assert.equal(page.includes('id="mouse-x"'), false);
 assert.equal(page.includes('id="mouse-y"'), false);
 assert.equal(page.includes('坐标:'), false);
@@ -290,12 +293,12 @@ try {
         const { context, page } = await openBoard(browser);
         const radius = await page.evaluate(() => {
             const wb = window.whiteboard;
-            wb.brushSize = 20;
+            wb.eraserSize = 24;
             wb.setZoom(1.5);
             wb.selectTool('eraser');
             return wb.eraserScreenRadius();
         });
-        assert.equal(radius, 20 * 2 * 1.5);
+        assert.equal(radius, (24 / 2) * 1.5);
         await context.close();
     }
 
