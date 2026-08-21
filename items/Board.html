@@ -82,6 +82,14 @@
             /* 确保 tooltip 不被裁剪 */
         }
 
+        .toolbar-primary {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: nowrap;
+            flex-shrink: 0;
+        }
+
         .toolbar-group {
             display: flex;
             align-items: center;
@@ -220,6 +228,45 @@
             transform: scale(1.2);
         }
 
+        .toolbar-group[hidden] {
+            display: none !important;
+        }
+
+        #eraser-cursor {
+            position: absolute;
+            border: 2px solid var(--text-primary);
+            box-shadow: 0 0 0 1px var(--background-primary);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 5;
+            box-sizing: border-box;
+            display: none;
+        }
+
+        #eraser-cursor.is-visible {
+            display: block;
+        }
+
+        #text-editor {
+            position: absolute;
+            z-index: 6;
+            margin: 0;
+            padding: 4px;
+            box-sizing: border-box;
+            border: 1px dashed var(--primary-color);
+            background: rgba(255, 255, 255, 0.85);
+            resize: none;
+            overflow: auto;
+            overflow-wrap: break-word;
+            line-height: 1.25;
+            font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            outline: none;
+        }
+
+        [data-theme="dark"] #text-editor {
+            background: rgba(17, 24, 39, 0.85);
+        }
+
         /* 画布容器 */
         .canvas-container {
             flex: 1;
@@ -304,6 +351,10 @@
                 /* 允许换行 */
                 height: auto;
                 /* 高度自适应 */
+            }
+
+            .toolbar-primary {
+                flex-wrap: nowrap;
             }
 
             .toolbar-group {
@@ -521,40 +572,71 @@
     <div class="board-container">
         <!-- 工具栏 -->
         <div class="toolbar">
+            <div class="toolbar-primary">
             <div class="toolbar-group">
-                <button class="tool-btn active tooltip" id="pen-tool" data-tooltip="画笔工具 (P)">
+                <button class="tool-btn active tooltip" id="pen-tool" data-tooltip="画笔">
                     <i class="fas fa-pen"></i>
                 </button>
-                <button class="tool-btn tooltip" id="eraser-tool" data-tooltip="橡皮擦 (E)">
+                <button class="tool-btn tooltip" id="eraser-tool" data-tooltip="橡皮擦">
                     <i class="fas fa-eraser"></i>
                 </button>
-                <button class="tool-btn tooltip" id="line-tool" data-tooltip="直线 (L)">
+                <button class="tool-btn tooltip" id="line-tool" data-tooltip="线条">
                     <i class="fas fa-minus"></i>
                 </button>
-                <button class="tool-btn tooltip" id="arrow-tool" data-tooltip="箭头 (A)">
-                    <i class="fas fa-long-arrow-alt-right"></i>
-                </button>
-                <button class="tool-btn tooltip" id="rectangle-tool" data-tooltip="矩形 (R)">
+                <button class="tool-btn tooltip" id="rectangle-tool" data-tooltip="矩形">
                     <i class="fas fa-square"></i>
                 </button>
-                <button class="tool-btn tooltip" id="circle-tool" data-tooltip="圆形 (C)">
+                <button class="tool-btn tooltip" id="circle-tool" data-tooltip="圆形">
                     <i class="fas fa-circle"></i>
+                </button>
+                <button class="tool-btn tooltip" id="text-tool" data-tooltip="文字">
+                    <i class="fas fa-font"></i>
                 </button>
             </div>
 
-            <div class="toolbar-group">
+            <div class="toolbar-group" id="tool-options">
+                <div class="toolbar-group" id="brush-size-group" style="border-right: none; padding: 0;">
+                    <label for="brush-size"
+                        style="font-size: 12px; color: var(--text-secondary); white-space: nowrap;">粗细:</label>
+                    <input type="range" class="size-slider" id="brush-size" min="1" max="50" value="2">
+                    <span id="size-display"
+                        style="font-size: 12px; color: var(--text-secondary); min-width: 20px; text-align: right;">2px</span>
+                </div>
+                <button class="tool-btn tooltip" id="line-arrow-toggle" data-tooltip="箭头" hidden>
+                    <i class="fas fa-long-arrow-alt-right"></i>
+                </button>
+                <div class="toolbar-group" id="text-size-group" hidden style="border-right: none; padding: 0;">
+                    <label for="text-font-size"
+                        style="font-size: 12px; color: var(--text-secondary); white-space: nowrap;">字号:</label>
+                    <input type="range" class="size-slider" id="text-font-size" min="12" max="72" value="24">
+                    <span id="text-font-size-display"
+                        style="font-size: 12px; color: var(--text-secondary); min-width: 28px; text-align: right;">24px</span>
+                </div>
+                <div class="toolbar-group" id="eraser-options-group" hidden style="border-right: none; padding: 0;">
+                    <div class="toolbar-group" id="eraser-geometry-group" style="border-right: none; padding: 0;">
+                        <button class="tool-btn tooltip" id="eraser-shape-round" data-tooltip="圆形橡皮">
+                            <i class="fas fa-circle"></i>
+                        </button>
+                        <button class="tool-btn tooltip" id="eraser-shape-square" data-tooltip="方形橡皮">
+                            <i class="fas fa-square"></i>
+                        </button>
+                        <label for="eraser-size"
+                            style="font-size: 12px; color: var(--text-secondary); white-space: nowrap;">大小:</label>
+                        <input type="range" class="size-slider" id="eraser-size" min="8" max="64" value="24">
+                        <span id="eraser-size-display"
+                            style="font-size: 12px; color: var(--text-secondary); min-width: 28px; text-align: right;">24px</span>
+                    </div>
+                    <button class="tool-btn tooltip" id="eraser-mode-point" data-tooltip="擦过的范围">点擦</button>
+                    <button class="tool-btn tooltip" id="eraser-mode-clear" data-tooltip="单击去掉整块同色">消除</button>
+                </div>
+            </div>
+
+            <div class="toolbar-group" id="color-group">
                 <input type="color" class="color-picker tooltip" id="stroke-color" data-tooltip="当前颜色">
                 <div class="preset-color tooltip" id="preset-color-1" data-color="#ff0000" data-tooltip="备用颜色 1"></div>
                 <div class="preset-color tooltip" id="preset-color-2" data-color="#00ff00" data-tooltip="备用颜色 2"></div>
                 <div class="preset-color tooltip" id="preset-color-3" data-color="#0000ff" data-tooltip="备用颜色 3"></div>
             </div>
-
-            <div class="toolbar-group">
-                <label for="brush-size"
-                    style="font-size: 12px; color: var(--text-secondary); white-space: nowrap;">粗细:</label>
-                <input type="range" class="size-slider" id="brush-size" min="1" max="50" value="2">
-                <span id="size-display"
-                    style="font-size: 12px; color: var(--text-secondary); min-width: 20px; text-align: right;">2px</span>
             </div>
 
             <div class="toolbar-group">
@@ -570,11 +652,11 @@
             </div>
 
             <div class="toolbar-group">
-                <button class="tool-btn tooltip" id="zoom-out" data-tooltip="缩小 (Ctrl+-)">
+                <button class="tool-btn tooltip" id="zoom-out" data-tooltip="缩小">
                     <i class="fas fa-minus"></i>
                 </button>
-                <button class="tool-btn tooltip" id="zoom-percent" data-tooltip="重置缩放到 100%">100%</button>
-                <button class="tool-btn tooltip" id="zoom-in" data-tooltip="放大 (Ctrl++)">
+                <button class="tool-btn tooltip" id="zoom-percent" data-tooltip="重置缩放到 100% (Ctrl+0)">100%</button>
+                <button class="tool-btn tooltip" id="zoom-in" data-tooltip="放大">
                     <i class="fas fa-plus"></i>
                 </button>
                 <button class="tool-btn tooltip" id="reset-view" data-tooltip="复位到原点">
@@ -591,7 +673,7 @@
             </div>
 
             <div class="toolbar-group">
-                <button class="tool-btn tooltip" id="save-btn" data-tooltip="保存文件 (Ctrl+S)">
+                <button class="tool-btn tooltip" id="save-btn" data-tooltip="保存文件">
                     <i class="fas fa-save"></i>
                 </button>
                 <button class="tool-btn tooltip" id="load-btn" data-tooltip="打开文件">
@@ -615,6 +697,7 @@
             <div class="canvas-wrapper">
                 <canvas id="drawingCanvas"></canvas>
             </div>
+            <div id="eraser-cursor" hidden></div>
             <div class="loading" id="loading" style="display: none;">
                 <i class="fas fa-spinner"></i>
                 正在加载...
@@ -625,7 +708,6 @@
         <div class="status-bar">
             <div class="status-info">
                 <span>工具: <span id="current-tool">画笔</span></span>
-                <span>坐标: (<span id="mouse-x">0</span>, <span id="mouse-y">0</span>)</span>
                 <span>缩放: <span id="zoom-level">100%</span></span>
             </div>
             <div class="status-info">
@@ -639,6 +721,7 @@
 
     <script src="../js/unsaved-guard.js"></script>
     <script src="../js/board-world.js"></script>
+    <script src="../js/board-flood.js"></script>
     <script>
         class WhiteBoard {
             constructor() {
@@ -663,6 +746,14 @@
                 this.strokeColor = currentTheme === 'dark' ? '#ffffff' : '#000000';
 
                 this.brushSize = 2;
+                this.fontSize = 24;
+                this.eraserSize = 24;
+                this.eraserShape = 'round';
+                this.eraserMode = 'point';
+                this.arrowEnabled = false;
+                this.textEditor = null;
+                this.textRect = null;
+                this.eraserCursorEl = null;
                 this.startX = 0;
                 this.startY = 0;
                 this.snapshot = null; // 用于存储绘制形状前的画布快照
@@ -705,6 +796,7 @@
                 this.bindEvents();
                 this.initializeColorPicker();
                 this.updatePresetColors();
+                this.updateToolOptionsUI();
                 this.saveState();
             }
 
@@ -830,6 +922,8 @@
                 });
                 this.syncGrid();
                 this.syncZoomUI();
+                this.syncTextEditor();
+                this.syncEraserCursorSize();
             }
 
             syncGrid() {
@@ -1009,10 +1103,50 @@
                     this.brushSize = parseInt(e.target.value);
                     sizeDisplay.textContent = this.brushSize + 'px';
 
-                    // 如果当前是橡皮擦工具，更新光标大小
                     if (this.currentTool === 'eraser') {
-                        this.setEraserCursor();
+                        this.syncEraserCursorSize();
                     }
+                });
+
+                const fontSlider = document.getElementById('text-font-size');
+                const fontDisplay = document.getElementById('text-font-size-display');
+                fontSlider.addEventListener('input', (e) => {
+                    this.fontSize = parseInt(e.target.value, 10);
+                    fontDisplay.textContent = this.fontSize + 'px';
+                    this.syncTextEditor();
+                });
+
+                document.getElementById('line-arrow-toggle').addEventListener('click', () => {
+                    this.arrowEnabled = !this.arrowEnabled;
+                    this.updateToolOptionsUI();
+                    if (this.currentTool === 'line') {
+                        this.selectTool('line');
+                    }
+                });
+                document.getElementById('eraser-shape-round').addEventListener('click', () => {
+                    this.eraserShape = 'round';
+                    this.updateEraserModeUI();
+                    this.syncEraserCursorSize();
+                });
+                document.getElementById('eraser-shape-square').addEventListener('click', () => {
+                    this.eraserShape = 'square';
+                    this.updateEraserModeUI();
+                    this.syncEraserCursorSize();
+                });
+                const eraserSlider = document.getElementById('eraser-size');
+                const eraserDisplay = document.getElementById('eraser-size-display');
+                eraserSlider.addEventListener('input', (e) => {
+                    this.eraserSize = parseInt(e.target.value, 10);
+                    eraserDisplay.textContent = this.eraserSize + 'px';
+                    if (this.currentTool === 'eraser') {
+                        this.syncEraserCursorSize();
+                    }
+                });
+                document.getElementById('eraser-mode-point').addEventListener('click', () => {
+                    this.setEraserMode('point');
+                });
+                document.getElementById('eraser-mode-clear').addEventListener('click', () => {
+                    this.setEraserMode('clear');
                 });
 
                 // 画布事件
@@ -1050,19 +1184,11 @@
                     this.canvas.dispatchEvent(mouseEvent);
                 }, { passive: false });
 
-                // 鼠标位置跟踪 (使用 requestAnimationFrame 优化)
                 this.canvas.addEventListener('mousemove', (e) => {
-                    if (!this.mousePosUpdateScheduled) {
-                        this.mousePosUpdateScheduled = true;
-                        requestAnimationFrame(() => {
-                            const pos = this.getMousePos(e);
-                            const x = Math.round(pos.x);
-                            const y = Math.round(pos.y);
-                            document.getElementById('mouse-x').textContent = x;
-                            document.getElementById('mouse-y').textContent = y;
-                            this.mousePosUpdateScheduled = false;
-                        });
-                    }
+                    this.updateEraserCursor(e);
+                });
+                this.container.addEventListener('mouseleave', () => {
+                    this.hideEraserCursor();
                 });
 
                 // 缩放支持 (Ctrl + 滚轮)
@@ -1129,7 +1255,10 @@
                 document.getElementById('undo-btn').addEventListener('click', () => this.undo());
                 document.getElementById('redo-btn').addEventListener('click', () => this.redo());
                 document.getElementById('clear-btn').addEventListener('click', () => this.clearCanvas());
-                document.getElementById('save-btn').addEventListener('click', () => this.saveToLocal());
+                document.getElementById('save-btn').addEventListener('click', () => {
+                    this.commitOrDiscardText();
+                    this.saveToLocal();
+                });
                 document.getElementById('load-btn').addEventListener('click', () => this.loadFromLocal());
                 document.getElementById('export-btn').addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -1143,6 +1272,12 @@
                         this.closeExportPopover();
                         this.exportImageWithTheme(theme);
                     });
+                });
+
+                document.addEventListener('mousedown', (e) => {
+                    if (this.textEditor && !this.textEditor.contains(e.target)) {
+                        this.commitOrDiscardText();
+                    }
                 });
 
                 document.addEventListener('click', (e) => {
@@ -1162,6 +1297,8 @@
 
                 // 键盘快捷键
                 document.addEventListener('keydown', (e) => {
+                    const editing = this.isEditingText();
+
                     if (e.key === 'Escape') {
                         const popover = document.getElementById('export-popover');
                         if (popover && !popover.hidden) {
@@ -1169,51 +1306,36 @@
                             this.closeExportPopover();
                             return;
                         }
-                    }
-
-                    // 工具快捷键
-                    if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
-                        switch (e.key.toLowerCase()) {
-                            case 'p': this.selectTool('pen'); break;
-                            case 'e': this.selectTool('eraser'); break;
-                            case 'l': this.selectTool('line'); break;
-                            case 'a': this.selectTool('arrow'); break;
-                            case 'r': this.selectTool('rectangle'); break;
-                            case 'c': this.selectTool('circle'); break;
-                            case '1': this.switchSlot(1); break;
-                            case '2': this.switchSlot(2); break;
-                            case '3': this.switchSlot(3); break;
+                        if (editing) {
+                            e.preventDefault();
+                            this.cancelTextEditor();
+                            return;
                         }
                     }
 
-                    if (e.ctrlKey || e.metaKey) {
-                        switch (e.key) {
-                            case 'z':
-                                e.preventDefault();
-                                e.shiftKey ? this.redo() : this.undo();
+                    if (!(e.ctrlKey || e.metaKey)) {
+                        return;
+                    }
+
+                    switch (e.key) {
+                        case 'z':
+                            if (editing) {
                                 break;
-                            case 'y':
-                                e.preventDefault();
-                                this.redo();
+                            }
+                            e.preventDefault();
+                            e.shiftKey ? this.redo() : this.undo();
+                            break;
+                        case 'y':
+                            if (editing) {
                                 break;
-                            case 's':
-                                e.preventDefault();
-                                this.saveToLocal();
-                                break;
-                            case '=':
-                            case '+':
-                                e.preventDefault();
-                                this.updateZoom(0.1);
-                                break;
-                            case '-':
-                                e.preventDefault();
-                                this.updateZoom(-0.1);
-                                break;
-                            case '0':
-                                e.preventDefault();
-                                this.setZoom(1);
-                                break;
-                        }
+                            }
+                            e.preventDefault();
+                            this.redo();
+                            break;
+                        case '0':
+                            e.preventDefault();
+                            this.setZoom(1);
+                            break;
                     }
                 });
             }
@@ -1234,10 +1356,11 @@
             }
 
             selectTool(tool) {
+                this.commitOrDiscardText();
                 this.currentTool = tool;
 
                 // 更新UI
-                document.querySelectorAll('.tool-btn').forEach(btn => {
+                document.querySelectorAll('.tool-btn[id$="-tool"]').forEach(btn => {
                     btn.classList.remove('active');
                 });
                 const toolBtn = document.getElementById(tool + '-tool');
@@ -1249,21 +1372,26 @@
                 const toolNames = {
                     'pen': '画笔',
                     'eraser': '橡皮擦',
-                    'line': '直线',
-                    'arrow': '箭头',
+                    'line': this.arrowEnabled ? '箭头' : '直线',
                     'rectangle': '矩形',
-                    'circle': '圆形'
+                    'circle': '圆形',
+                    'text': '文字'
                 };
                 document.getElementById('current-tool').textContent = toolNames[tool] || tool;
 
-                // 更新光标
+                this.updateToolOptionsUI();
                 this.updateCursor();
+                if (tool !== 'eraser') {
+                    this.hideEraserCursor();
+                }
             }
 
             switchSlot(slotId) {
                 if (this.currentSlot === slotId) return;
                 // 上一次恢复还没填完块，现在切槽会把空快照写回当前槽位
                 if (this.restorePending) return;
+
+                this.commitOrDiscardText();
 
                 // 保存当前状态到内存
                 this.slots[this.currentSlot] = {
@@ -1307,12 +1435,14 @@
                         wrapper.style.cursor = 'crosshair';
                         break;
                     case 'eraser':
-                        this.setEraserCursor();
+                        wrapper.style.cursor = 'none';
+                        this.syncEraserCursorSize();
                         break;
                     case 'line':
                     case 'arrow':
                     case 'rectangle':
                     case 'circle':
+                    case 'text':
                         wrapper.style.cursor = 'crosshair';
                         break;
                     default:
@@ -1320,58 +1450,110 @@
                 }
             }
 
-            setEraserCursor() {
-                const wrapper = document.querySelector('.canvas-wrapper');
-                const size = this.brushSize * 4; // 橡皮擦实际大小
-                const cursorSize = Math.min(Math.max(size, 16), 64); // 限制光标大小在 16-64px 之间
+            updateToolOptionsUI() {
+                const tool = this.currentTool;
+                const brushGroup = document.getElementById('brush-size-group');
+                const textGroup = document.getElementById('text-size-group');
+                const eraserGroup = document.getElementById('eraser-options-group');
+                const arrowToggle = document.getElementById('line-arrow-toggle');
+                const colorGroup = document.getElementById('color-group');
+                const geometryGroup = document.getElementById('eraser-geometry-group');
+                const drawingSize = tool === 'pen' || tool === 'line' || tool === 'rectangle' || tool === 'circle';
+                if (brushGroup) {
+                    brushGroup.hidden = !drawingSize;
+                }
+                if (textGroup) {
+                    textGroup.hidden = tool !== 'text';
+                }
+                if (eraserGroup) {
+                    eraserGroup.hidden = tool !== 'eraser';
+                }
+                if (arrowToggle) {
+                    arrowToggle.hidden = tool !== 'line';
+                    arrowToggle.classList.toggle('active', this.arrowEnabled);
+                }
+                if (colorGroup) {
+                    colorGroup.hidden = tool === 'eraser';
+                }
+                if (geometryGroup) {
+                    geometryGroup.hidden = this.eraserMode === 'clear';
+                }
+                const lineBtn = document.getElementById('line-tool');
+                const lineIcon = lineBtn ? lineBtn.querySelector('i') : null;
+                if (lineIcon) {
+                    lineIcon.className = this.arrowEnabled ? 'fas fa-long-arrow-alt-right' : 'fas fa-minus';
+                }
+                this.updateEraserModeUI();
+            }
 
-                // 检测当前主题
-                const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
+            setEraserMode(mode) {
+                this.eraserMode = mode === 'clear' ? 'clear' : 'point';
+                this.updateToolOptionsUI();
+                this.updateCursor();
+            }
 
-                // 创建一个临时 canvas 来绘制光标
-                const cursorCanvas = document.createElement('canvas');
-                cursorCanvas.width = cursorSize;
-                cursorCanvas.height = cursorSize;
-                const ctx = cursorCanvas.getContext('2d');
+            updateEraserModeUI() {
+                const pointBtn = document.getElementById('eraser-mode-point');
+                const clearBtn = document.getElementById('eraser-mode-clear');
+                const roundBtn = document.getElementById('eraser-shape-round');
+                const squareBtn = document.getElementById('eraser-shape-square');
+                if (pointBtn) {
+                    pointBtn.classList.toggle('active', this.eraserMode === 'point');
+                }
+                if (clearBtn) {
+                    clearBtn.classList.toggle('active', this.eraserMode === 'clear');
+                }
+                if (roundBtn) {
+                    roundBtn.classList.toggle('active', this.eraserShape === 'round');
+                }
+                if (squareBtn) {
+                    squareBtn.classList.toggle('active', this.eraserShape === 'square');
+                }
+            }
 
-                // 绘制橡皮擦光标
-                const center = cursorSize / 2;
-                const radius = cursorSize / 2 - 2;
+            getEraserCursorEl() {
+                if (!this.eraserCursorEl) {
+                    this.eraserCursorEl = document.getElementById('eraser-cursor');
+                }
+                return this.eraserCursorEl;
+            }
 
-                // 外圆（双层边框，确保在任何背景下都可见）
-                // 白色外圈
-                ctx.beginPath();
-                ctx.arc(center, center, radius, 0, 2 * Math.PI);
-                ctx.strokeStyle = isDarkTheme ? '#ffffff' : '#000000';
-                ctx.lineWidth = 2;
-                ctx.stroke();
+            eraserScreenRadius() {
+                return this.brushSize * 2 * this.scale;
+            }
 
-                // 黑色内圈（反色）
-                ctx.beginPath();
-                ctx.arc(center, center, radius - 1, 0, 2 * Math.PI);
-                ctx.strokeStyle = isDarkTheme ? '#000000' : '#ffffff';
-                ctx.lineWidth = 1;
-                ctx.stroke();
+            syncEraserCursorSize() {
+                const el = this.getEraserCursorEl();
+                if (!el) {
+                    return;
+                }
+                const diameter = this.eraserScreenRadius() * 2;
+                el.style.width = diameter + 'px';
+                el.style.height = diameter + 'px';
+            }
 
-                // 半透明填充
-                ctx.beginPath();
-                ctx.arc(center, center, radius - 2, 0, 2 * Math.PI);
-                ctx.fillStyle = isDarkTheme ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
-                ctx.fill();
+            updateEraserCursor(e) {
+                const el = this.getEraserCursorEl();
+                if (!el || this.currentTool !== 'eraser') {
+                    this.hideEraserCursor();
+                    return;
+                }
+                const radius = this.eraserScreenRadius();
+                this.syncEraserCursorSize();
+                const rect = this.container.getBoundingClientRect();
+                el.style.left = (e.clientX - rect.left - radius) + 'px';
+                el.style.top = (e.clientY - rect.top - radius) + 'px';
+                el.hidden = false;
+                el.classList.add('is-visible');
+            }
 
-                // 中心十字线
-                ctx.strokeStyle = isDarkTheme ? '#ffffff' : '#000000';
-                ctx.lineWidth = 1.5;
-                ctx.beginPath();
-                ctx.moveTo(center - 4, center);
-                ctx.lineTo(center + 4, center);
-                ctx.moveTo(center, center - 4);
-                ctx.lineTo(center, center + 4);
-                ctx.stroke();
-
-                // 将 canvas 转换为 cursor URL
-                const cursorUrl = cursorCanvas.toDataURL();
-                wrapper.style.cursor = `url(${cursorUrl}) ${center} ${center}, auto`;
+            hideEraserCursor() {
+                const el = this.getEraserCursorEl();
+                if (!el) {
+                    return;
+                }
+                el.hidden = true;
+                el.classList.remove('is-visible');
             }
 
             changeColor(newColor) {
@@ -1459,10 +1641,7 @@
                 this.colorHistory = this.colorHistory.map((color) => this.invertHexColor(color));
                 document.getElementById('stroke-color').value = this.strokeColor;
                 this.updatePresetColors();
-
-                if (this.currentTool === 'eraser') {
-                    this.setEraserCursor();
-                }
+                this.syncTextEditor();
             }
 
             getMousePos(e) {
@@ -1477,8 +1656,23 @@
             startDrawing(e) {
                 if (e.which !== 1 && e.type !== 'touchstart') return; // 只允许左键或触摸
 
-                this.isDrawing = true;
+                if (this.isEditingText()) {
+                    this.commitOrDiscardText();
+                    return;
+                }
+
                 const pos = this.getMousePos(e);
+
+                if (this.currentTool === 'eraser' && this.eraserMode === 'clear') {
+                    const cleared = this.floodEraseAt(pos.x, pos.y);
+                    if (cleared > 0) {
+                        this.redrawDisplay();
+                        this.saveState();
+                    }
+                    return;
+                }
+
+                this.isDrawing = true;
                 this.startX = pos.x;
                 this.startY = pos.y;
                 this.lastX = pos.x;
@@ -1568,7 +1762,7 @@
                     ctx.stroke();
                 } else if (tool === 'arrow') {
                     this.drawArrow(ctx, x0, y0, x1, y1, factor);
-                } else if (tool === 'rectangle') {
+                } else if (tool === 'rectangle' || tool === 'text') {
                     ctx.rect(x0, y0, x1 - x0, y1 - y0);
                     ctx.stroke();
                 } else if (tool === 'circle') {
@@ -1643,6 +1837,9 @@
                         break;
 
                     case 'eraser':
+                        if (this.eraserMode === 'clear') {
+                            break;
+                        }
                         this.paintSegment(this.lastX, this.lastY, pos.x, pos.y, true);
                         this.lastX = pos.x;
                         this.lastY = pos.y;
@@ -1653,6 +1850,7 @@
                     case 'arrow':
                     case 'rectangle':
                     case 'circle':
+                    case 'text':
                         this.previewShape(pos);
                         this.lastX = pos.x;
                         this.lastY = pos.y;
@@ -1701,6 +1899,11 @@
                     case 'eraser':
                         break;
 
+                    case 'text':
+                        this.beginTextEditor(this.startX, this.startY, endPos.x, endPos.y);
+                        this.redrawDisplay();
+                        return;
+
                     case 'line':
                     case 'arrow':
                     case 'rectangle':
@@ -1711,6 +1914,205 @@
 
                 this.redrawDisplay();
                 this.saveState();
+            }
+
+            textFontFamily() {
+                return 'Inter, "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            }
+
+            isEditingText() {
+                return Boolean(this.textEditor);
+            }
+
+            beginTextEditor(x0, y0, x1, y1) {
+                const x = Math.min(x0, x1);
+                const y = Math.min(y0, y1);
+                const w = Math.abs(x1 - x0);
+                const h = Math.abs(y1 - y0);
+                if (w < 8 && h < 8) {
+                    return;
+                }
+                this.textRect = { x: x, y: y, w: w, h: h };
+                const editor = document.createElement('textarea');
+                editor.id = 'text-editor';
+                editor.spellcheck = false;
+                this.container.appendChild(editor);
+                this.textEditor = editor;
+                this.syncTextEditor();
+                editor.focus();
+            }
+
+            syncTextEditor() {
+                if (!this.textEditor || !this.textRect) {
+                    return;
+                }
+                const camera = this.getCamera();
+                const screen = BoardWorld.worldToScreen(this.textRect.x, this.textRect.y, camera);
+                this.textEditor.style.left = screen.x + 'px';
+                this.textEditor.style.top = screen.y + 'px';
+                this.textEditor.style.width = (this.textRect.w * camera.scale) + 'px';
+                this.textEditor.style.height = (this.textRect.h * camera.scale) + 'px';
+                this.textEditor.style.fontSize = (this.fontSize * camera.scale) + 'px';
+                this.textEditor.style.fontFamily = this.textFontFamily();
+                this.textEditor.style.color = this.strokeColor;
+            }
+
+            cancelTextEditor() {
+                if (!this.textEditor) {
+                    return;
+                }
+                this.textEditor.remove();
+                this.textEditor = null;
+                this.textRect = null;
+            }
+
+            commitOrDiscardText() {
+                if (!this.textEditor || !this.textRect) {
+                    this.cancelTextEditor();
+                    return;
+                }
+                const text = this.textEditor.value;
+                const rect = this.textRect;
+                this.cancelTextEditor();
+                if (!String(text).trim()) {
+                    return;
+                }
+                this.bakeText(rect, text);
+                this.redrawDisplay();
+                this.saveState();
+            }
+
+            wrapTextLines(ctx, text, maxWidth) {
+                const paragraphs = String(text).split('\n');
+                const lines = [];
+                paragraphs.forEach((paragraph) => {
+                    if (paragraph === '') {
+                        lines.push('');
+                        return;
+                    }
+                    let current = '';
+                    for (let i = 0; i < paragraph.length; i++) {
+                        const ch = paragraph.charAt(i);
+                        const trial = current + ch;
+                        if (ctx.measureText(trial).width <= maxWidth || current === '') {
+                            current = trial;
+                            continue;
+                        }
+                        const lastSpace = current.lastIndexOf(' ');
+                        if (lastSpace >= 0) {
+                            lines.push(current.slice(0, lastSpace));
+                            current = current.slice(lastSpace + 1) + ch;
+                        } else {
+                            lines.push(current);
+                            current = ch;
+                        }
+                    }
+                    if (current !== '') {
+                        lines.push(current);
+                    }
+                });
+                return lines;
+            }
+
+            bakeText(rect, text) {
+                const padding = 4;
+                const maxWidth = Math.max(1, rect.w - padding * 2);
+                const lineHeight = this.fontSize * 1.25;
+                const font = this.fontSize + 'px ' + this.textFontFamily();
+                this.ctx.save();
+                this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                this.ctx.font = font;
+                const lines = this.wrapTextLines(this.ctx, text, maxWidth);
+                this.ctx.restore();
+                const height = Math.max(rect.h, padding * 2 + lines.length * lineHeight);
+                this.forEachTilesInWorldRect(
+                    rect.x,
+                    rect.y,
+                    rect.x + rect.w,
+                    rect.y + height,
+                    this.fontSize,
+                    (tile) => {
+                        this.withWorldCtx(tile, (ctx) => {
+                            ctx.globalCompositeOperation = 'source-over';
+                            ctx.fillStyle = this.strokeColor;
+                            ctx.font = font;
+                            ctx.textBaseline = 'top';
+                            ctx.textAlign = 'left';
+                            lines.forEach((line, index) => {
+                                ctx.fillText(line, rect.x + padding, rect.y + padding + index * lineHeight);
+                            });
+                        });
+                    }
+                );
+            }
+
+            floodEraseAt(worldX, worldY) {
+                const dpr = this.getDpr();
+                const gx = Math.floor(worldX * dpr);
+                const gy = Math.floor(worldY * dpr);
+                const caches = new Map();
+                const self = this;
+
+                function cacheFor(px, py) {
+                    const t = BoardWorld.worldToTile(px / dpr, py / dpr);
+                    const key = BoardWorld.tileKey(t.tx, t.ty);
+                    if (caches.has(key)) {
+                        return caches.get(key);
+                    }
+                    const tile = self.tiles.get(key);
+                    if (!tile) {
+                        caches.set(key, null);
+                        return null;
+                    }
+                    const origin = BoardWorld.tileOrigin(t.tx, t.ty);
+                    const cache = {
+                        tile: tile,
+                        imageData: tile.ctx.getImageData(0, 0, tile.canvas.width, tile.canvas.height),
+                        originX: Math.round(origin.x * dpr),
+                        originY: Math.round(origin.y * dpr),
+                        dirty: false
+                    };
+                    caches.set(key, cache);
+                    return cache;
+                }
+
+                function getPixel(px, py) {
+                    const cache = cacheFor(px, py);
+                    if (!cache) {
+                        return { r: 0, g: 0, b: 0, a: 0 };
+                    }
+                    const lx = px - cache.originX;
+                    const ly = py - cache.originY;
+                    if (lx < 0 || ly < 0 || lx >= cache.tile.canvas.width || ly >= cache.tile.canvas.height) {
+                        return { r: 0, g: 0, b: 0, a: 0 };
+                    }
+                    const i = (ly * cache.tile.canvas.width + lx) * 4;
+                    const data = cache.imageData.data;
+                    return { r: data[i], g: data[i + 1], b: data[i + 2], a: data[i + 3] };
+                }
+
+                function clearPixel(px, py) {
+                    const cache = cacheFor(px, py);
+                    if (!cache) {
+                        return;
+                    }
+                    const lx = px - cache.originX;
+                    const ly = py - cache.originY;
+                    if (lx < 0 || ly < 0 || lx >= cache.tile.canvas.width || ly >= cache.tile.canvas.height) {
+                        return;
+                    }
+                    const i = (ly * cache.tile.canvas.width + lx) * 4;
+                    cache.imageData.data[i + 3] = 0;
+                    cache.dirty = true;
+                }
+
+                const cleared = BoardFlood.floodClear(gx, gy, getPixel, clearPixel);
+                caches.forEach((cache) => {
+                    if (cache && cache.dirty) {
+                        cache.tile.ctx.putImageData(cache.imageData, 0, 0);
+                    }
+                });
+                return cleared;
             }
 
             // 历史记录管理
@@ -1743,6 +2145,9 @@
             }
 
             undo() {
+                if (this.isEditingText()) {
+                    return;
+                }
                 if (this.historyIndex > 0) {
                     this.historyIndex--;
                     this.restoreState(this.history[this.historyIndex]);
@@ -1750,6 +2155,9 @@
             }
 
             redo() {
+                if (this.isEditingText()) {
+                    return;
+                }
                 if (this.historyIndex < this.history.length - 1) {
                     this.historyIndex++;
                     this.restoreState(this.history[this.historyIndex]);
@@ -1767,6 +2175,7 @@
 
             clearCanvas() {
                 if (confirm('确定要清空画布吗？此操作不可撤销。')) {
+                    this.cancelTextEditor();
                     this.tiles = new Map();
                     this.offsetX = 0;
                     this.offsetY = 0;
@@ -1787,7 +2196,8 @@
                     settings: {
                         strokeColor: this.strokeColor,
                         colorHistory: this.colorHistory,
-                        brushSize: this.brushSize
+                        brushSize: this.brushSize,
+                        fontSize: this.fontSize
                     }
                 };
 
@@ -1859,11 +2269,14 @@
                     this.strokeColor = data.settings.strokeColor || this.strokeColor;
                     this.colorHistory = data.settings.colorHistory || this.colorHistory;
                     this.brushSize = data.settings.brushSize || this.brushSize;
+                    this.fontSize = data.settings.fontSize || 24;
 
                     // 更新UI
                     document.getElementById('stroke-color').value = this.strokeColor;
                     document.getElementById('brush-size').value = this.brushSize;
                     document.getElementById('size-display').textContent = this.brushSize + 'px';
+                    document.getElementById('text-font-size').value = this.fontSize;
+                    document.getElementById('text-font-size-display').textContent = this.fontSize + 'px';
                     this.updatePresetColors();
                 }
             }
