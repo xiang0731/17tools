@@ -212,6 +212,23 @@ try {
 
     {
         const { context, page } = await openBoard(browser);
+        await page.click('#line-tool');
+        await page.click('#line-arrow-toggle');
+        const start = await canvasPoint(page, 80, 160);
+        const end = await canvasPoint(page, 280, 160);
+        await page.mouse.move(start.x, start.y);
+        await page.mouse.down();
+        await page.mouse.move(end.x, end.y, { steps: 8 });
+        await page.mouse.up();
+        const ink = await page.evaluate(countInkSource());
+        const flag = await page.evaluate(() => window.whiteboard.arrowEnabled);
+        assert.equal(flag, true);
+        assert.ok(ink > 20, `expected arrow ink, got ${ink}`);
+        await context.close();
+    }
+
+    {
+        const { context, page } = await openBoard(browser);
         await page.evaluate(() => window.whiteboard.selectTool('text'));
         const start = await canvasPoint(page, 120, 90);
         const end = await canvasPoint(page, 340, 210);

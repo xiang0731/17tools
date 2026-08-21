@@ -1439,7 +1439,6 @@
                         this.syncEraserCursorSize();
                         break;
                     case 'line':
-                    case 'arrow':
                     case 'rectangle':
                     case 'circle':
                     case 'text':
@@ -1775,8 +1774,15 @@
                 }
             }
 
+            shapeDrawTool() {
+                if (this.currentTool === 'line' && this.arrowEnabled) {
+                    return 'arrow';
+                }
+                return this.currentTool;
+            }
+
             commitShape(x0, y0, x1, y1) {
-                const tool = this.currentTool;
+                const tool = this.shapeDrawTool();
                 const bounds = this.shapeBounds(tool, x0, y0, x1, y1);
                 const pad = Math.max(10, this.brushSize * 3) + this.brushSize;
                 this.forEachTilesInWorldRect(bounds.minX, bounds.minY, bounds.maxX, bounds.maxY, pad, (tile) => {
@@ -1802,7 +1808,7 @@
                 this.ctx.lineWidth = this.brushSize * camera.scale;
                 this.ctx.lineCap = 'round';
                 this.ctx.lineJoin = 'round';
-                this.strokeShape(this.ctx, this.currentTool, s0.x, s0.y, s1.x, s1.y, camera.scale);
+                this.strokeShape(this.ctx, this.shapeDrawTool(), s0.x, s0.y, s1.x, s1.y, camera.scale);
                 this.ctx.restore();
             }
 
@@ -1847,7 +1853,6 @@
                         break;
 
                     case 'line':
-                    case 'arrow':
                     case 'rectangle':
                     case 'circle':
                     case 'text':
@@ -1905,7 +1910,6 @@
                         return;
 
                     case 'line':
-                    case 'arrow':
                     case 'rectangle':
                     case 'circle':
                         this.commitShape(this.startX, this.startY, endPos.x, endPos.y);
