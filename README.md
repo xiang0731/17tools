@@ -129,8 +129,6 @@ node regression-tests/image-processor-page.mjs
 node regression-tests/board-world.mjs
 node regression-tests/board-infinite-page.mjs
 node regression-tests/board-theme.mjs
-node regression-tests/board-flood.mjs
-node regression-tests/board-text-eraser-page.mjs
 node regression-tests/load-progress-core.mjs
 node regression-tests/load-progress-page.mjs
 node regression-tests/history-layout.mjs
