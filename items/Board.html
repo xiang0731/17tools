@@ -248,24 +248,67 @@
             display: block;
         }
 
-        #text-editor {
+        #text-editor-wrap {
             position: absolute;
             z-index: 6;
+            display: flex;
+            flex-direction: column;
+            min-width: 120px;
+            min-height: 80px;
+            box-sizing: border-box;
+            border: 1px dashed var(--primary-color);
+            background: rgba(255, 255, 255, 0.92);
+            resize: both;
+            overflow: hidden;
+            box-shadow: var(--shadow-medium);
+        }
+
+        [data-theme="dark"] #text-editor-wrap {
+            background: rgba(17, 24, 39, 0.92);
+        }
+
+        .text-editor-bar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            flex-shrink: 0;
+            padding: 4px 6px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--background-secondary);
+        }
+
+        #text-editor-confirm {
+            appearance: none;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            line-height: 1.2;
+            color: #fff;
+            background: var(--primary-color);
+            cursor: pointer;
+        }
+
+        #text-editor-confirm:hover {
+            background: var(--primary-hover);
+        }
+
+        #text-editor {
+            flex: 1;
+            width: 100%;
+            min-height: 0;
             margin: 0;
             padding: 4px;
             box-sizing: border-box;
-            border: 1px dashed var(--primary-color);
-            background: rgba(255, 255, 255, 0.85);
+            border: none;
+            background: transparent;
             resize: none;
             overflow: auto;
             overflow-wrap: break-word;
             line-height: 1.25;
             font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             outline: none;
-        }
-
-        [data-theme="dark"] #text-editor {
-            background: rgba(17, 24, 39, 0.85);
         }
 
         /* 画布容器 */
@@ -753,6 +796,9 @@
                 this.eraserMode = 'point';
                 this.arrowEnabled = false;
                 this.textEditor = null;
+                this.textEditorWrap = null;
+                this.textEditorBar = null;
+                this.textResizeObserver = null;
                 this.textRect = null;
                 this.eraserCursorEl = null;
                 this.startX = 0;
@@ -1275,12 +1321,6 @@
                     });
                 });
 
-                document.addEventListener('mousedown', (e) => {
-                    if (this.textEditor && !this.textEditor.contains(e.target)) {
-                        this.commitOrDiscardText();
-                    }
-                });
-
                 document.addEventListener('click', (e) => {
                     const popover = document.getElementById('export-popover');
                     if (popover.hidden) {
@@ -1312,6 +1352,10 @@
                             this.cancelTextEditor();
                             return;
                         }
+                    }
+
+                    if (editing && e.key === 'Enter') {
+                        return;
                     }
 
                     if (!(e.ctrlKey || e.metaKey)) {
@@ -1357,7 +1401,6 @@
             }
 
             selectTool(tool) {
-                this.commitOrDiscardText();
                 this.currentTool = tool;
 
                 // 更新UI
@@ -1671,7 +1714,6 @@
                 if (e.which !== 1 && e.type !== 'touchstart') return; // 只允许左键或触摸
 
                 if (this.isEditingText()) {
-                    this.commitOrDiscardText();
                     return;
                 }
 
@@ -1957,35 +1999,92 @@
                     return;
                 }
                 this.textRect = { x: x, y: y, w: w, h: h };
+                const wrap = document.createElement('div');
+                wrap.id = 'text-editor-wrap';
+                const bar = document.createElement('div');
+                bar.className = 'text-editor-bar';
+                const confirm = document.createElement('button');
+                confirm.type = 'button';
+                confirm.id = 'text-editor-confirm';
+                confirm.textContent = '确认';
+                confirm.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.commitOrDiscardText();
+                });
+                bar.appendChild(confirm);
                 const editor = document.createElement('textarea');
                 editor.id = 'text-editor';
                 editor.spellcheck = false;
-                this.container.appendChild(editor);
+                editor.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.stopPropagation();
+                    }
+                });
+                wrap.appendChild(bar);
+                wrap.appendChild(editor);
+                this.container.appendChild(wrap);
+                this.textEditorWrap = wrap;
+                this.textEditorBar = bar;
                 this.textEditor = editor;
+                this.textResizeObserver = new ResizeObserver(() => this.captureTextEditorSize());
                 this.syncTextEditor();
+                this.textResizeObserver.observe(wrap);
                 editor.focus();
             }
 
-            syncTextEditor() {
+            captureTextEditorSize() {
                 if (!this.textEditor || !this.textRect) {
                     return;
                 }
                 const camera = this.getCamera();
+                const box = this.textEditor.getBoundingClientRect();
+                const origin = this.container.getBoundingClientRect();
+                const world = BoardWorld.screenToWorld(
+                    box.left - origin.left,
+                    box.top - origin.top,
+                    camera
+                );
+                this.textRect.x = world.x;
+                this.textRect.y = world.y;
+                this.textRect.w = Math.max(8, box.width / camera.scale);
+                this.textRect.h = Math.max(8, box.height / camera.scale);
+            }
+
+            syncTextEditor() {
+                if (!this.textEditor || !this.textRect || !this.textEditorWrap) {
+                    return;
+                }
+                if (this.textResizeObserver) {
+                    this.textResizeObserver.disconnect();
+                }
+                const camera = this.getCamera();
                 const screen = BoardWorld.worldToScreen(this.textRect.x, this.textRect.y, camera);
-                this.textEditor.style.left = screen.x + 'px';
-                this.textEditor.style.top = screen.y + 'px';
-                this.textEditor.style.width = (this.textRect.w * camera.scale) + 'px';
-                this.textEditor.style.height = (this.textRect.h * camera.scale) + 'px';
+                const barH = this.textEditorBar ? this.textEditorBar.offsetHeight : 0;
+                this.textEditorWrap.style.left = screen.x + 'px';
+                this.textEditorWrap.style.top = (screen.y - barH) + 'px';
+                this.textEditorWrap.style.width = (this.textRect.w * camera.scale) + 'px';
+                this.textEditorWrap.style.height = (this.textRect.h * camera.scale + barH) + 'px';
                 this.textEditor.style.fontSize = (this.fontSize * camera.scale) + 'px';
                 this.textEditor.style.fontFamily = this.textFontFamily();
                 this.textEditor.style.color = this.strokeColor;
+                if (this.textResizeObserver) {
+                    this.textResizeObserver.observe(this.textEditorWrap);
+                }
             }
 
             cancelTextEditor() {
-                if (!this.textEditor) {
-                    return;
+                if (this.textResizeObserver) {
+                    this.textResizeObserver.disconnect();
+                    this.textResizeObserver = null;
                 }
-                this.textEditor.remove();
+                if (this.textEditorWrap) {
+                    this.textEditorWrap.remove();
+                } else if (this.textEditor) {
+                    this.textEditor.remove();
+                }
+                this.textEditorWrap = null;
+                this.textEditorBar = null;
                 this.textEditor = null;
                 this.textRect = null;
             }
@@ -1995,8 +2094,14 @@
                     this.cancelTextEditor();
                     return;
                 }
+                this.captureTextEditorSize();
                 const text = this.textEditor.value;
-                const rect = this.textRect;
+                const rect = {
+                    x: this.textRect.x,
+                    y: this.textRect.y,
+                    w: this.textRect.w,
+                    h: this.textRect.h
+                };
                 this.cancelTextEditor();
                 if (!String(text).trim()) {
                     return;

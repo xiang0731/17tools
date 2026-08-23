@@ -19,24 +19,27 @@
         .container {
             max-width: 1000px;
             margin: 0 auto;
-            background: var(--background-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-lg);
-            padding: var(--spacing-xl);
-            box-shadow: var(--shadow-md);
         }
 
         /* 标题样式 */
         h1 {
             text-align: center;
             color: var(--text-primary);
-            margin: 0 0 var(--spacing-xl) 0;
+            margin: 0 0 var(--spacing-lg) 0;
             font-size: 28px;
             font-weight: 700;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: var(--spacing-sm);
+        }
+
+        .tool-panel {
+            background: var(--background-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            box-shadow: var(--shadow-md);
         }
 
         h1::before {
@@ -323,6 +326,7 @@
     <div class="container">
         <h1>时间计算器</h1>
 
+        <div class="tool-panel">
         <div class="function-buttons">
             <button class="function-button" data-function="A">
                 <i class="fas fa-calendar-plus"></i>
@@ -560,6 +564,7 @@
                     请选择功能并输入数据进行计算
                 </div>
             </div>
+        </div>
         </div>
     </div>
 

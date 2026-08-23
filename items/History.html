@@ -153,7 +153,7 @@
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
-        .update-list + .update-list {
+        .update-list+.update-list {
             margin-top: var(--spacing-md);
         }
 
@@ -304,11 +304,11 @@
         </header>
 
         <div class="timeline">
-            <!-- 版本 2.16.7 -->
+            <!-- 版本 2.16.2 -->
             <div class="version-entry">
                 <div class="version-dot"></div>
                 <div class="version-header">
-                    <div class="version-number">版本 2.16.7</div>
+                    <div class="version-number">版本 2.16.2</div>
                     <div class="version-date">2026-08-21</div>
                 </div>
                 <div class="update-list">
@@ -316,6 +316,7 @@
                     <ul>
                         <li><span class="tag new">新增</span>智能白板：文字工具，拖出文本框后输入，点框外印到画布</li>
                         <li><span class="tag new">新增</span>智能白板：橡皮擦支持圆形和方形点擦，以及单击去掉整块同色的消除</li>
+                        <li><span class="tag new">新增</span>图片处理：新增图片打码，支持矩形和画笔，马赛克、模糊、纯色与预设表情</li>
                     </ul>
                     <div class="feature-category">逻辑改动与优化</div>
                     <ul>
@@ -323,88 +324,16 @@
                         <li><span class="tag ux">体验</span>智能白板：直线与箭头合并，橡皮大小与画笔粗细分开，类型改为点擦/消除</li>
                         <li><span class="tag ux">体验</span>智能白板：去掉工具字母快捷键，保留撤销、重做和缩放到 100%</li>
                         <li><span class="tag ux">体验</span>智能白板：状态栏去掉坐标显示</li>
+                        <li><span class="tag ux">体验</span>图片处理：添加水印和图片打码支持鼠标滚轮放大缩小预览</li>
+                        <li><span class="tag improved">优化</span>代码格式化去掉外层大框，输入与结果铺满窗口（对齐优惠计算器）</li>
+                        <li><span class="tag improved">优化</span>图片处理：预览铺满窗口，上传后的图按比例放大，便于精细操作</li>
+                        <li><span class="tag ux">体验</span>智能白板：文字框可调整大小，用确认按钮定稿；Enter 换行，点框外不定稿</li>
                     </ul>
                     <div class="feature-category">缺陷修复</div>
                     <ul>
                         <li><span class="tag fixed">修复</span>智能白板：橡皮预览与实际擦除范围在粗细大于 16px 和缩放时对齐</li>
-                    </ul>
-                </div>
-            </div>
-            <!-- 版本 2.16.6 -->
-            <div class="version-entry">
-                <div class="version-dot"></div>
-                <div class="version-header">
-                    <div class="version-number">版本 2.16.6</div>
-                    <div class="version-date">2026-08-20</div>
-                </div>
-                <div class="update-list">
-                    <div class="feature-category">逻辑改动与优化</div>
-                    <ul>
-                        <li><span class="tag improved">优化</span>代码格式化去掉外层大框，输入与结果铺满窗口（对齐优惠计算器）</li>
-                    </ul>
-                </div>
-            </div>
-            <!-- 版本 2.16.5 -->
-            <div class="version-entry">
-                <div class="version-dot"></div>
-                <div class="version-header">
-                    <div class="version-number">版本 2.16.5</div>
-                    <div class="version-date">2026-08-20</div>
-                </div>
-                <div class="update-list">
-                    <div class="feature-category">逻辑改动与优化</div>
-                    <ul>
-                        <li><span class="tag improved">优化</span>图片处理：预览铺满窗口，上传后的图按比例放大，便于精细操作</li>
-                    </ul>
-                </div>
-            </div>
-            <!-- 版本 2.16.4 -->
-            <div class="version-entry">
-                <div class="version-dot"></div>
-                <div class="version-header">
-                    <div class="version-number">版本 2.16.4</div>
-                    <div class="version-date">2026-08-19</div>
-                </div>
-                <div class="update-list">
-                    <div class="feature-category">新功能</div>
-                    <ul>
-                        <li><span class="tag new">新增</span>图片处理：新增图片打码，支持矩形和画笔，马赛克、模糊、纯色与预设表情</li>
-                    </ul>
-                </div>
-            </div>
-            <!-- 版本 2.16.3 -->
-            <div class="version-entry">
-                <div class="version-dot"></div>
-                <div class="version-header">
-                    <div class="version-number">版本 2.16.3</div>
-                    <div class="version-date">2026-08-16</div>
-                </div>
-                <div class="update-list">
-                    <div class="feature-category">新功能</div>
-                    <ul>
-                        <li><span class="tag new">新增</span>智能白板：无限画布，右键拖动平移，Ctrl+滚轮缩放，顶部提供缩放和复位</li>
-                    </ul>
-                    <div class="feature-category">逻辑改动与优化</div>
-                    <ul>
-                        <li><span class="tag improved">优化</span>智能白板：JSON 与 PNG 导出包含全部已绘制区域；清空画布时复位视野</li>
-                    </ul>
-                </div>
-            </div>
-            <!-- 版本 2.16.2 -->
-            <div class="version-entry">
-                <div class="version-dot"></div>
-                <div class="version-header">
-                    <div class="version-number">版本 2.16.2</div>
-                    <div class="version-date">2026-08-16</div>
-                </div>
-                <div class="update-list">
-                    <div class="feature-category">新功能</div>
-                    <ul>
-                        <li><span class="tag new">新增</span>工具加载超过 1 秒时覆盖内容区显示进度条，按模块预估时长展示百分比并提示正在加载</li>
-                    </ul>
-                    <div class="feature-category">逻辑改动与优化</div>
-                    <ul>
-                        <li><span class="tag ux">体验</span>1 秒内加载完成不弹出进度，避免快页闪一下；完成前进度最高到 90%，加载结束后再收起</li>
+                        <li><span class="tag fixed">修复</span>图片处理：水平翻转首次点击即可生效</li>
+                        <li><span class="tag fixed">修复</span>图片处理：添加水印已选图后点击预览空白处不再触发上传</li>
                     </ul>
                 </div>
             </div>
@@ -418,10 +347,14 @@
                 <div class="update-list">
                     <div class="feature-category">新功能</div>
                     <ul>
+                        <li><span class="tag new">新增</span>智能白板：无限画布，右键拖动平移，Ctrl+滚轮缩放，顶部提供缩放和复位</li>
+                        <li><span class="tag new">新增</span>工具加载超过 1 秒时覆盖内容区显示进度条，按模块预估时长展示百分比并提示正在加载</li>
                         <li><span class="tag new">新增</span>未保存输入保护：工具页已输入内容时切换模块会二次确认，避免误操作丢失内容</li>
                     </ul>
                     <div class="feature-category">逻辑改动与优化</div>
                     <ul>
+                        <li><span class="tag improved">优化</span>智能白板：JSON 与 PNG 导出包含全部已绘制区域；清空画布时复位视野</li>
+                        <li><span class="tag ux">体验</span>1 秒内加载完成不弹出进度，避免快页闪一下；完成前进度最高到 90%，加载结束后再收起</li>
                         <li><span class="tag ux">体验</span>万年历和正则表达式不弹出离开确认；确认离开后不再叠加浏览器系统确认框</li>
                     </ul>
                     <div class="feature-category">缺陷修复</div>
@@ -440,7 +373,8 @@
                 <div class="update-list">
                     <div class="feature-category">新功能</div>
                     <ul>
-                        <li><span class="tag new">新增</span>二维码工具：新增独立工具页和侧栏入口，支持文本、链接、WiFi、名片、邮件、电话和短信，可调颜色、尺寸和纠错并导出 PNG、SVG 或复制图片</li>
+                        <li><span class="tag new">新增</span>二维码工具：新增独立工具页和侧栏入口，支持文本、链接、WiFi、名片、邮件、电话和短信，可调颜色、尺寸和纠错并导出
+                            PNG、SVG 或复制图片</li>
                     </ul>
                     <div class="feature-category">逻辑改动与优化</div>
                     <ul>
@@ -519,7 +453,8 @@
                     </ul>
                     <div class="feature-category">缺陷修复</div>
                     <ul>
-                        <li><span class="tag fixed">修复</span>Markdown 编辑器：加固预览内容净化，递归检查未知标签的后代节点，并完整移除脚本、样式、内嵌页面和 SVG 等危险内容</li>
+                        <li><span class="tag fixed">修复</span>Markdown 编辑器：加固预览内容净化，递归检查未知标签的后代节点，并完整移除脚本、样式、内嵌页面和 SVG
+                            等危险内容</li>
                         <li><span class="tag fixed">修复</span>计算器、代码格式化与研发工具：用户输入、错误信息和代码预览统一按纯文本渲染，防止恶意 HTML 被执行</li>
                         <li><span class="tag fixed">修复</span>万年历与时间计算：按自然日而非毫秒差计算日期间隔，避免夏令时切换导致相对日期和天数结果偏差</li>
                         <li><span class="tag fixed">修复</span>时间计算：公历与农历转换改用时区无关的日期基准，确保不同时区下结果一致</li>
@@ -584,16 +519,19 @@
                 <div class="update-list">
                     <div class="feature-category">逻辑改动与优化</div>
                     <ul>
-                        <li><span class="tag improved">优化</span>主题同步：父窗口主题监听增加同源和 DOM 节点有效性判断，避免异常环境下 MutationObserver 报错</li>
+                        <li><span class="tag improved">优化</span>主题同步：父窗口主题监听增加同源和 DOM 节点有效性判断，避免异常环境下 MutationObserver
+                            报错</li>
                         <li><span class="tag improved">优化</span>主题同步：iframe 主题消息发送改为计算目标 origin，不再使用通配 origin</li>
                         <li><span class="tag improved">优化</span>代码格式化：输出区滚动同步监听改为初始化时单次绑定，避免多次格式化后重复监听</li>
                         <li><span class="tag improved">优化</span>Welcome 页和版本管理脚本同步到当前版本，工具数量更新为 17 个实用工具</li>
-                        <li><span class="tag improved">优化</span>README 更新为当前导航结构和完整工具清单，补充接口带宽计算、正则工具、Markdown 编辑器、链接清理工具、代码对比工具、万年历和时间计算等说明</li>
+                        <li><span class="tag improved">优化</span>README 更新为当前导航结构和完整工具清单，补充接口带宽计算、正则工具、Markdown
+                            编辑器、链接清理工具、代码对比工具、万年历和时间计算等说明</li>
                         <li><span class="tag improved">优化</span>新增 issues 修复回归检查和修复报告，覆盖本次安全、日期、时区、主题和文档同步改动</li>
                     </ul>
                     <div class="feature-category">缺陷修复</div>
                     <ul>
-                        <li><span class="tag fixed">修复</span>Markdown 编辑器：预览、复制和导出 HTML 统一使用安全净化后的渲染结果，过滤危险标签、事件属性和不安全链接协议</li>
+                        <li><span class="tag fixed">修复</span>Markdown 编辑器：预览、复制和导出 HTML
+                            统一使用安全净化后的渲染结果，过滤危险标签、事件属性和不安全链接协议</li>
                         <li><span class="tag fixed">修复</span>链接清理工具：历史记录改用 DOM 节点和文本写入方式渲染，避免恶意链接造成 HTML 注入</li>
                         <li><span class="tag fixed">修复</span>链接清理工具：历史复制按钮改为显式事件绑定，不再依赖 inline onclick 和全局 event</li>
                         <li><span class="tag fixed">修复</span>世界时间：时差说明改为动态计算当前时区偏移，正确处理夏令时和时区政策变化</li>
@@ -616,18 +554,26 @@
                 <div class="update-list">
                     <div class="feature-category">新功能</div>
                     <ul>
-                        <li><span class="tag new">新增</span>接口带宽计算工具：支持 Thunderbolt 3/4/5、USB4 20/40Gbps、USB4 v2 / USB 80Gbps 等接口标准，提供 TX、RX、PCIe 数据带宽占用评估</li>
-                        <li><span class="tag new">新增</span>接口带宽计算：支持添加多个负载设备，按显示器、PCIe/eGPU/SSD、网线/网卡、USB/外设、其他等类型分别配置属性并实时计算带宽</li>
+                        <li><span class="tag new">新增</span>接口带宽计算工具：支持 Thunderbolt 3/4/5、USB4 20/40Gbps、USB4 v2 / USB
+                            80Gbps 等接口标准，提供 TX、RX、PCIe 数据带宽占用评估</li>
+                        <li><span
+                                class="tag new">新增</span>接口带宽计算：支持添加多个负载设备，按显示器、PCIe/eGPU/SSD、网线/网卡、USB/外设、其他等类型分别配置属性并实时计算带宽
+                        </li>
                         <li><span class="tag new">新增</span>接口带宽计算：显示器负载支持分辨率、刷新率、色深、DSC 压缩倍率等属性，自动展示计算带宽和公式过程</li>
-                        <li><span class="tag new">新增</span>接口带宽计算：网线/网卡、PCIe、USB、其他负载新增类型化带宽预设，例如 100M、1000M、2.5GbE、10GbE、PCIe Gen3 x4、USB4 40Gbps 等</li>
-                        <li><span class="tag new">新增</span>接口带宽计算：新增术语科普模块，解释 TX/RX、增强模式、PCIe 纯数据、DSC 压缩、Gbps、双向负载等概念</li>
+                        <li><span class="tag new">新增</span>接口带宽计算：网线/网卡、PCIe、USB、其他负载新增类型化带宽预设，例如
+                            100M、1000M、2.5GbE、10GbE、PCIe Gen3 x4、USB4 40Gbps 等</li>
+                        <li><span class="tag new">新增</span>接口带宽计算：新增术语科普模块，解释 TX/RX、增强模式、PCIe 纯数据、DSC 压缩、Gbps、双向负载等概念
+                        </li>
                     </ul>
                     <div class="feature-category">逻辑改动与优化</div>
                     <ul>
-                        <li><span class="tag improved">优化</span>接口带宽计算：将增强模式改为接口标准中的独立选项，选择接口后直接展示当前接口模式、TX、RX、PCIe 等关键属性</li>
+                        <li><span class="tag improved">优化</span>接口带宽计算：将增强模式改为接口标准中的独立选项，选择接口后直接展示当前接口模式、TX、RX、PCIe
+                            等关键属性</li>
                         <li><span class="tag improved">优化</span>接口带宽计算：负载列表改为紧凑表格布局，新增负载在表格底部追加一行，减少页面占用并保留可编辑属性</li>
-                        <li><span class="tag improved">优化</span>接口带宽计算：计算摘要、统计条和计算过程统一放入“计算”模块，结果卡片突出显示发送 TX、接收 RX、PCIe 数据和整体判断</li>
-                        <li><span class="tag ux">体验</span>接口带宽计算：根据负载类型自动套用默认方向和默认带宽，例如网线/网卡默认双向、1000M，PCIe 默认接收 RX、32Gbps</li>
+                        <li><span class="tag improved">优化</span>接口带宽计算：计算摘要、统计条和计算过程统一放入“计算”模块，结果卡片突出显示发送 TX、接收 RX、PCIe
+                            数据和整体判断</li>
+                        <li><span class="tag ux">体验</span>接口带宽计算：根据负载类型自动套用默认方向和默认带宽，例如网线/网卡默认双向、1000M，PCIe 默认接收
+                            RX、32Gbps</li>
                         <li><span class="tag ui">界面</span>接口带宽计算：区分固定接口能力与动态负载占用的颜色，放大计算结果和计算带宽显示，提升扫描效率</li>
                     </ul>
                     <div class="feature-category">缺陷修复</div>

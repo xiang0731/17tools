@@ -24,16 +24,17 @@
         .dropzone { flex: 1; min-height: 200px; width: 100%; border: 1px dashed var(--border-color); border-radius: var(--radius-md); display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--background-primary); cursor: pointer; position: relative; overflow: hidden; padding: var(--spacing-lg); box-sizing: border-box; }
         .dropzone:hover { border-color: var(--border-focus); }
         .dropzone.has-image { border-style: solid; }
-        #cropDrop.has-image { cursor: default; overflow: hidden; padding: 0; }
+        #cropDrop.has-image, #wmDrop.has-image { cursor: default; overflow: hidden; padding: 0; }
+        .preview-zoom { position: absolute; inset: 0; transform-origin: center center; }
         .preview-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-sm); margin-bottom: var(--spacing-md); flex-shrink: 0; }
         .preview-toolbar .pick-btn { margin-bottom: 0; }
         .batch-toggle { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; font-size: 13px; color: var(--text-secondary); user-select: none; }
         .drop-hint { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--spacing-sm); text-align: center; color: var(--text-secondary); pointer-events: none; }
         .drop-hint i { font-size: 32px; color: var(--primary-color); }
         [hidden] { display: none !important; }
-        #wmCanvas:not([hidden]), #cpPreview:not([hidden]), #rdCanvas:not([hidden]) { position: absolute; inset: 0; margin: auto; max-width: 100%; max-height: 100%; min-width: 0; min-height: 0; width: auto; height: auto; object-fit: contain; display: block; }
+        #cpPreview:not([hidden]), .preview-zoom canvas { position: absolute; inset: 0; margin: auto; max-width: 100%; max-height: 100%; min-width: 0; min-height: 0; width: auto; height: auto; object-fit: contain; display: block; }
         #rdCanvas { touch-action: none; }
-        #rdDrop.has-image { cursor: crosshair; padding: var(--spacing-lg); }
+        #rdDrop.has-image { cursor: crosshair; overflow: hidden; padding: 0; }
         .tool-row button.active, .emoji-grid button.active { background: var(--primary-light); border-color: var(--primary-color); color: var(--primary-color); }
         .emoji-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
         .emoji-grid button { border: 1px solid var(--border-color); background: var(--background-primary); border-radius: 8px; padding: 8px; cursor: pointer; font-size: 20px; line-height: 1; }
@@ -94,7 +95,7 @@
                     <div class="dropzone" id="wmDrop">
                         <input class="hidden-file" id="wmFile" type="file" accept="image/jpeg,image/png,image/webp">
                         <div class="drop-hint" id="wmHint"><i class="fas fa-cloud-upload-alt"></i><div>点击或拖拽上传一张图片</div></div>
-                        <canvas id="wmCanvas" hidden></canvas>
+                        <div class="preview-zoom" id="wmZoom" hidden><canvas id="wmCanvas"></canvas></div>
                     </div>
                     <div class="thumbs" id="wmThumbs" hidden></div>
                 </div>
@@ -210,7 +211,7 @@
                     <div class="dropzone" id="rdDrop">
                         <input class="hidden-file" id="rdFile" type="file" accept="image/jpeg,image/png,image/webp">
                         <div class="drop-hint" id="rdHint"><i class="fas fa-eraser"></i><div>点击或拖拽上传一张图片</div></div>
-                        <canvas id="rdCanvas" hidden></canvas>
+                        <div class="preview-zoom" id="rdZoom" hidden><canvas id="rdCanvas"></canvas></div>
                     </div>
                 </div>
                 <div class="control-pane">
@@ -272,12 +273,13 @@
         };
 
         const state = {
-            watermark: { items: [], selectedId: null },
+            watermark: { items: [], selectedId: null, zoomItemId: null, previewZoom: { scale: 1, tx: 0, ty: 0 } },
             crop: { items: [], selectedId: null, cropper: null, cropImageUrl: null, ratio: 'free' },
             compress: { items: [], selectedId: null, controlMode: 'quality', previewUrl: null, lastBlob: null, lastPlan: null, runId: 0 },
             redact: {
                 items: [], selectedId: null, regions: [], selectedRegionId: null,
-                tool: 'rect', undo: [], drag: null
+                tool: 'rect', undo: [], drag: null, zoomItemId: null,
+                previewZoom: { scale: 1, tx: 0, ty: 0 }
             }
         };
 
@@ -399,7 +401,13 @@
                 state.redact.selectedRegionId = null;
                 state.redact.undo = [];
                 state.redact.drag = null;
+                state.redact.zoomItemId = null;
+                resetPreviewZoom('redact');
                 setErrors('rdErrors', []);
+            }
+            if (tab === 'watermark') {
+                state.watermark.zoomItemId = null;
+                resetPreviewZoom('watermark');
             }
             const input = document.getElementById(
                 tab === 'watermark' ? 'wmFile' : tab === 'crop' ? 'cropFile' : tab === 'redact' ? 'rdFile' : 'cpFile'
@@ -471,6 +479,53 @@
 
         function selected(tab) {
             return state[tab].items.find((item) => item.id === state[tab].selectedId) || null;
+        }
+
+        function previewZoomEl(tab) {
+            return document.getElementById(tab === 'watermark' ? 'wmZoom' : 'rdZoom');
+        }
+
+        function resetPreviewZoom(tab) {
+            if (!state[tab] || !state[tab].previewZoom) return;
+            state[tab].previewZoom = { scale: 1, tx: 0, ty: 0 };
+            const el = previewZoomEl(tab);
+            if (el) el.style.transform = '';
+        }
+
+        function applyPreviewZoom(tab) {
+            const el = previewZoomEl(tab);
+            if (!el || !state[tab].previewZoom) return;
+            el.style.transform = core.previewTransformCss(state[tab].previewZoom);
+        }
+
+        function syncPreviewZoomItem(tab, item) {
+            if (!item) {
+                state[tab].zoomItemId = null;
+                resetPreviewZoom(tab);
+                return;
+            }
+            if (state[tab].zoomItemId !== item.id) {
+                state[tab].zoomItemId = item.id;
+                resetPreviewZoom(tab);
+            }
+        }
+
+        function bindPreviewWheel(dropId, zoomId, tab) {
+            const drop = document.getElementById(dropId);
+            drop.addEventListener('wheel', (event) => {
+                if (!selected(tab) || document.getElementById(zoomId).hidden) return;
+                event.preventDefault();
+                const rect = drop.getBoundingClientRect();
+                state[tab].previewZoom = core.zoomPreviewToward({
+                    ...state[tab].previewZoom,
+                    factor: core.previewZoomFactor(event.deltaY),
+                    px: event.clientX - rect.left,
+                    py: event.clientY - rect.top,
+                    ox: rect.width / 2,
+                    oy: rect.height / 2
+                });
+                applyPreviewZoom(tab);
+            }, { passive: false });
         }
 
         const REDACT_MAX = 50;
@@ -740,11 +795,15 @@
                 canvas.hidden = true;
                 hint.hidden = false;
                 document.getElementById('rdDrop').classList.remove('has-image');
+                document.getElementById('rdZoom').hidden = true;
+                syncPreviewZoomItem('redact', null);
                 return;
             }
             hint.hidden = true;
             canvas.hidden = false;
+            document.getElementById('rdZoom').hidden = false;
             document.getElementById('rdDrop').classList.add('has-image');
+            syncPreviewZoomItem('redact', item);
             canvas.width = item.width;
             canvas.height = item.height;
             const draft = state.redact.drag && state.redact.drag.preview ? state.redact.drag.preview : null;
@@ -1126,8 +1185,8 @@
             const drop = document.getElementById(dropId);
             const input = document.getElementById(inputId);
             drop.addEventListener('click', (event) => {
-                if ((tab === 'crop' || tab === 'redact') && state[tab].items.length) return;
-                if (event.target.closest('.cropper-container, canvas, img, #cropWrap')) return;
+                if (!core.shouldOpenFilePickerOnDropClick(tab, state[tab].items.length > 0)) return;
+                if (event.target.closest('.cropper-container, canvas, img, #cropWrap, .preview-zoom')) return;
                 input.click();
             });
             const pick = document.getElementById(dropId.replace('Drop', 'Pick'));
@@ -1294,11 +1353,15 @@
                 canvas.hidden = true;
                 hint.hidden = false;
                 document.getElementById('wmDrop').classList.remove('has-image');
+                document.getElementById('wmZoom').hidden = true;
+                syncPreviewZoomItem('watermark', null);
                 return;
             }
             hint.hidden = true;
             canvas.hidden = false;
+            document.getElementById('wmZoom').hidden = false;
             document.getElementById('wmDrop').classList.add('has-image');
+            syncPreviewZoomItem('watermark', item);
             canvas.width = item.width;
             canvas.height = item.height;
             drawWatermark(canvas.getContext('2d'), item, wm);
@@ -1406,6 +1469,7 @@
                             autoCropArea: 0.8,
                             background: false,
                             responsive: true,
+                            scalable: true,
                             ready() {
                                 fitCropperCanvas();
                             }
@@ -1456,10 +1520,10 @@
             new ResizeObserver(() => refreshCropperLayout()).observe(drop);
         }
 
-        function transformCrop(fn) {
+        function transformCrop(fn, refit = true) {
             if (!state.crop.cropper) return;
             fn(state.crop.cropper);
-            requestAnimationFrame(fitCropperCanvas);
+            if (refit) requestAnimationFrame(fitCropperCanvas);
         }
 
         function applyCropRatio() {
@@ -1669,15 +1733,17 @@
             document.getElementById('cropRotateCcw').addEventListener('click', () => transformCrop((cropper) => cropper.rotate(-90)));
             document.getElementById('cropFlipH').addEventListener('click', () => {
                 transformCrop((cropper) => {
-                    const data = cropper.getImageData();
-                    cropper.scaleX(-data.scaleX);
-                });
+                    const data = cropper.getData();
+                    const scaleY = Number(data.scaleY);
+                    cropper.scale(core.nextFlipScale(data.scaleX), Number.isFinite(scaleY) && scaleY !== 0 ? scaleY : 1);
+                }, false);
             });
             document.getElementById('cropFlipV').addEventListener('click', () => {
                 transformCrop((cropper) => {
-                    const data = cropper.getImageData();
-                    cropper.scaleY(-data.scaleY);
-                });
+                    const data = cropper.getData();
+                    const scaleX = Number(data.scaleX);
+                    cropper.scale(Number.isFinite(scaleX) && scaleX !== 0 ? scaleX : 1, core.nextFlipScale(data.scaleY));
+                }, false);
             });
             document.getElementById('cropReset').addEventListener('click', () => transformCrop((cropper) => cropper.reset()));
             document.getElementById('cropExport').addEventListener('click', exportCrop);
@@ -1738,6 +1804,8 @@
         bindDrop('cropDrop', 'cropFile', 'crop');
         bindDrop('cpDrop', 'cpFile', 'compress');
         bindDrop('rdDrop', 'rdFile', 'redact');
+        bindPreviewWheel('wmDrop', 'wmZoom', 'watermark');
+        bindPreviewWheel('rdDrop', 'rdZoom', 'redact');
         initWatermarkUi();
         initCropUi();
         observeCropDropResize();

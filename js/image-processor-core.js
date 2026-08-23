@@ -385,6 +385,47 @@
         return diameter / 2;
     }
 
+    function nextFlipScale(current) {
+        const n = Number(current);
+        const base = Number.isFinite(n) && n !== 0 ? n : 1;
+        return -base;
+    }
+
+    function shouldOpenFilePickerOnDropClick(tab, hasItems) {
+        if (!hasItems) return true;
+        return tab !== 'watermark' && tab !== 'crop' && tab !== 'redact';
+    }
+
+    const PREVIEW_ZOOM_MIN = 1;
+    const PREVIEW_ZOOM_MAX = 8;
+    const PREVIEW_ZOOM_FACTOR = 1.1;
+
+    function previewZoomFactor(deltaY) {
+        return Number(deltaY) < 0 ? PREVIEW_ZOOM_FACTOR : 1 / PREVIEW_ZOOM_FACTOR;
+    }
+
+    function zoomPreviewToward({
+        scale, tx, ty, factor, px, py, ox, oy,
+        min = PREVIEW_ZOOM_MIN, max = PREVIEW_ZOOM_MAX
+    }) {
+        const current = Number(scale);
+        const safeScale = Number.isFinite(current) && current > 0 ? current : 1;
+        const nextScale = Math.min(max, Math.max(min, safeScale * Number(factor)));
+        if (!Number.isFinite(nextScale)) return { scale: safeScale, tx, ty };
+        if (nextScale === min) return { scale: min, tx: 0, ty: 0 };
+        if (nextScale === safeScale) return { scale: safeScale, tx, ty };
+        const k = nextScale / safeScale;
+        return {
+            scale: nextScale,
+            tx: px - ox - k * (px - ox - tx),
+            ty: py - oy - k * (py - oy - ty)
+        };
+    }
+
+    function previewTransformCss({ scale, tx, ty }) {
+        return `translate(${tx}px, ${ty}px) scale(${scale})`;
+    }
+
     return {
         ACCEPTED_MIMES,
         ACCEPTED_EXTENSIONS,
@@ -411,6 +452,14 @@
         simplifyPoints,
         hitTestRect,
         hitTestStroke,
-        brushRadiusFromPercent
+        brushRadiusFromPercent,
+        nextFlipScale,
+        shouldOpenFilePickerOnDropClick,
+        PREVIEW_ZOOM_MIN,
+        PREVIEW_ZOOM_MAX,
+        PREVIEW_ZOOM_FACTOR,
+        previewZoomFactor,
+        zoomPreviewToward,
+        previewTransformCss
     };
 });
