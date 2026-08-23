@@ -10,3 +10,15 @@ tests/
 ISSUES_AUDIT.md
 
 ISSUES_FIX_REPORT.md
+
+ForDevelop/
+
+docs/superpowers/
+
+docs/
+
+node_modules/
+
+regression-tests/
+
+items/Welcome/
