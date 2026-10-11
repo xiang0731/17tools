@@ -3,10 +3,28 @@
 
 <head>
     <meta charset="UTF-8">
+    <script>
+        (function applyThemeEarly() {
+            try {
+                var pref = localStorage.getItem('17tools-theme');
+                if (pref == null) {
+                    pref = localStorage.getItem('theme');
+                    if (pref != null) {
+                        localStorage.setItem('17tools-theme', pref);
+                    }
+                }
+                var theme = (pref === 'light' || pref === 'dark')
+                    ? pref
+                    : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) { /* 存储不可用时由 theme.js 降级 */ }
+        })();
+    </script>
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>全球时间对比</title>
     <link rel="stylesheet" href="../css/theme.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="../vendor/fontawesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
             --clock-max-size: 220px;
@@ -313,7 +331,7 @@
                 <div class="digital-time" id="left-time">00:00:00</div>
                 <div class="digital-date" id="left-date"></div>
                 <div class="timezone-selector">
-                    <select id="left-timezone-select"></select>
+                    <select id="left-timezone-select" aria-label="A 时钟时区"></select>
                 </div>
             </div>
 
@@ -332,14 +350,14 @@
                 <div class="digital-time" id="right-time">00:00:00</div>
                 <div class="digital-date" id="right-date"></div>
                 <div class="timezone-selector">
-                    <select id="right-timezone-select"></select>
+                    <select id="right-timezone-select" aria-label="B 时钟时区"></select>
                 </div>
             </div>
         </div>
 
         <div class="time-difference" id="time-difference">
             <h3><i class="fas fa-clock"></i> 时差对比</h3>
-            <div class="time-difference-value" id="time-difference-value">--小时</div>
+            <div class="time-difference-value" id="time-difference-value" role="status" aria-live="polite">--小时</div>
         </div>
 
         <div class="footer-info">
@@ -505,27 +523,33 @@
                         Number(values.second)
                     );
 
-                    return (zonedAsUtc - date.getTime()) / 3600000;
+                    const offset = (zonedAsUtc - date.getTime()) / 3600000;
+                    return Number.isFinite(offset) ? offset : null;
                 } catch (e) {
-                    return timezoneData[timeZone]?.offset || 0;
+                    return null;
                 }
             }
 
-            function formatOffsetHours(hours) {
-                return Number.isInteger(hours) ? String(hours) : hours.toFixed(1).replace(/\.0$/, '');
+            function formatOffsetMinutes(minutes) {
+                const hours = Math.floor(minutes / 60);
+                const remainder = minutes % 60;
+                return [hours ? `${hours} 小时` : '', remainder ? `${remainder} 分钟` : ''].filter(Boolean).join(' ');
             }
 
-            function updateDiff() {
-                const now = new Date();
+            function updateDiff(now = new Date()) {
                 const leftOffset = getTimeZoneOffsetHours(state.left.tz, now);
                 const rightOffset = getTimeZoneOffsetHours(state.right.tz, now);
-                const diff = leftOffset - rightOffset;
-                const abs = Math.abs(diff);
-                dom.diff.textContent = diff === 0 ? "A 与 B 时间相同" : `A 比 B ${diff > 0 ? '早' : '晚'} ${formatOffsetHours(abs)} 小时`;
+                let message = '准确时差暂不可用，请核对浏览器时区支持';
+                if (leftOffset !== null && rightOffset !== null) {
+                    const diff = Math.round((leftOffset - rightOffset) * 60);
+                    message = diff === 0 ? "A 与 B 时间相同" : `A 比 B ${diff > 0 ? '早' : '晚'} ${formatOffsetMinutes(Math.abs(diff))}`;
+                }
+                if (dom.diff.textContent !== message) dom.diff.textContent = message;
             }
 
             function tick() {
                 const now = new Date();
+                updateDiff(now);
                 ['left', 'right'].forEach(side => {
                     const s = state[side];
                     const d = dom[side];
@@ -583,6 +607,8 @@
             
             tick();
             setInterval(tick, 1000);
+            document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+            window.addEventListener('pageshow', tick);
         });
     </script>
 </body>

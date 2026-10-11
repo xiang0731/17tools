@@ -23,6 +23,7 @@
         size: 256,
         ecc: 'M'
     };
+    const CONTRAST_WARN_LIMIT = 3;
     const MSG = {
         textEmpty: '请输入内容',
         textTooLong: '内容不超过 1200 字',
@@ -34,7 +35,9 @@
         phoneInvalid: '请输入有效电话',
         wifiSsid: '请输入 WiFi 名称',
         wifiPassword: '请输入密码',
-        vcardName: '请输入姓名'
+        vcardName: '请输入姓名',
+        lowContrast: '浅色搭配可能扫不出来。软件不能保证手机、打印或屏幕一定能扫到。',
+        lowContrastConfirm: '当前是浅色搭配，下载后仍可能扫不出来。软件不能保证手机、打印或屏幕一定能扫到。'
     };
     const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -99,8 +102,9 @@
         return (light + 0.05) / (dark + 0.05);
     }
 
+    // 低于 CONTRAST_WARN_LIMIT 时显示警告。这个阈值不是真机扫码保证：达到或超过它，仍不能保证手机、打印或屏幕一定能扫到。
     function isLowContrast(fg, bg) {
-        return contrastRatio(fg, bg) < 3;
+        return contrastRatio(fg, bg) < CONTRAST_WARN_LIMIT;
     }
 
     function buildFileName(type, ext) {
@@ -265,6 +269,7 @@
         ECC_LEVELS: ECC_LEVELS,
         STORAGE_KEY: STORAGE_KEY,
         DEFAULT_STYLE: DEFAULT_STYLE,
+        CONTRAST_WARN_LIMIT: CONTRAST_WARN_LIMIT,
         MSG: MSG,
         parseStyle: parseStyle,
         contrastRatio: contrastRatio,

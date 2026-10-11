@@ -119,6 +119,79 @@
         };
     }
 
+    function describeSelectionAdjustment(input = {}) {
+        const requested = { width: Number(input.width), aspectRatio: Number(input.aspectRatio), rimDiameter: Number(input.rimDiameter) };
+        const normalized = normalizeTireSelection(input);
+        const names = { width: '胎宽', aspectRatio: '扁平比', rimDiameter: '轮毂直径' };
+        const units = { width: 'mm', aspectRatio: '%', rimDiameter: '英寸' };
+        const changes = Object.keys(names).filter(key => requested[key] !== normalized[key]).map(key => ({
+            field: key, name: names[key], from: requested[key], to: normalized[key],
+            reason: key === 'width' ? '所选胎宽不在页面常见矩阵内，取最近胎宽' : key === 'aspectRatio' ? '该胎宽的常见矩阵没有原扁平比，取最近选项' : '该胎宽与扁平比的常见矩阵没有原轮毂直径，取最近选项',
+            text: `${names[key]}由 ${requested[key]}${units[key]} 调整为 ${normalized[key]}${units[key]}`
+        }));
+        return { requested, normalized, changes, requestedSpec: `${requested.width}/${requested.aspectRatio} R${requested.rimDiameter}`, normalizedSpec: `${normalized.width}/${normalized.aspectRatio} R${normalized.rimDiameter}` };
+    }
+
+    function parseDimension(raw, min, max, name) {
+        const text = String(raw == null ? '' : raw).trim();
+        if (!/^(?:\d+(?:\.\d{1,2})?|\.\d{1,2})$/.test(text)) return { error: name + '请填写有效数字，最多两位小数' };
+        const value = Number(text);
+        if (!Number.isFinite(value) || value < min || value > max) return { error: name + `范围为 ${min}–${max}` };
+        return { value };
+    }
+
+    function calculateArbitraryMetrics(input = {}) {
+        const width = parseDimension(input.width, 50, 500, '胎宽(mm)');
+        const aspect = parseDimension(input.aspectRatio, 10, 100, '扁平比(%)');
+        const rim = parseDimension(input.rimDiameter, 5, 30, '轮毂(英寸)');
+        const error = width.error || aspect.error || rim.error;
+        if (error) return { status: 'invalid', error };
+        const sidewallHeight = width.value * aspect.value / 100;
+        const rimDiameterMm = rim.value * 25.4;
+        const overallDiameter = rimDiameterMm + 2 * sidewallHeight;
+        const circumference = overallDiameter * Math.PI;
+        const row = PRACTICAL_SIZE_MATRIX[width.value];
+        const inMatrix = !!(row && row[aspect.value] && row[aspect.value].includes(rim.value));
+        return { status: 'ok', error: '', width: width.value, aspectRatio: aspect.value, rimDiameter: rim.value,
+            spec: `${width.value}/${aspect.value} R${rim.value}`, sidewallHeightMm: sidewallHeight,
+            rimDiameterMm, overallDiameterMm: overallDiameter, circumferenceMm: circumference, inMatrix };
+    }
+
+    function compareTireSizes(originalInput, candidateInput, indicatedSpeed = '100') {
+        const original = calculateArbitraryMetrics(originalInput);
+        const candidate = calculateArbitraryMetrics(candidateInput);
+        const speed = parseDimension(indicatedSpeed, 0, 500, '表显车速(km/h)');
+        if (original.status !== 'ok' || candidate.status !== 'ok' || speed.error) {
+            return { status: 'invalid', error: original.error ? '原厂规格：' + original.error : candidate.error ? '候选规格：' + candidate.error : speed.error };
+        }
+        const ratio = candidate.circumferenceMm / original.circumferenceMm;
+        return { status: 'ok', error: '', original, candidate,
+            diameterDeltaMm: candidate.overallDiameterMm - original.overallDiameterMm,
+            circumferenceDeltaMm: candidate.circumferenceMm - original.circumferenceMm,
+            deltaPercent: (ratio - 1) * 100, ratio,
+            indicatedSpeed: speed.value, theoreticalSpeed: speed.value * ratio,
+            speedDelta: speed.value * (ratio - 1) };
+    }
+
+    function buildComparisonCopy(result) {
+        if (!result || result.status !== 'ok') return '';
+        const notes = getResultAssumptions();
+        const matrix = metrics => metrics.inMatrix ? '页面常见矩阵内，仍需核对车辆' : '矩阵外：仅理论计算，不是推荐搭配';
+        return [
+            '原厂/候选轮胎尺寸理论对比',
+            '原厂：' + result.original.spec + '；' + matrix(result.original),
+            '候选：' + result.candidate.spec + '；' + matrix(result.candidate),
+            '外径：' + result.original.overallDiameterMm.toFixed(1) + ' → ' + result.candidate.overallDiameterMm.toFixed(1) + ' mm；差值 ' + result.diameterDeltaMm.toFixed(1) + ' mm',
+            '周长：' + result.original.circumferenceMm.toFixed(1) + ' → ' + result.candidate.circumferenceMm.toFixed(1) + ' mm；差值 ' + result.circumferenceDeltaMm.toFixed(1) + ' mm',
+            '尺寸变化：' + result.deltaPercent.toFixed(2) + '%（未提前舍入原值计算）',
+            '以原厂周长标定，相同轮转速下：理论真实车速 = 表显车速 × 候选周长 ÷ 原厂周长',
+            '表显 ' + result.indicatedSpeed + ' km/h → 理论真实 ' + result.theoreticalSpeed.toFixed(2) + ' km/h',
+            ...notes.formulaLines, '矩阵：' + notes.matrixNote,
+            '实际车速还受胎压、载荷、磨耗、形变和仪表校准影响；尺寸比较不保证车辆适配或合规。',
+            '请另核对载荷指数、速度等级、轮圈宽度、ET、车身间隙、制动系统及当地要求。'
+        ].join('\n');
+    }
+
     function getConstrainedOptions(input = {}) {
         const normalized = normalizeTireSelection(input);
         const aspectRatios = getAspectRatiosForWidth(normalized.width);
@@ -218,6 +291,64 @@
         });
     }
 
+    // 胎宽、扁平比、轮毂和购买区间都是仓库内固定表，文件里没有外部标准更新日期。
+    const RESULT_ASSUMPTIONS = {
+        formulaLines: [
+            '胎侧毫米 = 胎宽 × 扁平比 / 100',
+            '轮毂毫米 = 英寸 × 25.4',
+            '外径 = 轮毂毫米 + 2 × 胎侧',
+            '周长 = 外径 × π'
+        ],
+        rounding: '外径、胎壁高度和轮毂直径保留一位小数，周长四舍五入到整数。',
+        units: '尺寸单位为毫米，轮毂直径选项为英寸。',
+        matrixNote: '仓库内常见量产组合，无外部认证日期',
+        manualCheck: '建议核对车辆手册，本结果不保证能安装'
+    };
+
+    function getResultAssumptions() {
+        return {
+            formulaLines: RESULT_ASSUMPTIONS.formulaLines.slice(),
+            rounding: RESULT_ASSUMPTIONS.rounding,
+            units: RESULT_ASSUMPTIONS.units,
+            matrixNote: RESULT_ASSUMPTIONS.matrixNote,
+            manualCheck: RESULT_ASSUMPTIONS.manualCheck
+        };
+    }
+
+    function buildResultCopy(input) {
+        const metrics = calculateTireMetrics(input);
+        const references = getPurchaseReferences(metrics);
+        const assumptions = getResultAssumptions();
+        const lines = [
+            '参数',
+            `规格：${metrics.spec}`,
+            `胎宽：${metrics.width} 毫米`,
+            `扁平比：${metrics.aspectRatio}`,
+            `轮毂：${metrics.rimDiameter} 英寸`,
+            '',
+            '假设',
+            ...assumptions.formulaLines,
+            assumptions.rounding,
+            assumptions.units,
+            `矩阵是${assumptions.matrixNote}。`,
+            assumptions.manualCheck,
+            '',
+            '结果',
+            `外径：${metrics.overallDiameterMm} 毫米`,
+            `胎壁高度：${metrics.sidewallHeightMm} 毫米`,
+            `轮毂直径：${metrics.rimDiameterMm} 毫米`,
+            `滚动周长：${metrics.circumferenceMm} 毫米`,
+            ...references.map(item => `${item.title}：${item.status}；${item.rangeText}`)
+        ];
+
+        return {
+            metrics,
+            references,
+            assumptions,
+            text: lines.join('\n')
+        };
+    }
+
     function getVisualModel(metrics) {
         const outerSize = clamp(228 + (metrics.overallDiameterMm - 690) * 0.18, 218, 286);
         const rimSize = outerSize * metrics.rimDiameterMm / metrics.overallDiameterMm;
@@ -236,6 +367,10 @@
     }
 
     return {
+        describeSelectionAdjustment,
+        calculateArbitraryMetrics,
+        compareTireSizes,
+        buildComparisonCopy,
         WIDTH_OPTIONS,
         ASPECT_RATIO_OPTIONS,
         RIM_DIAMETER_OPTIONS,
@@ -243,6 +378,8 @@
         normalizeTireSelection,
         calculateTireMetrics,
         getPurchaseReferences,
+        getResultAssumptions,
+        buildResultCopy,
         getVisualModel
     };
 });

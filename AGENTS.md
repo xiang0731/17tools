@@ -21,11 +21,11 @@ js/unsaved-guard.js 切换工具前确认未保存输入
 js/load-progress.js 加载超过 1 秒才显示进度条
 js/*-core.js        可 Node 测试的纯逻辑（UMD，无 DOM）
 items/*.html        工具页
-regression-tests/   静态断言 + 少量 Playwright
-docs/superpowers/   设计稿与实现计划
+ForDevelop/regression-tests/ 静态断言 + 少量 Playwright
+ForDevelop/docs/superpowers/   设计稿与实现计划
 ```
 
-父页用 `postMessage({ type: '17tools-theme', theme })` 同步主题。不要另起协议。`localStorage` 主题键是 `theme`。
+父页用 `postMessage({ type: '17tools-theme', theme })` 同步主题。不要另起协议。`localStorage` 主题主键是 `17tools-theme`，兼容迁移旧键 `theme`。
 
 ## 改代码时怎么做
 
@@ -55,7 +55,7 @@ docs/superpowers/   设计稿与实现计划
 | `js/version.js`       | 失败回退版本号改成**同一个**新版本；不要留下旧回退号                                   |
 | `README.md`           | 工具列表与目录                                                                         |
 | `js/load-progress.js` | 若该页经常 >1s 才出来，把预估毫秒写进 `ESTIMATES_MS`                                   |
-| `regression-tests/`   | `*-core.mjs` 测逻辑；`*-page.mjs` 锁页面结构、导航位置、Welcome/History/version/README |
+| `ForDevelop/regression-tests/` | `*-core.mjs` 测逻辑；`*-page.mjs` 锁页面结构、导航位置、Welcome/History/version/README |
 
 研发中工具：`data-protected="true"`，侧栏对外文案保持「敬请期待」。WiFi 二维码已并入公开「二维码工具」，不要改 `items/WifiQRCode.html` 来做正式入口。
 
@@ -72,17 +72,17 @@ docs/superpowers/   设计稿与实现计划
   2. `逻辑改动与优化` — 标签只允许 `improved` / `ui` / `ux` / `deprecated`
   3. `缺陷修复` — 标签只允许 `fixed` / `critical`
 - 条目形态：`<li><span class="tag ux">体验</span>工具名：做了什么</li>`
-- 同步 `items/Welcome.html` 的 `vX.Y.Z`，以及所有把当前版本写死的 `regression-tests/*-page.mjs`。
+- 同步 `items/Welcome.html` 的 `vX.Y.Z`；`ForDevelop/regression-tests/` 中的版本断言必须从 History 第一条动态读取，不要另写当前版本号。
 - 如果没有特别要求，当天的全部改动只存在一个版本的更新记录咯
 
 ## 文档
 
 较大功能先写 spec 再写 plan，再改代码：
 
-- 设计：`docs/superpowers/specs/YYYY-MM-DD-<name>-design.md`
-- 计划：`docs/superpowers/plans/YYYY-MM-DD-<name>.md`
+- 设计：`ForDevelop/docs/superpowers/specs/YYYY-MM-DD-<name>-design.md`
+- 计划：`ForDevelop/docs/superpowers/plans/YYYY-MM-DD-<name>.md`
 
-spec 写目标、非目标、文件表、行为。plan 按任务拆步，并写回归命令。对照最近的 `docs/superpowers/specs/2026-08-13-qrcode-tool-design.md`。
+spec 写目标、非目标、文件表、行为。plan 按任务拆步，并写回归命令。对照最近的 `ForDevelop/docs/superpowers/specs/2026-08-13-qrcode-tool-design.md`。
 
 ## 补充
 

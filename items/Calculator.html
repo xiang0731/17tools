@@ -3,10 +3,28 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>简单计算器</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <script>
+        (function applyThemeEarly() {
+            try {
+                var pref = localStorage.getItem('17tools-theme');
+                if (pref == null) {
+                    pref = localStorage.getItem('theme');
+                    if (pref != null) {
+                        localStorage.setItem('17tools-theme', pref);
+                    }
+                }
+                var theme = (pref === 'light' || pref === 'dark')
+                    ? pref
+                    : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) { /* 存储不可用时由 theme.js 降级 */ }
+        })();
+    </script>
+
+    <title>极速计算</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../css/theme.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="../vendor/fontawesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         /* 重置页面默认样式，确保页面占满整个视口 */
         html,
@@ -132,16 +150,29 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            flex-wrap: wrap;
             gap: var(--spacing-sm);
         }
 
         .result-content-wrapper {
             display: flex;
-            align-items: center;
-            gap: var(--spacing-sm);
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: var(--spacing-xs) var(--spacing-sm);
+            flex: 1 1 auto;
+        }
+
+        .result-headline {
+            display: inline-flex;
+            align-items: baseline;
+            gap: 0.35em;
+            white-space: nowrap;
+            flex: 0 0 auto;
         }
 
         .icon-button {
+            min-height: 44px;
+            min-width: 44px;
             background: transparent;
             border: none;
             color: var(--text-secondary);
@@ -160,6 +191,45 @@
             background-color: var(--background-hover);
         }
 
+        .icon-button:disabled,
+        .icon-button:disabled:hover {
+            cursor: not-allowed;
+            opacity: 0.45;
+            color: var(--text-tertiary);
+            background-color: transparent;
+        }
+
+        #linePagination { flex-wrap:wrap;margin:var(--spacing-sm) 0; }
+        #linePagination button { min-width:80px;min-height:44px;padding:var(--spacing-sm); }
+        #linePageStatus { flex:1 1 100%;text-align:left; }
+        #linePagination[hidden] { display: none; }
+
+        .copy-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: var(--spacing-sm);
+            flex: 1 1 12em;
+        }
+
+        .copy-hint,
+        .result-meta,
+        .calc-examples {
+            color: var(--text-secondary);
+            font-weight: 400;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .copy-hint {
+            text-align: right;
+        }
+
+        .calc-examples {
+            margin: 0 0 var(--spacing-sm) 0;
+            font-family: var(--font-mono);
+        }
+
         .result-value {
             color: var(--primary-color);
             font-family: var(--font-mono);
@@ -169,10 +239,9 @@
 
         .warning-text {
             color: var(--warning-color);
-            font-size: 20px;
+            font-size: 14px;
             margin-left: var(--spacing-sm);
             font-weight: 500;
-            display: none;
         }
 
         /* 按钮样式 */
@@ -226,25 +295,66 @@
         }
 
         .clear-input-btn {
-            background-color: #64748b;
-            /* 灰蓝色 */
+            background-color: var(--text-secondary);
             color: var(--text-inverse);
             border: none;
         }
 
         .clear-input-btn:hover {
-            background-color: #475569;
+            background-color: var(--text-primary);
         }
 
         .clear-history-btn {
-            background-color: #991b1b;
-            /* 暗红色 */
+            background-color: var(--error-color);
             color: var(--text-inverse);
             border: none;
         }
 
         .clear-history-btn:hover {
-            background-color: #7f1d1d;
+            background-color: var(--error-color);
+            filter: brightness(0.92);
+        }
+
+        .line-results {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-xs);
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 14px;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+
+        .line-results:empty {
+            display: none;
+            margin-bottom: 0;
+        }
+
+        .line-result {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: var(--spacing-xs);
+            word-break: break-all;
+        }
+
+        .line-expr {
+            color: var(--text-primary);
+        }
+
+        .line-arrow {
+            color: var(--text-tertiary);
+        }
+
+        .line-value {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .line-error {
+            color: var(--error-color);
+            font-weight: 500;
         }
 
         .clear-button:hover {
@@ -293,6 +403,16 @@
             border-radius: var(--radius-full);
             font-size: 12px;
             font-weight: 500;
+        }
+
+        .history-lifetime {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-full);
+            padding: 2px var(--spacing-sm);
+            line-height: 1.4;
         }
 
         .history-content {
@@ -375,6 +495,15 @@
             .result-value {
                 font-size: 20px;
             }
+
+            .copy-actions {
+                flex: 1 1 100%;
+                justify-content: flex-start;
+            }
+
+            .copy-hint {
+                text-align: left;
+            }
         }
 
         /* 动画效果 */
@@ -437,25 +566,40 @@
             <label class="input-label" for="numbers">
                 <i class="fas fa-edit"></i> 输入算术表达式
             </label>
+            <p class="calc-examples" id="powerExamples">负号弱于幂：-2**2 = -4；括号里仍先算：(-2)**2 = 4；2**-2 = 0.25；2**3**2 = 512。</p>
             <div class="textarea-wrapper">
-                <textarea id="numbers" placeholder="输入算术表达式，每行或空格分隔，例如:
-1+2 3x4
-10/2 5-1
+                <textarea id="numbers" placeholder="输入算术表达式，一行一道题，例如:
+1 + 2
+3 x 4
+(10-2)/4
 支持 +、-、* (或x)、/、()、幂运算(**)" oninput="handleInput()"></textarea>
                 <span class="line-count" id="inputLineCount">0 行</span>
             </div>
         </div>
 
         <div class="result-container">
+            <div class="line-results" id="lineResults"></div>
+            <div id="linePagination" class="copy-actions" hidden>
+                <button type="button" class="clear-button" id="linePrev">上一页</button>
+                <span id="linePageStatus" class="copy-hint"></span>
+                <button type="button" class="clear-button" id="lineNext">下一页</button>
+            </div>
             <div class="result-label">
                 <div class="result-content-wrapper">
-                    <i class="fas fa-equals"></i>
-                    总和: <span class="result-value" id="result">0</span>
-                    <span id="warning" class="warning-text"></span>
+                    <span class="result-headline">
+                        <i class="fas fa-equals" aria-hidden="true"></i>
+                        <span id="resultLabel">总和</span>:
+                        <span class="result-value" id="result">0</span>
+                    </span>
+                    <span id="resultMeta" class="result-meta"></span>
+                    <span id="warning" class="warning-text" hidden></span>
                 </div>
-                <button class="icon-button" onclick="copyResult()" title="复制结果">
-                    <i class="fas fa-copy"></i>
-                </button>
+                <div class="copy-actions">
+                    <span id="copyHint" class="copy-hint"></span>
+                    <button class="icon-button" id="copyResultBtn" type="button" onclick="copyResult()" title="复制结果" aria-label="复制结果">
+                        <i class="fas fa-copy" aria-hidden="true"></i>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -464,8 +608,8 @@
                 <i class="fas fa-eraser"></i>
                 清空输入
             </button>
-            <button class="save-button" onclick="saveToHistory()">
-                <i class="fas fa-save"></i>
+            <button class="save-button" type="button" onclick="saveToHistory()" aria-label="保存结果">
+                <i class="fas fa-save" aria-hidden="true"></i>
                 保存结果
             </button>
             <button class="clear-button clear-history-btn" onclick="clearHistory()">
@@ -474,12 +618,14 @@
             </button>
         </div>
 
+        <p class="calc-examples">双精度浮点计算，显示最多 15 位有效数字；≈ 表示展示舍入。超安全整数不保证逐位精确；超出可表示范围或合计溢出会报错。处理预算为100万字符、5万行；明细每页200行，合计包含全部有效行。</p>
         <div class="history-container">
             <div class="history-header">
                 <h3 class="history-title">
                     <i class="fas fa-history"></i>
                     历史记录
                     <span class="history-count" id="historyCount">0</span>
+                    <span class="history-lifetime">仅本次页面</span>
                 </h3>
             </div>
             <div class="history-content">
@@ -493,313 +639,221 @@
         </div>
     </div>
 
-    <script src="../js/unsaved-guard.js"></script>
-    <script src="../js/theme.js"></script>
+    <script src="../js/text-budget-core.js"></script>
+    <script src="../js/calculator-core.js"></script>
     <script>
         let historyCount = 0;
+        let calculateTimer;
+        let lineResultPage = 0;
+        const LINE_PAGE_SIZE = 200;
+        let latestCalculation = CalculatorCore.calculate('');
 
-        // 处理输入事件
+        document.getElementById('linePrev').addEventListener('click', () => { lineResultPage -= 1; renderLineResults(latestCalculation.lines); });
+        document.getElementById('lineNext').addEventListener('click', () => { lineResultPage += 1; renderLineResults(latestCalculation.lines); });
+
         function handleInput() {
             calculateSum();
             updateLineCount();
         }
 
-        // 更新行数统计
         function updateLineCount() {
             const textarea = document.getElementById('numbers');
             const counter = document.getElementById('inputLineCount');
             const text = textarea.value;
-            let lineCount = 0;
-            if (text.length > 0) {
-                lineCount = text.split('\n').length;
-            }
-            counter.textContent = lineCount + ' 行';
+            const budget = TextBudgetCore.check(text, 0);
+            counter.textContent = text.length === 0 ? '0 行' : budget.ok ? budget.lines + ' 行' : '超过处理预算';
         }
 
-        // 清空输入框
+        function renderLineResults(lines) {
+            const container = document.getElementById('lineResults');
+            container.replaceChildren();
+            container.scrollTop = 0;
+            const pageCount = Math.max(1, Math.ceil(lines.length / LINE_PAGE_SIZE));
+            lineResultPage = Math.min(Math.max(0, lineResultPage), pageCount - 1);
+            const pagination = document.getElementById('linePagination');
+            pagination.hidden = lines.length <= LINE_PAGE_SIZE;
+            document.getElementById('linePageStatus').textContent = '第 ' + (lineResultPage + 1) + '/' + pageCount + ' 页，共 ' + lines.length + ' 行（合计包含全部有效行）';
+            document.getElementById('linePrev').disabled = lineResultPage === 0;
+            document.getElementById('lineNext').disabled = lineResultPage >= pageCount - 1;
+            lines.slice(lineResultPage * LINE_PAGE_SIZE, (lineResultPage + 1) * LINE_PAGE_SIZE).forEach(function (item) {
+                const row = document.createElement('div');
+                row.className = item.error ? 'line-result is-error' : 'line-result';
+
+                const expr = document.createElement('span');
+                expr.className = 'line-expr';
+                expr.textContent = item.expression;
+
+                const arrow = document.createElement('span');
+                arrow.className = 'line-arrow';
+                arrow.textContent = ' → ';
+
+                const value = document.createElement('span');
+                value.className = item.error ? 'line-error' : 'line-value';
+                value.textContent = item.text;
+
+                row.append(expr, arrow, value);
+                container.appendChild(row);
+            });
+        }
+
+        function applyCalculation(calculation) {
+            latestCalculation = calculation;
+            lineResultPage = 0;
+            const resultElement = document.getElementById('result');
+            const warningElement = document.getElementById('warning');
+            const labelElement = document.getElementById('resultLabel');
+            const metaElement = document.getElementById('resultMeta');
+            const copyBtn = document.getElementById('copyResultBtn');
+            const copyHint = document.getElementById('copyHint');
+
+            renderLineResults(calculation.lines);
+            resultElement.textContent = calculation.totalError ? (calculation.budgetError ? '输入超限' : '合计溢出') : (calculation.empty ? '0' : (calculation.approximate ? '≈ ' : '') + calculation.totalText);
+            copyBtn.disabled = !calculation.copyable;
+
+            if (calculation.empty) {
+                labelElement.textContent = '总和';
+                metaElement.textContent = '';
+                warningElement.textContent = '';
+                warningElement.hidden = true;
+                copyHint.textContent = '';
+                copyBtn.title = '复制结果';
+                return;
+            }
+
+            if (calculation.totalError) {
+                labelElement.textContent = '无法完成合计';
+                metaElement.textContent = '各行结果仍可核对';
+                warningElement.textContent = calculation.totalError;
+                warningElement.hidden = false;
+                copyHint.textContent = calculation.budgetError ? '输入超限，原文保留；不能复制或保存为成功结果' : '合计溢出，不能复制或保存为成功结果';
+                copyBtn.title = copyHint.textContent;
+                return;
+            }
+
+            if (calculation.errorCount > 0) {
+                labelElement.textContent = '有效行小计';
+                metaElement.textContent = '有效 ' + calculation.validCount + ' 行，错误 ' + calculation.errorCount + ' 行';
+                warningElement.textContent = '（提醒：输入框中存在 ' + calculation.errors.join('，') + '）';
+                warningElement.hidden = false;
+                copyHint.textContent = '有错误行，不能当作完整总数复制';
+                copyBtn.title = '有错误行，不能当作完整总数复制';
+                return;
+            }
+
+            labelElement.textContent = calculation.precisionWarning ? '计算完成（浮点近似）' : '全部成功';
+            metaElement.textContent = '最多 15 位有效数字';
+            warningElement.textContent = calculation.precisionWarning ? calculation.precisionNote : '';
+            warningElement.hidden = !calculation.precisionWarning;
+            copyHint.textContent = calculation.approximate ? '复制值保留同样的近似标记' : '';
+            copyBtn.title = '复制结果';
+        }
+
+        function resetCalculationView() {
+            applyCalculation(CalculatorCore.calculate(''));
+        }
+
         function clearInput() {
             const numbersInput = document.getElementById('numbers');
             if (numbersInput.value === '') return;
 
+            if (calculateTimer) {
+                clearTimeout(calculateTimer);
+                calculateTimer = null;
+            }
             numbersInput.value = '';
-            document.getElementById('result').textContent = '0';
-            const warningElement = document.getElementById('warning');
-            warningElement.textContent = '';
-            warningElement.style.display = 'none';
+            resetCalculationView();
+            document.getElementById('result').classList.remove('calculating');
             updateLineCount();
             numbersInput.focus();
         }
 
-        class ExpressionParser {
-            constructor(expr) {
-                this.expr = expr.replace(/x/gi, '*');
-                this.index = 0;
-            }
-
-            parse() {
-                const value = this.parseExpression();
-                this.skipWhitespace();
-                if (!this.isAtEnd()) {
-                    throw new Error('算式不完整');
-                }
-                return value;
-            }
-
-            parseExpression() {
-                let value = this.parseTerm();
-                while (true) {
-                    this.skipWhitespace();
-                    if (this.match('+')) {
-                        value += this.parseTerm();
-                    } else if (this.match('-')) {
-                        value -= this.parseTerm();
-                    } else {
-                        return value;
-                    }
-                }
-            }
-
-            parseTerm() {
-                let value = this.parsePower();
-                while (true) {
-                    this.skipWhitespace();
-                    if (this.match('*')) {
-                        if (this.peek() === '*') {
-                            this.index--;
-                            return value;
-                        }
-                        value *= this.parsePower();
-                    } else if (this.match('/')) {
-                        const divisor = this.parsePower();
-                        if (divisor === 0) {
-                            throw new Error('除数不能为0');
-                        }
-                        value /= divisor;
-                    } else {
-                        return value;
-                    }
-                }
-            }
-
-            parsePower() {
-                let value = this.parseUnary();
-                this.skipWhitespace();
-                if (this.match('**')) {
-                    value = value ** this.parsePower();
-                }
-                return value;
-            }
-
-            parseUnary() {
-                this.skipWhitespace();
-                if (this.match('+')) return this.parseUnary();
-                if (this.match('-')) return -this.parseUnary();
-                return this.parsePrimary();
-            }
-
-            parsePrimary() {
-                this.skipWhitespace();
-
-                if (this.match('(')) {
-                    const value = this.parseExpression();
-                    this.skipWhitespace();
-                    if (!this.match(')')) {
-                        throw new Error('括号未闭合');
-                    }
-                    return value;
-                }
-
-                return this.parseNumber();
-            }
-
-            parseNumber() {
-                this.skipWhitespace();
-                const start = this.index;
-                let hasDigit = false;
-                let hasDot = false;
-
-                while (!this.isAtEnd()) {
-                    const char = this.peek();
-                    if (char >= '0' && char <= '9') {
-                        hasDigit = true;
-                        this.index++;
-                    } else if (char === '.' && !hasDot) {
-                        hasDot = true;
-                        this.index++;
-                    } else {
-                        break;
-                    }
-                }
-
-                if (!hasDigit) {
-                    throw new Error('算式不完整');
-                }
-
-                return Number(this.expr.slice(start, this.index));
-            }
-
-            match(token) {
-                if (this.expr.slice(this.index, this.index + token.length) === token) {
-                    this.index += token.length;
-                    return true;
-                }
-                return false;
-            }
-
-            peek() {
-                return this.expr[this.index] || '';
-            }
-
-            isAtEnd() {
-                return this.index >= this.expr.length;
-            }
-
-            skipWhitespace() {
-                while (/\s/.test(this.peek())) {
-                    this.index++;
-                }
-            }
-        }
-
-        // 安全地计算单个表达式
-        function evaluateExpression(expr) {
-            const trimmed = expr.trim();
-            if (!trimmed) return { value: 0, error: null };
-
-            try {
-                if (/[^0-9+\-*/xX().\s]/.test(trimmed)) {
-                    return { value: 0, error: '非法字符' };
-                }
-
-                const result = new ExpressionParser(trimmed).parse();
-
-                if (!Number.isFinite(result)) {
-                    return { value: 0, error: '非法计算' };
-                }
-
-                return { value: result || 0, error: null };
-            } catch (e) {
-                let errorMsg = e.message || '算式不完整';
-
-                const openCount = (trimmed.match(/\(/g) || []).length;
-                const closeCount = (trimmed.match(/\)/g) || []).length;
-                if (openCount !== closeCount) {
-                    errorMsg = '括号未闭合';
-                } else if (/[+\-*/xX]$/.test(trimmed)) {
-                    errorMsg = '运算符结尾';
-                }
-
-                return { value: 0, error: errorMsg };
-            }
-        }
-
-        // 计算所有表达式的总和
-        let calculateTimer;
         function calculateSum() {
             const input = document.getElementById('numbers').value;
             const resultElement = document.getElementById('result');
-            const warningElement = document.getElementById('warning');
 
-            // 添加计算中状态
             resultElement.classList.add('calculating');
 
-            // 清除之前的定时器
             if (calculateTimer) {
                 clearTimeout(calculateTimer);
             }
 
-            // 设置新的定时器 (防抖)
-            calculateTimer = setTimeout(() => {
+            calculateTimer = setTimeout(function () {
                 try {
-                    const lines = input
-                        .split(/[\n\s]+/)  // 按换行或空格分割
-                        .filter(expr => expr.trim() !== '');  // 过滤空字符串
-
-                    let total = 0;
-                    let errors = new Set();
-
-                    lines.forEach(line => {
-                        const res = evaluateExpression(line);
-                        total += res.value;
-                        if (res.error) {
-                            errors.add(res.error);
-                        }
-                    });
-
-                    // 处理精度问题，最多保留4位小数，如果是整数则不显示小数
-                    const result = Math.round(total * 10000) / 10000;
-                    resultElement.textContent = result;
-
-                    // 显示/隐藏错误提醒
-                    if (errors.size > 0) {
-                        warningElement.textContent = `(提醒：输入框中存在 ${Array.from(errors).join(', ')})`;
-                        warningElement.style.display = 'inline';
-                    } else {
-                        warningElement.textContent = '';
-                        warningElement.style.display = 'none';
-                    }
+                    applyCalculation(CalculatorCore.calculate(input));
                 } catch (e) {
                     resultElement.textContent = '计算错误';
-                    warningElement.style.display = 'none';
+                    document.getElementById('resultLabel').textContent = '有效行小计';
+                    document.getElementById('resultMeta').textContent = '';
+                    document.getElementById('warning').textContent = '';
+                    document.getElementById('warning').hidden = true;
+                    document.getElementById('lineResults').replaceChildren();
+                    document.getElementById('copyResultBtn').disabled = true;
+                    document.getElementById('copyHint').textContent = '有错误行，不能当作完整总数复制';
+                    latestCalculation = null;
                 }
 
                 resultElement.classList.remove('calculating');
-            }, 300); // 延迟300毫秒执行
+            }, 300);
         }
 
-        // 复制结果功能
         function copyResult() {
-            const result = document.getElementById('result').textContent;
+            const currentInput = document.getElementById('numbers').value;
+            applyCalculation(CalculatorCore.calculate(currentInput));
+            if (!latestCalculation || !latestCalculation.copyable) {
+                return;
+            }
+            const result = document.getElementById('result').textContent + (latestCalculation.precisionWarning ? '\n' + latestCalculation.precisionNote : '');
             if (result && result !== '计算错误') {
-                navigator.clipboard.writeText(result).then(() => {
+                navigator.clipboard.writeText(result).then(function () {
                     const btn = document.querySelector('.icon-button i');
                     const originalClass = btn.className;
                     btn.className = 'fas fa-check';
-                    btn.style.color = 'var(--success-color)'; // Assuming var(--success-color) exists or use green
-                    if (!getComputedStyle(document.documentElement).getPropertyValue('--success-color')) {
-                        btn.style.color = 'green';
-                    }
+                    btn.style.color = 'var(--success-color)';
 
-                    setTimeout(() => {
+                    setTimeout(function () {
                         btn.className = originalClass;
                         btn.style.color = '';
                     }, 1500);
-                }).catch(err => {
-                    console.error('复制失败:', err);
+                }).catch(function () {
                     alert('复制失败，请手动复制');
                 });
             }
         }
 
-        // 保存当前结果到历史记录
         function saveToHistory() {
-            const result = document.getElementById('result').textContent;
             const input = document.getElementById('numbers').value;
-
-            if (!input.trim() || result === '0' || result === '计算错误') {
+            if (!CalculatorCore.canSaveToHistory(input)) {
                 return;
             }
 
+            if (calculateTimer) {
+                clearTimeout(calculateTimer);
+                calculateTimer = null;
+            }
+            const calculation = CalculatorCore.calculate(input);
+            applyCalculation(calculation);
+            document.getElementById('result').classList.remove('calculating');
+            if (!calculation.complete) {
+                document.getElementById('copyHint').textContent = '请先修正错误或溢出，再保存成功结果';
+                return;
+            }
+            const result = (calculation.approximate ? '≈ ' : '') + calculation.totalText + (calculation.precisionWarning ? '（浮点近似）' : '');
+
             const timestamp = new Date().toLocaleString();
+            const formattedExpr = calculation.lines.map(function (item) {
+                return item.expression;
+            }).join('；');
 
-            // 格式化表达式
-            const expressions = input
-                .split(/[\n\s]+/)
-                .filter(expr => expr.trim() !== '');
-
-            const formattedExpr = expressions.join(' + ');
-
-            // 创建历史记录项
             const historyItem = document.createElement('div');
             historyItem.className = 'history-item';
 
-            const createHistoryRow = (className, iconClass, text) => {
+            const createHistoryRow = function (className, iconClass, text) {
                 const row = document.createElement('div');
                 row.className = className;
 
                 const icon = document.createElement('i');
                 icon.className = iconClass;
-                row.append(icon, document.createTextNode(` ${text}`));
+                row.append(icon, document.createTextNode(' ' + text));
                 return row;
             };
 
@@ -809,10 +863,7 @@
                 createHistoryRow('history-result', 'fas fa-equals', result)
             );
 
-            // 将新记录插入到历史记录的顶部
             const historyContainer = document.getElementById('history');
-
-            // 移除空状态提示
             const emptyMsg = historyContainer.querySelector('.history-empty');
             if (emptyMsg) {
                 emptyMsg.remove();
@@ -820,54 +871,56 @@
 
             historyContainer.insertBefore(historyItem, historyContainer.firstChild);
 
-            // 更新计数
             historyCount++;
             updateHistoryCount();
 
-            // 添加成功提示并暂时禁用按钮
             const saveBtn = document.querySelector('.save-button');
-            const originalHTML = '<i class="fas fa-save"></i> 保存结果';
 
-            saveBtn.innerHTML = '<i class="fas fa-check"></i> 已保存';
-            saveBtn.style.pointerEvents = 'none'; // 防止重复点击
+            function setSaveButtonState(saved) {
+                const icon = document.createElement('i');
+                icon.className = saved ? 'fas fa-check' : 'fas fa-save';
+                icon.setAttribute('aria-hidden', 'true');
+                saveBtn.replaceChildren(icon, document.createTextNode(saved ? ' 已保存' : ' 保存结果'));
+                saveBtn.style.pointerEvents = saved ? 'none' : '';
+            }
 
-            setTimeout(() => {
-                saveBtn.innerHTML = originalHTML;
-                saveBtn.style.pointerEvents = 'auto';
+            setSaveButtonState(true);
+
+            setTimeout(function () {
+                setSaveButtonState(false);
             }, 1000);
         }
 
-        // 清空历史记录
         function clearHistory() {
             if (historyCount === 0) return;
 
             if (confirm('确定要清空所有历史记录吗？')) {
                 const historyContainer = document.getElementById('history');
-                historyContainer.innerHTML = `
-                    <div class="history-empty">
-                        <i class="fas fa-clock"></i><br>
-                        暂无历史记录
-                    </div>
-                `;
+                const empty = document.createElement('div');
+                empty.className = 'history-empty';
+
+                const icon = document.createElement('i');
+                icon.className = 'fas fa-clock';
+                empty.append(icon, document.createElement('br'), document.createTextNode('暂无历史记录'));
+                historyContainer.replaceChildren(empty);
+
                 historyCount = 0;
                 updateHistoryCount();
             }
         }
 
-        // 更新历史记录计数
         function updateHistoryCount() {
             document.getElementById('historyCount').textContent = historyCount;
         }
 
-        // 页面加载完成后初始化
         document.addEventListener('DOMContentLoaded', function () {
-            // 自动聚焦到输入框
             const numbersInput = document.getElementById('numbers');
             numbersInput.focus();
-            // 初始化行数统计
             updateLineCount();
         });
     </script>
+    <script src="../js/unsaved-guard.js"></script>
+    <script src="../js/theme.js"></script>
 </body>
 
 </html>

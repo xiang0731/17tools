@@ -2,10 +2,28 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
+    <script>
+        (function applyThemeEarly() {
+            try {
+                var pref = localStorage.getItem('17tools-theme');
+                if (pref == null) {
+                    pref = localStorage.getItem('theme');
+                    if (pref != null) {
+                        localStorage.setItem('17tools-theme', pref);
+                    }
+                }
+                var theme = (pref === 'light' || pref === 'dark')
+                    ? pref
+                    : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) { /* 存储不可用时由 theme.js 降级 */ }
+        })();
+    </script>
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>火星文转换器</title>
     <link rel="stylesheet" href="../css/theme.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="../vendor/fontawesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
             /* Fallback colors if theme.css is missing or incomplete */
@@ -355,7 +373,14 @@
                     <i class="fas fa-file-text"></i>
                     原文
                 </div>
-                <textarea id="inputText" placeholder="请输入要转换的正常文字..."></textarea>
+                <textarea aria-label="原文" id="inputText" placeholder="请输入要转换的正常文字..."></textarea>
+                <label for="decorationMode">装饰方式</label>
+                <select id="decorationMode">
+                    <option value="none">仅转换（每次相同）</option>
+                    <option value="light">少量随机装饰（约5%）</option>
+                    <option value="dense">较多随机装饰（约15%）</option>
+                </select>
+                <p>随机装饰每次可能不同；支持完整emoji，原文不自动保存。最多100万字符、5万行。</p>
                 <div class="button-container">
                     <button class="btn btn-primary" onclick="performConvert()">
                         <i class="fas fa-magic"></i>
@@ -381,7 +406,7 @@
                     火星文结果
                 </div>
             </div>
-            <textarea id="outputText" readonly placeholder="转换后的火星文将显示在这里..."></textarea>
+            <textarea aria-label="火星文结果" id="outputText" readonly placeholder="转换后的火星文将显示在这里..."></textarea>
             <div class="button-container">
                 <button class="btn btn-secondary" onclick="copyToClipboard('outputText')">
                     <i class="fas fa-copy"></i>
@@ -394,30 +419,10 @@
     <!-- Toast 容器 -->
     <div id="toastContainer" class="toast-container"></div>
 
+    <script src="../js/text-budget-core.js"></script>
+    <script src="../js/martian-text-core.js"></script>
+    <script src="../js/clipboard.js"></script>
     <script>
-        // 火星文字典映射
-        const martianMap = {
-            '我': '硪', '的': '啲', '爱': '僾', '你': '伱', '是': '媞', '不': '吥', '了': 'ㄋ', '在': '恠',
-            '好': '恏', '说': '説', '想': '厢', '很': '狠', '真': '眞', '这': '这', '吗': '嘛', '会': '哙',
-            '有': '囿', '就': '僦', '都': '嘟', '对': '怼', '起': '唘', '什': '什', '么': '庅', '大': '汏',
-            '家': '傢', '太': '冭', '小': '尐', '没': '莈', '还': '遦', '走': '赱', '看': '阭', '见': '笕',
-            '到': '菿', '得': '嘚', '啊': '吖', '哦': '喔', '哈': '铪', '和': '啝', '那': '那', '些': '些',
-            '人': '亾', '个': '个', '天': '兲', '心': '杺', '里': '哩', '生': '泩', '为': '沩', '来': '唻',
-            '去': '厾', '能': '螚', '做': '莋', '事': '倳', '如': '侞', '果': '淉', '被': '被', '要': '崾',
-            '把': '妑', '让': '让', '只': '呮', '可': '苛', '以': '苡', '之': '之', '所': '所', '一': '①',
-            '二': '②', '三': '③', '四': '④', '五': '⑤', '六': '⑥', '七': '⑦', '八': '⑧', '九': '⑨', 
-            '十': '⑩', '男': '莮', '女': '囡', '泪': '汨', '伤': '殇', '悲': '棑', '痛': '嗵', '死': '屍',
-            '忘': '莣', '记': '汜', '亲': '儭', '宝': '寳', '贝': '唄', '最': '蕞', '懂': '董', '错': '諎',
-            '别': '莂', '欢': '飌', '笑': '咲', '哭': '梪', '觉': '灚', '梦': '儚', '多': '哆', '少': '仯',
-            '远': '逺', '近': '迬', '明': '朙', '暗': '闇', '星': '猩', '月': '刖', '云': '囩', '风': '颩',
-            '雨': '傴', '雪': '膤', '花': '婲', '草': '愺', '树': '樹', '山': '屾', '水': '氺', '火': '焱',
-            '光': '灮', '影': '巛', '黑': '潶', '白': '皌', '红': '荭', '绿': '淥', '蓝': '嚲', '黄': '騜',
-            '她': '咃', '他': '祂', '它': '牠', '们': '扪', '给': '給', '等': '僜', '谁': '誰', '哪': '哪',
-            '快': '加快', '乐': '泺', '痛': '痌', '苦': '楛', '爱': '璦', '情': '凊', '友': '叐', '谊': '誼'
-        };
-
-        const specialSymbols = ['灬', '丶', '丿', 'oοΟ', '°', '·', '≈', '╬', '╭ァ', 'ゞ', '☆', '★', '○', '●'];
-
         function performConvert() {
             const inputElement = document.getElementById('inputText');
             const outputElement = document.getElementById('outputText');
@@ -428,19 +433,10 @@
                 return;
             }
             
-            let result = '';
-            for (let i = 0; i < text.length; i++) {
-                const char = text[i];
-                let mappedChar = martianMap[char] || char;
-                result += mappedChar;
-                
-                if (Math.random() < 0.05 && char.trim() !== '') {
-                    const randomSymbol = specialSymbols[Math.floor(Math.random() * specialSymbols.length)];
-                    result += randomSymbol;
-                }
-            }
-            
-            outputElement.value = result;
+            const mode = document.getElementById('decorationMode').value;
+            const result = MartianTextCore.convert(text, { decorate: mode !== 'none', rate: mode === 'dense' ? 0.15 : 0.05 });
+            if (!result.ok) { showToast(result.reason, 'warning'); return; }
+            outputElement.value = result.text;
             showToast('转换成功！', 'success');
         }
 
@@ -472,14 +468,8 @@
                 return;
             }
             
-            try {
-                await navigator.clipboard.writeText(text);
-                showToast('复制成功！', 'success');
-            } catch (err) {
-                element.select();
-                document.execCommand('copy');
-                showToast('复制成功！', 'success');
-            }
+            const result = await ToolsClipboard.copyText(text, { element: element });
+            showToast(result.message, result.ok ? 'success' : 'error');
         }
 
         // Toast 提示系统
@@ -495,10 +485,12 @@
 
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            toast.innerHTML = `
-                <i class="fas ${icons[type] || icons.info} toast-icon"></i>
-                <span class="toast-message">${message}</span>
-            `;
+            const icon = document.createElement('i');
+            icon.className = `fas ${icons[type] || icons.info} toast-icon`;
+            const text = document.createElement('span');
+            text.className = 'toast-message';
+            text.textContent = message;
+            toast.append(icon, text);
 
             container.appendChild(toast);
 

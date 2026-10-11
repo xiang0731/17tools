@@ -3,9 +3,29 @@
 
 <head>
     <meta charset="UTF-8">
+    <script>
+        (function applyThemeEarly() {
+            try {
+                var pref = localStorage.getItem('17tools-theme');
+                if (pref == null) {
+                    pref = localStorage.getItem('theme');
+                    if (pref != null) {
+                        localStorage.setItem('17tools-theme', pref);
+                    }
+                }
+                var theme = (pref === 'light' || pref === 'dark')
+                    ? pref
+                    : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) { /* 存储不可用时由 theme.js 降级 */ }
+        })();
+    </script>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>时间计算器</title>
     <link rel="stylesheet" href="../css/theme.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../css/workday.css">
+    <link href="../vendor/fontawesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         body {
             min-height: 100vh;
@@ -40,6 +60,10 @@
             border-radius: var(--radius-lg);
             padding: var(--spacing-xl);
             box-shadow: var(--shadow-md);
+        }
+
+        .workday-panel {
+            padding: var(--spacing-xl);
         }
 
         h1::before {
@@ -113,6 +137,7 @@
         }
 
         input[type="date"],
+        input[type="datetime-local"],
         input[type="number"],
         select {
             width: 100%;
@@ -126,11 +151,28 @@
         }
 
         input[type="date"]:focus,
+        input[type="datetime-local"]:focus,
         input[type="number"]:focus,
         select:focus {
             outline: none;
             border-color: var(--border-focus);
             box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        input[aria-invalid="true"],
+        select[aria-invalid="true"] {
+            border-color: var(--error-color);
+        }
+
+        .field-error {
+            margin: var(--spacing-xs) 0 0;
+            color: var(--text-error);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .field-error:empty {
+            display: none;
         }
 
         /* 双列输入布局 */
@@ -297,6 +339,11 @@
                 padding: var(--spacing-md);
             }
 
+            .tool-panel,
+            .workday-panel {
+                padding: var(--spacing-md);
+            }
+
             .function-buttons {
                 grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             }
@@ -350,15 +397,21 @@
             </button>
         </div>
 
+        <div aria-live="polite">
+            <p id="modeError" class="field-error"></p>
+        </div>
+
         <div class="input-section">
             <!-- 功能A的输入区域 -->
-            <div id="inputA" class="input-area hidden">
+            <p class="field-hint" style="color:var(--text-secondary);line-height:1.6">日期偏移按本地日历移动整数天、周、月、年（支持 1900–2100 年）；跨夏令时的一天可能是 23 或 25 小时。D 模式按实际经过的整数小时/分钟计算。</p>
+            <div id="inputA" class="input-area hidden" aria-live="polite">
                 <div class="input-group">
                     <label for="startDate" style="display: flex; justify-content: space-between; align-items: center;">
                         <span><i class="fas fa-calendar"></i> 起始日期：</span>
                         <button type="button" class="text-button" onclick="setToday('startDate')">今天</button>
                     </label>
-                    <input type="date" id="startDate" min="1900-01-01" max="2100-12-31">
+                    <input type="date" id="startDate" min="1900-01-01" max="2100-12-31" aria-describedby="startDateError">
+                    <p id="startDateError" class="field-error"></p>
                 </div>
                 <div class="dual-input">
                     <div class="input-group">
@@ -366,7 +419,8 @@
                             <i class="fas fa-hashtag"></i>
                             数量（正数为未来，负数为过去）：
                         </label>
-                        <input type="number" id="timeValue" placeholder="例如：30 或 -15">
+                        <input type="number" id="timeValue" placeholder="例如：30 或 -15" aria-describedby="timeValueError">
+                        <p id="timeValueError" class="field-error"></p>
                     </div>
                     <div class="input-group">
                         <label for="timeUnit">
@@ -378,32 +432,34 @@
                             <option value="weeks">周</option>
                             <option value="months">月（自然月）</option>
                             <option value="years">年</option>
-                            <option value="calendar-months">公历月（30天）</option>
+                            <option value="calendar-months">按 30 天</option>
                         </select>
                     </div>
                 </div>
             </div>
 
             <!-- 功能B的输入区域 -->
-            <div id="inputB" class="input-area hidden">
+            <div id="inputB" class="input-area hidden" aria-live="polite">
                 <div class="input-group">
                     <label for="date1" style="display: flex; justify-content: space-between; align-items: center;">
                         <span><i class="fas fa-calendar"></i> 第一个日期：</span>
                         <button type="button" class="text-button" onclick="setToday('date1')">今天</button>
                     </label>
-                    <input type="date" id="date1" min="1900-01-01" max="2100-12-31">
+                    <input type="date" id="date1" min="1900-01-01" max="2100-12-31" aria-describedby="date1Error">
+                    <p id="date1Error" class="field-error"></p>
                 </div>
                 <div class="input-group">
                     <label for="date2" style="display: flex; justify-content: space-between; align-items: center;">
                         <span><i class="fas fa-calendar"></i> 第二个日期：</span>
                         <button type="button" class="text-button" onclick="setToday('date2')">今天</button>
                     </label>
-                    <input type="date" id="date2" min="1900-01-01" max="2100-12-31">
+                    <input type="date" id="date2" min="1900-01-01" max="2100-12-31" aria-describedby="date2Error">
+                    <p id="date2Error" class="field-error"></p>
                 </div>
             </div>
 
             <!-- 功能C的输入区域 -->
-            <div id="inputC" class="input-area hidden">
+            <div id="inputC" class="input-area hidden" aria-live="polite">
                 <div style="text-align: center; margin-bottom: var(--spacing-lg); color: var(--text-secondary);">
                     <i class="fas fa-exchange-alt"></i>
                     输入任一日期，自动转换对应的另一历法日期
@@ -415,7 +471,8 @@
                         <span><i class="fas fa-calendar"></i> 公历日期（输入后自动转换为农历）：</span>
                         <button type="button" class="text-button" onclick="setToday('solarDate')">今天</button>
                     </label>
-                    <input type="date" id="solarDate" min="1900-01-01" max="2100-12-31" placeholder="选择公历日期">
+                    <input type="date" id="solarDate" min="1900-01-01" max="2100-12-31" placeholder="选择公历日期" aria-describedby="solarDateError">
+                    <p id="solarDateError" class="field-error"></p>
                 </div>
 
                 <!-- 分隔线 -->
@@ -431,8 +488,8 @@
                         农历日期（输入后自动转换为公历）：
                     </label>
                     <div class="lunar-grid">
-                        <input type="number" id="lunarYear" placeholder="年份" min="1900" max="2100">
-                        <select id="lunarMonth">
+                        <input type="number" id="lunarYear" placeholder="年份" min="1900" max="2100" aria-describedby="lunarInputError">
+                        <select id="lunarMonth" aria-describedby="lunarInputError">
                             <option value="">请选择月份</option>
                             <option value="1">正月</option>
                             <option value="2">二月</option>
@@ -447,12 +504,13 @@
                             <option value="11">十一月</option>
                             <option value="12">十二月</option>
                         </select>
-                        <input type="number" id="lunarDay" placeholder="日期" min="1" max="30">
+                        <input type="number" id="lunarDay" placeholder="日期" min="1" max="30" aria-describedby="lunarInputError">
                         <label class="checkbox-label">
                             <input type="checkbox" id="isLeapMonth">
                             闰月
                         </label>
                     </div>
+                    <p id="lunarInputError" class="field-error"></p>
                     <div style="font-size: 12px; color: var(--text-tertiary); margin-top: var(--spacing-xs);">
                         提示：如果该年该月有闰月，请勾选"闰月"复选框
                     </div>
@@ -460,13 +518,14 @@
             </div>
 
             <!-- 功能D的输入区域 -->
-            <div id="inputD" class="input-area hidden">
+            <div id="inputD" class="input-area hidden" aria-live="polite">
                 <div class="input-group">
                     <label for="baseDateTime" style="display: flex; justify-content: space-between; align-items: center;">
                         <span><i class="fas fa-calendar-alt"></i> 起始日期时间：</span>
                         <button type="button" class="text-button" onclick="setNow('baseDateTime')">现在</button>
                     </label>
-                    <input type="datetime-local" id="baseDateTime">
+                    <input type="datetime-local" id="baseDateTime" aria-describedby="baseDateTimeError">
+                    <p id="baseDateTimeError" class="field-error"></p>
                 </div>
                 <div class="dual-input">
                     <div class="input-group">
@@ -474,26 +533,29 @@
                             <i class="fas fa-hourglass-half"></i>
                             小时差 (正数为未来, 负数为过去):
                         </label>
-                        <input type="number" id="offsetHours" placeholder="例如：8" step="1">
+                        <input type="number" id="offsetHours" aria-describedby="offsetHoursError" placeholder="例如：8" step="1">
+                        <p class="field-error" id="offsetHoursError"></p>
                     </div>
                     <div class="input-group">
                         <label for="offsetMinutes">
                             <i class="fas fa-clock"></i>
                             分钟差:
                         </label>
-                        <input type="number" id="offsetMinutes" placeholder="例如：0" step="1">
+                        <input type="number" id="offsetMinutes" aria-describedby="offsetMinutesError" placeholder="例如：0" step="1">
+                        <p class="field-error" id="offsetMinutesError"></p>
                     </div>
                 </div>
             </div>
 
             <!-- 功能E的输入区域 -->
-            <div id="inputE" class="input-area hidden">
+            <div id="inputE" class="input-area hidden" aria-live="polite">
                 <div class="input-group">
                     <label for="startDateE" style="display: flex; justify-content: space-between; align-items: center;">
                         <span><i class="fas fa-calendar"></i> 基准日期：</span>
                         <button type="button" class="text-button" onclick="setToday('startDateE')">今天</button>
                     </label>
-                    <input type="date" id="startDateE" min="1900-01-01" max="2100-12-31">
+                    <input type="date" id="startDateE" min="1900-01-01" max="2100-12-31" aria-describedby="startDateEError">
+                    <p id="startDateEError" class="field-error"></p>
                 </div>
                 <div class="dual-input">
                     <div class="input-group">
@@ -501,7 +563,8 @@
                             <i class="fas fa-hashtag"></i>
                             起始偏移量：
                         </label>
-                        <input type="number" id="rangeValue1" placeholder="例如：-7">
+                        <input type="number" id="rangeValue1" aria-describedby="rangeValue1Error" placeholder="例如：-7">
+                        <p class="field-error" id="rangeValue1Error"></p>
                     </div>
                     <div class="input-group">
                         <label for="rangeUnit1">
@@ -513,7 +576,7 @@
                             <option value="weeks">周</option>
                             <option value="months">月（自然月）</option>
                             <option value="years">年</option>
-                            <option value="calendar-months">公历月（30天）</option>
+                            <option value="calendar-months">按 30 天</option>
                         </select>
                     </div>
                 </div>
@@ -523,7 +586,8 @@
                             <i class="fas fa-hashtag"></i>
                             结束偏移量：
                         </label>
-                        <input type="number" id="rangeValue2" placeholder="例如：7">
+                        <input type="number" id="rangeValue2" aria-describedby="rangeValue2Error" placeholder="例如：7">
+                        <p class="field-error" id="rangeValue2Error"></p>
                     </div>
                     <div class="input-group">
                         <label for="rangeUnit2">
@@ -535,7 +599,7 @@
                             <option value="weeks">周</option>
                             <option value="months">月（自然月）</option>
                             <option value="years">年</option>
-                            <option value="calendar-months">公历月（30天）</option>
+                            <option value="calendar-months">按 30 天</option>
                         </select>
                     </div>
                 </div>
@@ -543,15 +607,19 @@
         </div>
 
         <div class="action-buttons">
-            <button class="action-button btn-clear" id="clearBtn">
+            <button type="button" class="action-button btn-clear" id="clearBtn">
                 <i class="fas fa-eraser"></i>
-                清除
+                清空
             </button>
-            <button class="action-button btn-primary" id="calculateBtn" disabled>
+            <button type="button" class="action-button btn-secondary" id="restoreBtn">
+                <i class="fas fa-rotate-left"></i>
+                恢复默认
+            </button>
+            <button type="button" class="action-button btn-primary" id="calculateBtn" disabled>
                 <i class="fas fa-calculator"></i>
                 计算
             </button>
-            <button class="action-button btn-secondary" id="copyBtn">
+            <button type="button" class="action-button btn-secondary" id="copyBtn">
                 <i class="fas fa-copy"></i>
                 复制结果
             </button>
@@ -566,8 +634,15 @@
             </div>
         </div>
         </div>
+        <section data-workday-panel aria-label="工作日计算"></section>
     </div>
 
+    <script src="../js/china-holidays.js"></script>
+    <script src="../js/workday-core.js"></script>
+    <script src="../js/workday-page.js"></script>
+    <script src="../js/date-calculator-core.js"></script>
+    <script src="../js/clipboard.js"></script>
+    <script src="../js/lunar-core.js"></script>
     <script src="../js/unsaved-guard.js"></script>
     <script src="../js/theme.js"></script>
     <script>
@@ -609,185 +684,14 @@
             return date;
         }
 
-        // 完整的农历转换类（支持1900-2100年）
-        class LunarCalendar {
-            constructor() {
-                // 农历数据表（每年的农历信息编码）- 完整的1900-2100年数据
-                this.lunarInfo = [
-                    0x04bd8, 0x04ae0, 0x0a570, 0x054d5, 0x0d260, 0x0d950, 0x16554, 0x056a0, 0x09ad0, 0x055d2, // 1900-1909
-                    0x04ae0, 0x0a5b6, 0x0a4d0, 0x0d250, 0x1d255, 0x0b540, 0x0d6a0, 0x0ada2, 0x095b0, 0x14977, // 1910-1919
-                    0x04970, 0x0a4b0, 0x0b4b5, 0x06a50, 0x06d40, 0x1ab54, 0x02b60, 0x09570, 0x052f2, 0x04970, // 1920-1929
-                    0x06566, 0x0d4a0, 0x0ea50, 0x06e95, 0x05ad0, 0x02b60, 0x186e3, 0x092e0, 0x1c8d7, 0x0c950, // 1930-1939
-                    0x0d4a0, 0x1d8a6, 0x0b550, 0x056a0, 0x1a5b4, 0x025d0, 0x092d0, 0x0d2b2, 0x0a950, 0x0b557, // 1940-1949
-                    0x06ca0, 0x0b550, 0x15355, 0x04da0, 0x0a5b0, 0x14573, 0x052b0, 0x0a9a8, 0x0e950, 0x06aa0, // 1950-1959
-                    0x0aea6, 0x0ab50, 0x04b60, 0x0aae4, 0x0a570, 0x05260, 0x0f263, 0x0d950, 0x05b57, 0x056a0, // 1960-1969
-                    0x096d0, 0x04dd5, 0x04ad0, 0x0a4d0, 0x0d4d4, 0x0d250, 0x0d558, 0x0b540, 0x0b6a0, 0x195a6, // 1970-1979
-                    0x095b0, 0x049b0, 0x0a974, 0x0a4b0, 0x0b27a, 0x06a50, 0x06d40, 0x0af46, 0x0ab60, 0x09570, // 1980-1989
-                    0x04af5, 0x04970, 0x064b0, 0x074a3, 0x0ea50, 0x06b58, 0x055c0, 0x0ab60, 0x096d5, 0x092e0, // 1990-1999
-                    0x0c960, 0x0d954, 0x0d4a0, 0x0da50, 0x07552, 0x056a0, 0x0abb7, 0x025d0, 0x092d0, 0x0cab5, // 2000-2009
-                    0x0a950, 0x0b4a0, 0x0baa4, 0x0ad50, 0x055d9, 0x04ba0, 0x0a5b0, 0x15176, 0x052b0, 0x0a930, // 2010-2019
-                    0x07954, 0x06aa0, 0x0ad50, 0x05b52, 0x04b60, 0x0a6e6, 0x0a4e0, 0x0d260, 0x0ea65, 0x0d530, // 2020-2029
-                    0x05aa0, 0x076a3, 0x096d0, 0x04afb, 0x04ad0, 0x0a4d0, 0x1d0b6, 0x0d250, 0x0d520, 0x0dd45, // 2030-2039
-                    0x0b5a0, 0x056d0, 0x055b2, 0x049b0, 0x0a577, 0x0a4b0, 0x0aa50, 0x1b255, 0x06d20, 0x0ada0, // 2040-2049
-                    0x14b63, 0x09370, 0x049f8, 0x04970, 0x064b0, 0x168a6, 0x0ea50, 0x06b20, 0x1a6c4, 0x0aae0, // 2050-2059
-                    0x0a2e0, 0x0d2e3, 0x0c960, 0x0d557, 0x0d4a0, 0x0da50, 0x05d55, 0x056a0, 0x0a6d0, 0x055d4, // 2060-2069
-                    0x052d0, 0x0a9b8, 0x0a950, 0x0b4a0, 0x0b6a6, 0x0ad50, 0x055a0, 0x0aba4, 0x0a5b0, 0x052b0, // 2070-2079
-                    0x0b273, 0x06930, 0x07337, 0x06aa0, 0x0ad50, 0x14b55, 0x04b60, 0x0a570, 0x054e4, 0x0d160, // 2080-2089
-                    0x0e968, 0x0d520, 0x0daa0, 0x16aa6, 0x056d0, 0x04ae0, 0x0a9d4, 0x0a2d0, 0x0d150, 0x0f252, // 2090-2099
-                    0x0d520                                                                                    // 2100
-                ];
-            }
-
-            // 获取农历年的天数
-            lYearDays(y) {
-                let i, sum = 348;
-                for (i = 0x8000; i > 0x8; i >>= 1) {
-                    sum += (this.lunarInfo[y - 1900] & i) ? 1 : 0;
-                }
-                return sum + this.leapDays(y);
-            }
-
-            // 获取农历年闰月的天数
-            leapDays(y) {
-                if (this.leapMonth(y)) {
-                    return (this.lunarInfo[y - 1900] & 0x10000) ? 30 : 29;
-                } else {
-                    return 0;
-                }
-            }
-
-            // 获取农历年闰哪个月
-            leapMonth(y) {
-                return this.lunarInfo[y - 1900] & 0xf;
-            }
-
-            // 获取农历年月的天数
-            monthDays(y, m) {
-                return (this.lunarInfo[y - 1900] & (0x10000 >> m)) ? 30 : 29;
-            }
-
-            // 公历转农历
-            solarToLunar(year, month, day) {
-                // 基准日期：1900年1月31日对应农历1900年正月初一
-                const baseDayNumber = getCalendarDayNumber(1900, 1, 31);
-                let offset = getCalendarDayNumber(year, month, day) - baseDayNumber;
-
-                let lunarYear = 1900;
-                let daysInYear = 0;
-
-                // 计算农历年份
-                while (lunarYear < 2101 && offset > 0) {
-                    daysInYear = this.lYearDays(lunarYear);
-                    if (offset >= daysInYear) {
-                        offset -= daysInYear;
-                        lunarYear++;
-                    } else {
-                        break;
-                    }
-                }
-
-                let lunarMonth = 1;
-                let isLeap = false;
-                let daysInMonth = 0;
-
-                // 计算农历月份
-                while (lunarMonth <= 12 && offset > 0) {
-                    // 检查是否有闰月
-                    const leapMonth = this.leapMonth(lunarYear);
-
-                    if (leapMonth > 0 && lunarMonth === leapMonth && !isLeap) {
-                        // 处理闰月
-                        isLeap = true;
-                        daysInMonth = this.leapDays(lunarYear);
-                    } else {
-                        // 处理正常月份
-                        isLeap = false;
-                        daysInMonth = this.monthDays(lunarYear, lunarMonth);
-                    }
-
-                    if (offset >= daysInMonth) {
-                        offset -= daysInMonth;
-                        if (!isLeap) {
-                            lunarMonth++;
-                        } else {
-                            isLeap = false;
-                        }
-                    } else {
-                        break;
-                    }
-                }
-
-                const lunarDay = offset + 1;
-                return {
-                    year: lunarYear,
-                    month: lunarMonth,
-                    day: lunarDay,
-                    isLeap: isLeap
-                };
-            }
-
-            // 农历转公历
-            lunarToSolar(year, month, day, isLeap = false) {
-                try {
-                    // 基准日期：1900年1月31日对应农历1900年正月初一
-                    const baseDayNumber = getCalendarDayNumber(1900, 1, 31);
-                    let offset = 0;
-
-                    // 计算到目标年的天数
-                    for (let y = 1900; y < year; y++) {
-                        offset += this.lYearDays(y);
-                    }
-
-                    // 计算到目标月的天数
-                    const leapMonth = this.leapMonth(year);
-                    for (let m = 1; m < month; m++) {
-                        offset += this.monthDays(year, m);
-                        // 如果当前月是闰月，加上闰月天数
-                        if (leapMonth === m) {
-                            offset += this.leapDays(year);
-                        }
-                    }
-
-                    // 如果目标月是闰月
-                    if (isLeap && leapMonth === month) {
-                        offset += this.monthDays(year, month);
-                    }
-
-                    // 加上目标日（减1是因为初一是第1天）
-                    offset += day - 1;
-
-                    const resultDate = new Date((baseDayNumber + offset) * MILLISECONDS_PER_DAY);
-                    return {
-                        year: resultDate.getUTCFullYear(),
-                        month: resultDate.getUTCMonth() + 1,
-                        day: resultDate.getUTCDate()
-                    };
-                } catch (error) {
-                    console.error('农历转公历错误:', error);
-                    return null;
-                }
-            }
-
-            // 获取生肖
-            getZodiac(year) {
-                const zodiacs = ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪'];
-                return zodiacs[(year - 4) % 12];
-            }
-
-            // 获取天干地支
-            getGanZhi(year) {
-                const gan = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
-                const zhi = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
-                return gan[(year - 4) % 10] + zhi[(year - 4) % 12];
-            }
-        }
-
-        const lunarCalendar = new LunarCalendar();
+        const lunarCalendar = LunarCore;
 
         // 公历日期输入监听 - 自动转换为农历
         document.getElementById('solarDate').addEventListener('change', function () {
             const solarDate = this.value;
             if (!solarDate) {
+                clearFieldError('solarDate');
+                clearLunarError();
                 clearResult();
                 return;
             }
@@ -797,18 +701,22 @@
             document.getElementById('lunarMonth').value = '';
             document.getElementById('lunarDay').value = '';
             document.getElementById('isLeapMonth').checked = false;
+            clearLunarError();
 
             try {
                 const date = parseDateInput(solarDate);
                 if (!date) {
+                    setFieldError('solarDate', '请输入有效的公历日期！');
                     showResult('请输入有效的公历日期！', 'error');
                     return;
                 }
+                clearFieldError('solarDate');
                 const year = date.getFullYear();
                 const month = date.getMonth() + 1;
                 const day = date.getDate();
 
                 if (year < 1900 || year > 2100) {
+                    setFieldError('solarDate', '仅支持1900-2100年范围的日期转换！');
                     showResult('仅支持1900-2100年范围的日期转换！', 'error');
                     return;
                 }
@@ -819,58 +727,67 @@
                 if (!lunar || lunar.year < 1900 || lunar.year > 2100 ||
                     lunar.month < 1 || lunar.month > 12 ||
                     lunar.day < 1 || lunar.day > 30) {
+                    setFieldError('solarDate', '转换结果异常，请检查输入日期是否正确！');
                     showResult('转换结果异常，请检查输入日期是否正确！', 'error');
                     return;
                 }
 
-                const monthNames = ['', '正月', '二月', '三月', '四月', '五月', '六月',
-                    '七月', '八月', '九月', '十月', '十一月', '十二月'];
-                const dayNames = ['', '初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十',
-                    '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十',
-                    '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十'];
-
                 const zodiac = lunarCalendar.getZodiac(lunar.year);
                 const ganzhi = lunarCalendar.getGanZhi(lunar.year);
-                const leapInfo = lunar.isLeap ? '（闰月）' : '';
+                const lunarText = lunarCalendar.formatLunar(lunar);
 
-                const result = `
-                    <div><i class="fas fa-arrow-right" style="color: var(--primary-color);"></i> 公历 <span class="result-highlight">${solarDate}</span> 对应的农历日期：</div>
-                    <div class="result-highlight" style="margin-top: 10px; font-size: 1.3em;">
-                        农历${lunar.year}年${monthNames[lunar.month]}${dayNames[lunar.day]}${leapInfo}
-                    </div>
-                    <div style="margin-top: 10px; color: var(--text-secondary);">
-                        ${ganzhi}年（${zodiac}年）
-                    </div>
-                `;
-                showResult(result);
+                setResultNodes([
+                    resultLine([
+                        faIcon('fas fa-arrow-right', 'color: var(--primary-color);'),
+                        ' 公历 ',
+                        highlightText(solarDate),
+                        ' 对应的农历日期：'
+                    ]),
+                    resultLine(['农历' + lunarText], 'result-highlight', 'margin-top: 10px; font-size: 1.3em;'),
+                    resultLine([`${ganzhi}年（${zodiac}年）`], '', 'margin-top: 10px; color: var(--text-secondary);')
+                ]);
             } catch (error) {
+                setFieldError('solarDate', '日期转换失败，请检查输入的日期是否正确！');
                 showResult('日期转换失败，请检查输入的日期是否正确！', 'error');
             }
         });
 
         // 农历日期输入监听 - 自动转换为公历
         function handleLunarInput() {
-            const lunarYear = parseInt(document.getElementById('lunarYear').value);
-            const lunarMonth = parseInt(document.getElementById('lunarMonth').value);
-            const lunarDay = parseInt(document.getElementById('lunarDay').value);
+            const rawYear = document.getElementById('lunarYear').value;
+            const rawMonth = document.getElementById('lunarMonth').value;
+            const rawDay = document.getElementById('lunarDay').value;
             const isLeap = document.getElementById('isLeapMonth').checked;
-
-            // 只有当年月日都有值时才转换
-            if (!lunarYear || !lunarMonth || !lunarDay) {
+            if (!rawYear || !rawMonth || !rawDay) { clearLunarError(); return; }
+            const yearAmount = DateCalculatorCore.parseInteger(rawYear);
+            const monthAmount = DateCalculatorCore.parseInteger(rawMonth);
+            const dayAmount = DateCalculatorCore.parseInteger(rawDay);
+            if (![yearAmount, monthAmount, dayAmount].every(amount => amount.ok)) {
+                setLunarError('农历年月日必须是完整整数，不能使用小数或指数。');
+                showResult('农历年月日必须是完整整数，不能使用小数或指数。', 'error');
                 return;
             }
+            const lunarYear = yearAmount.value, lunarMonth = monthAmount.value, lunarDay = dayAmount.value;
 
             // 清空公历输入
             document.getElementById('solarDate').value = '';
+            clearFieldError('solarDate');
 
             if (lunarYear < 1900 || lunarYear > 2100) {
+                setLunarError('仅支持1900-2100年范围的日期转换！');
                 showResult('仅支持1900-2100年范围的日期转换！', 'error');
                 return;
             }
 
             try {
                 const solar = lunarCalendar.lunarToSolar(lunarYear, lunarMonth, lunarDay, isLeap);
-                if (!solar || solar.year < 1900 || solar.year > 2101 ||
+                if (solar && (solar.year < 1900 || solar.year > 2100)) {
+                    const message = '该农历日期对应的公历超出1900–2100年支持范围，请调整日期。';
+                    setLunarError(message);
+                    showResult(message, 'error');
+                    return;
+                }
+                if (!solar ||
                     solar.month < 1 || solar.month > 12 ||
                     solar.day < 1 || solar.day > 31) {
                     throw new Error('转换失败或结果异常');
@@ -881,28 +798,28 @@
                 const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
                 const weekday = weekdays[date.getDay()];
 
-                const monthNames = ['', '正月', '二月', '三月', '四月', '五月', '六月',
-                    '七月', '八月', '九月', '十月', '十一月', '十二月'];
-                const dayNames = ['', '初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十',
-                    '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十',
-                    '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十'];
-
-                const leapInfo = isLeap ? '（闰月）' : '';
+                const lunarText = lunarCalendar.formatLunar({
+                    year: lunarYear,
+                    month: lunarMonth,
+                    day: lunarDay,
+                    isLeap: isLeap
+                });
                 const zodiac = lunarCalendar.getZodiac(lunarYear);
                 const ganzhi = lunarCalendar.getGanZhi(lunarYear);
+                clearLunarError();
 
-                const result = `
-                    <div><i class="fas fa-arrow-left" style="color: var(--primary-color);"></i> 农历${lunarYear}年${monthNames[lunarMonth]}${dayNames[lunarDay]}${leapInfo} 对应的公历日期：</div>
-                    <div class="result-highlight" style="margin-top: 10px; font-size: 1.3em;">
-                        ${solarDateStr} (星期${weekday})
-                    </div>
-                    <div style="margin-top: 10px; color: var(--text-secondary);">
-                        ${ganzhi}年（${zodiac}年）
-                    </div>
-                `;
-                showResult(result);
+                setResultNodes([
+                    resultLine([
+                        faIcon('fas fa-arrow-left', 'color: var(--primary-color);'),
+                        ' 农历' + lunarText + ' 对应的公历日期：'
+                    ]),
+                    resultLine([`${solarDateStr} (星期${weekday})`], 'result-highlight', 'margin-top: 10px; font-size: 1.3em;'),
+                    resultLine([`${ganzhi}年（${zodiac}年）`], '', 'margin-top: 10px; color: var(--text-secondary);')
+                ]);
             } catch (error) {
-                showResult('农历日期转换失败，请检查输入的日期是否正确！可能是无效的农历日期或闰月设置错误。', 'error');
+                const message = '农历日期转换失败，请检查输入的日期是否正确！可能是无效的农历日期或闰月设置错误。';
+                setLunarError(message);
+                showResult(message, 'error');
             }
         }
 
@@ -912,14 +829,60 @@
         document.getElementById('lunarDay').addEventListener('input', handleLunarInput);
         document.getElementById('isLeapMonth').addEventListener('change', handleLunarInput);
 
+        function createEl(tag, className, styleText) {
+            const node = document.createElement(tag);
+            if (className) node.className = className;
+            if (styleText) node.style.cssText = styleText;
+            return node;
+        }
+
+        function faIcon(className, styleText) {
+            const icon = createEl('i', className, styleText);
+            return icon;
+        }
+
+        function highlightText(value) {
+            const span = createEl('span', 'result-highlight');
+            span.textContent = value;
+            return span;
+        }
+
+        function resultLine(parts, className, styleText) {
+            const div = createEl('div', className, styleText);
+            (parts || []).forEach((part) => {
+                if (typeof part === 'string') {
+                    div.appendChild(document.createTextNode(part));
+                } else if (part) {
+                    div.appendChild(part);
+                }
+            });
+            return div;
+        }
+
+        function setResultNodes(nodes) {
+            const frag = document.createDocumentFragment();
+            (nodes || []).forEach((node) => {
+                if (node) frag.appendChild(node);
+            });
+            showResult(frag);
+        }
+
         // 结果显示函数
         function showResult(content, type = 'success') {
             const resultElement = document.getElementById('result');
+            resultElement.replaceChildren();
             if (type === 'error') {
-                resultElement.innerHTML = `<div style="color: #ef4444;"><i class="fas fa-exclamation-triangle"></i> ${content}</div>`;
-            } else {
-                resultElement.innerHTML = content;
+                resultElement.appendChild(resultLine([
+                    faIcon('fas fa-exclamation-triangle'),
+                    ' ' + String(content)
+                ], '', 'color: var(--text-error);'));
+                return;
             }
+            if (content instanceof Node) {
+                resultElement.appendChild(content);
+                return;
+            }
+            resultElement.textContent = String(content == null ? '' : content);
         }
 
         // 功能按钮点击事件
@@ -930,6 +893,8 @@
                 });
                 this.classList.add('active');
                 selectedFunction = this.dataset.function;
+                clearModeError();
+                clearAllFieldErrors();
 
                 // 隐藏所有输入区域
                 document.querySelectorAll('.input-area').forEach(area => {
@@ -946,7 +911,6 @@
                 if (selectedFunction === 'A' || selectedFunction === 'B' || selectedFunction === 'D' || selectedFunction === 'E') {
                     // A, B, D, E功能：启用计算按钮，设置默认日期/时间
                     calculateBtn.disabled = false;
-                    calculateBtn.innerHTML = '<i class="fas fa-calculator"></i> 计算';
                     calculateBtn.className = 'action-button btn-primary';
                 } else if (selectedFunction === 'C') {
                     // C功能：隐藏计算按钮，因为是实时的
@@ -991,6 +955,7 @@
             const date = new Date(year, month - 1, day);
 
             if (
+                year < 1900 || year > 2100 ||
                 date.getFullYear() !== year ||
                 date.getMonth() !== month - 1 ||
                 date.getDate() !== day
@@ -998,6 +963,20 @@
                 return null;
             }
 
+            return date;
+        }
+
+        function parseDateTimeLocal(value) {
+            const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(value);
+            if (!match) return null;
+            const date = parseDateInput(match[1] + '-' + match[2] + '-' + match[3]);
+            if (!date) return null;
+            const hours = Number(match[4]);
+            const minutes = Number(match[5]);
+            const seconds = match[6] ? Number(match[6]) : 0;
+            if (hours > 23 || minutes > 59 || seconds > 59) return null;
+            date.setHours(hours, minutes, seconds, 0);
+            if (date.getHours() !== hours || date.getMinutes() !== minutes || date.getSeconds() !== seconds) return null;
             return date;
         }
 
@@ -1010,16 +989,19 @@
 
         // 设置指定输入框为今天
         function setToday(inputId) {
-            document.getElementById(inputId).value = getTodayString();
+            const input = document.getElementById(inputId);
+            input.value = getTodayString();
+            clearFieldError(inputId);
             // 如果是在功能C的公历输入框，还需要触发change事件
             if (inputId === 'solarDate') {
-                document.getElementById(inputId).dispatchEvent(new Event('change'));
+                input.dispatchEvent(new Event('change'));
             }
         }
 
         // 设置指定输入框为现在
         function setNow(inputId) {
             document.getElementById(inputId).value = getNowString();
+            clearFieldError(inputId);
         }
 
         // 设置默认日期
@@ -1050,26 +1032,92 @@
             }
         }
 
-        // 清除按钮
-        document.getElementById('clearBtn').addEventListener('click', function () {
+        function setModeError(message) {
+            document.getElementById('modeError').textContent = message;
+        }
+
+        function clearModeError() {
+            const modeError = document.getElementById('modeError');
+            if (modeError) modeError.textContent = '';
+        }
+
+        function setFieldError(inputId, message) {
+            const input = document.getElementById(inputId);
+            const error = document.getElementById(inputId + 'Error');
+            if (input) input.setAttribute('aria-invalid', 'true');
+            if (error) error.textContent = message;
+            return input;
+        }
+
+        function clearFieldError(inputId) {
+            const input = document.getElementById(inputId);
+            const error = document.getElementById(inputId + 'Error');
+            if (input) input.removeAttribute('aria-invalid');
+            if (error) error.textContent = '';
+        }
+
+        function setLunarError(message) {
+            ['lunarYear', 'lunarMonth', 'lunarDay'].forEach((id) => {
+                const input = document.getElementById(id);
+                if (input) input.setAttribute('aria-invalid', 'true');
+            });
+            const error = document.getElementById('lunarInputError');
+            if (error) error.textContent = message;
+        }
+
+        function clearLunarError() {
+            ['lunarYear', 'lunarMonth', 'lunarDay'].forEach((id) => {
+                const input = document.getElementById(id);
+                if (input) input.removeAttribute('aria-invalid');
+            });
+            const error = document.getElementById('lunarInputError');
+            if (error) error.textContent = '';
+        }
+
+        function clearAllFieldErrors() {
+            document.querySelectorAll('[aria-invalid="true"]').forEach((el) => {
+                el.removeAttribute('aria-invalid');
+            });
+            document.querySelectorAll('.field-error').forEach((el) => {
+                el.textContent = '';
+            });
+        }
+
+        function focusModeInput() {
+            const ids = {
+                A: 'startDate',
+                B: 'date1',
+                C: 'solarDate',
+                D: 'baseDateTime',
+                E: 'startDateE'
+            };
+            const el = document.getElementById(ids[selectedFunction] || '');
+            if (el) el.focus();
+        }
+
+        function failFields(pairs) {
+            let first = null;
+            pairs.forEach((pair) => {
+                const input = setFieldError(pair[0], pair[1]);
+                if (!first && input) first = input;
+            });
+            clearResult();
+            if (first) first.focus();
+        }
+
+        function clearCurrentMode() {
+            if (!selectedFunction) {
+                setModeError('请先选择一个计算功能！');
+                return;
+            }
+            clearModeError();
+            clearAllFieldErrors();
             if (selectedFunction === 'A') {
                 document.getElementById('startDate').value = '';
                 document.getElementById('timeValue').value = '';
-                document.getElementById('timeUnit').value = 'days';
-                // 重新设置今天为默认日期
-                setTimeout(() => {
-                    const today = getTodayString();
-                    document.getElementById('startDate').value = today;
-                }, 100);
             } else if (selectedFunction === 'B') {
                 document.getElementById('date1').value = '';
                 document.getElementById('date2').value = '';
-                // 重新设置今天为默认日期
-                setTimeout(() => {
-                    const today = getTodayString();
-                    document.getElementById('date1').value = today;
-                    document.getElementById('date2').value = today;
-                }, 100);
             } else if (selectedFunction === 'C') {
                 document.getElementById('solarDate').value = '';
                 document.getElementById('lunarYear').value = '';
@@ -1078,83 +1126,104 @@
                 document.getElementById('isLeapMonth').checked = false;
             } else if (selectedFunction === 'D') {
                 document.getElementById('baseDateTime').value = '';
-                document.getElementById('offsetHours').value = '0';
-                document.getElementById('offsetMinutes').value = '0';
-                // 重新设置现在为默认时间
-                setTimeout(() => {
-                    document.getElementById('baseDateTime').value = getNowString();
-                }, 100);
+                document.getElementById('offsetHours').value = '';
+                document.getElementById('offsetMinutes').value = '';
             } else if (selectedFunction === 'E') {
                 document.getElementById('startDateE').value = '';
+                document.getElementById('rangeValue1').value = '';
+                document.getElementById('rangeValue2').value = '';
+            }
+            clearResult();
+            focusModeInput();
+        }
+
+        function restoreDefaultInputs() {
+            if (!selectedFunction) {
+                setModeError('请先选择一个计算功能！');
+                return;
+            }
+            clearModeError();
+            clearAllFieldErrors();
+            if (selectedFunction === 'A') {
+                document.getElementById('startDate').value = getTodayString();
+            } else if (selectedFunction === 'B') {
+                const today = getTodayString();
+                document.getElementById('date1').value = today;
+                document.getElementById('date2').value = today;
+            } else if (selectedFunction === 'C') {
+                setToday('solarDate');
+            } else if (selectedFunction === 'D') {
+                document.getElementById('baseDateTime').value = getNowString();
+                document.getElementById('offsetHours').value = '0';
+                document.getElementById('offsetMinutes').value = '0';
+            } else if (selectedFunction === 'E') {
+                document.getElementById('startDateE').value = getTodayString();
                 document.getElementById('rangeValue1').value = '0';
                 document.getElementById('rangeValue2').value = '0';
                 document.getElementById('rangeUnit1').value = 'days';
                 document.getElementById('rangeUnit2').value = 'days';
-                // 重新设置今天为默认日期
-                setTimeout(() => {
-                    const today = getTodayString();
-                    document.getElementById('startDateE').value = today;
-                }, 100);
             }
-            clearResult();
-        });
+            if (selectedFunction !== 'C') {
+                clearResult();
+            }
+            focusModeInput();
+        }
+
+        document.getElementById('clearBtn').addEventListener('click', clearCurrentMode);
+        document.getElementById('restoreBtn').addEventListener('click', restoreDefaultInputs);
 
         // 复制按钮
-        document.getElementById('copyBtn').addEventListener('click', function () {
+        document.getElementById('copyBtn').addEventListener('click', async function () {
             const resultText = document.getElementById('result').textContent;
             if (resultText && !resultText.includes('请选择功能')) {
-                navigator.clipboard.writeText(resultText).then(() => {
+                const copied = await ToolsClipboard.copyText(resultText);
+                if (copied.ok) {
                     // 临时显示复制成功提示
                     const originalText = document.getElementById('copyBtn').textContent;
                     document.getElementById('copyBtn').textContent = '已复制！';
                     setTimeout(() => {
                         document.getElementById('copyBtn').textContent = originalText;
                     }, 1000);
-                });
+                } else {
+                    setModeError(copied.message);
+                }
             }
         });
 
         // 计算按钮
         document.getElementById('calculateBtn').addEventListener('click', function () {
+            clearModeError();
+            clearAllFieldErrors();
             if (!selectedFunction) {
-                alert('请先选择一个计算功能！');
+                setModeError('请先选择一个计算功能！');
                 return;
             }
 
-            let result = '';
+            let resultNodes = null;
 
             if (selectedFunction === 'A') {
                 const startDate = document.getElementById('startDate').value;
-                const timeValue = parseInt(document.getElementById('timeValue').value);
+                const timeRaw = document.getElementById('timeValue').value.trim();
                 const timeUnit = document.getElementById('timeUnit').value;
+                const amount = DateCalculatorCore.parseInteger(timeRaw, { limit: DateCalculatorCore.UNIT_LIMITS[timeUnit] });
+                const timeValue = amount.value;
+                const problems = [];
 
-                if (!startDate || isNaN(timeValue)) {
-                    alert('请输入完整的日期和时间！');
+                if (!startDate) problems.push(['startDate', '请输入完整的日期和时间！']);
+                if (!amount.ok) problems.push(['timeValue', !timeRaw ? '请输入完整的日期和时间！' : amount.message]);
+                if (problems.length) {
+                    failFields(problems);
                     return;
                 }
 
                 const date = parseDateInput(startDate);
                 if (!date) {
-                    alert('请输入有效的日期！');
+                    failFields([['startDate', '请输入有效的日期！']]);
                     return;
                 }
-                switch (timeUnit) {
-                    case 'days':
-                        date.setDate(date.getDate() + timeValue);
-                        break;
-                    case 'weeks':
-                        date.setDate(date.getDate() + timeValue * 7);
-                        break;
-                    case 'months':
-                        addCalendarMonths(date, timeValue);
-                        break;
-                    case 'years':
-                        addCalendarYears(date, timeValue);
-                        break;
-                    case 'calendar-months':
-                        date.setDate(date.getDate() + timeValue * 30);
-                        break;
-                }
+                const computed = DateCalculatorCore.offsetCalendar(date, timeValue, timeUnit);
+                if (!computed.ok) { failFields([['timeValue', computed.message]]); return; }
+                date.setTime(computed.date.getTime());
 
                 const resultDate = formatDateInput(date);
                 const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
@@ -1169,31 +1238,35 @@
                     'weeks': '周',
                     'months': '月',
                     'years': '年',
-                    'calendar-months': '个月'
+                    'calendar-months': '个（按 30 天）'
                 };
                 const unitName = unitNames[timeUnit] || '天';
 
-                result = `
-                    <div>从 <span class="result-highlight">${startDate}</span> 起</div>
-                    <div><span class="result-highlight">${absValue}</span> ${unitName}${direction}的日期是：</div>
-                    <div class="result-highlight" style="margin-top: 10px; font-size: 1.5em;">
-                        ${resultDate} (星期${weekday})
-                    </div>
-                `;
+                resultNodes = [
+                    resultLine(['从 ', highlightText(startDate), ' 起']),
+                    resultLine([highlightText(String(absValue)), ` ${unitName}${direction}的日期是：`]),
+                    resultLine([`${resultDate} (星期${weekday})`], 'result-highlight', 'margin-top: 10px; font-size: 1.5em;')
+                ];
 
             } else if (selectedFunction === 'B') {
                 const date1 = document.getElementById('date1').value;
                 const date2 = document.getElementById('date2').value;
 
-                if (!date1 || !date2) {
-                    alert('请输入两个日期！');
+                const missing = [];
+                if (!date1) missing.push(['date1', '请输入两个日期！']);
+                if (!date2) missing.push(['date2', '请输入两个日期！']);
+                if (missing.length) {
+                    failFields(missing);
                     return;
                 }
 
                 const d1 = parseDateInput(date1);
                 const d2 = parseDateInput(date2);
-                if (!d1 || !d2) {
-                    alert('请输入有效的日期！');
+                const invalid = [];
+                if (!d1) invalid.push(['date1', '请输入有效的日期！']);
+                if (!d2) invalid.push(['date2', '请输入有效的日期！']);
+                if (invalid.length) {
+                    failFields(invalid);
                     return;
                 }
                 const daysDiff = getCalendarDayDifference(d1, d2);
@@ -1201,35 +1274,44 @@
                 const earlierDate = d1 <= d2 ? date1 : date2;
                 const laterDate = d1 <= d2 ? date2 : date1;
 
-                result = `
-                    <div>从 <span class="result-highlight">${earlierDate}</span></div>
-                    <div>到 <span class="result-highlight">${laterDate}</span></div>
-                    <div class="result-highlight" style="margin-top: 10px; font-size: 1.5em;">
-                        相差 ${daysDiff} 天
-                    </div>
-                `;
+                resultNodes = [
+                    resultLine(['从 ', highlightText(earlierDate)]),
+                    resultLine(['到 ', highlightText(laterDate)]),
+                    resultLine([`相差 ${daysDiff} 天`], 'result-highlight', 'margin-top: 10px; font-size: 1.5em;')
+                ];
 
             } else if (selectedFunction === 'C') {
                 // 简化的新旧历转换 - 不需要计算按钮，已经实现实时转换
-                result = `
-                    <div style="text-align: center; color: var(--text-secondary);">
-                        <i class="fas fa-info-circle"></i>
-                        新旧历转换已实现实时转换，请直接在上方输入日期即可看到结果
-                    </div>
-                `;
+                resultNodes = [
+                    resultLine([
+                        faIcon('fas fa-info-circle'),
+                        ' 新旧历转换已实现实时转换，请直接在上方输入日期即可看到结果'
+                    ], '', 'text-align: center; color: var(--text-secondary);')
+                ];
             } else if (selectedFunction === 'D') {
                 const baseDateTime = document.getElementById('baseDateTime').value;
-                const offsetHours = parseInt(document.getElementById('offsetHours').value) || 0;
-                const offsetMinutes = parseInt(document.getElementById('offsetMinutes').value) || 0;
+                const hoursAmount = DateCalculatorCore.parseInteger(document.getElementById('offsetHours').value, { emptyZero: true, limit: DateCalculatorCore.UNIT_LIMITS.hours });
+                const offsetHours = hoursAmount.value;
+                const minutesAmount = DateCalculatorCore.parseInteger(document.getElementById('offsetMinutes').value, { emptyZero: true, limit: DateCalculatorCore.UNIT_LIMITS.minutes });
+                const offsetMinutes = minutesAmount.value;
 
                 if (!baseDateTime) {
-                    alert('请输入起始日期时间！');
+                    failFields([['baseDateTime', '请输入起始日期时间！']]);
                     return;
                 }
 
-                const date = new Date(baseDateTime);
-                date.setHours(date.getHours() + offsetHours);
-                date.setMinutes(date.getMinutes() + offsetMinutes);
+                const date = parseDateTimeLocal(baseDateTime);
+                if (!date) {
+                    failFields([['baseDateTime', '请输入有效的日期！']]);
+                    return;
+                }
+                const errors = [];
+                if (!hoursAmount.ok) errors.push(['offsetHours', hoursAmount.message]);
+                if (!minutesAmount.ok) errors.push(['offsetMinutes', minutesAmount.message]);
+                if (errors.length) { failFields(errors); return; }
+                const computed = DateCalculatorCore.offsetElapsed(date, offsetHours, offsetMinutes);
+                if (!computed.ok) { failFields([['offsetHours', computed.message]]); return; }
+                date.setTime(computed.date.getTime());
 
                 const resYear = date.getFullYear();
                 const resMonth = String(date.getMonth() + 1).padStart(2, '0');
@@ -1241,42 +1323,43 @@
                 const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
                 const weekday = weekdays[date.getDay()];
 
-                result = `
-                    <div>从 <span class="result-highlight">${baseDateTime.replace('T', ' ')}</span> 起</div>
-                    <div>调整 <span class="result-highlight">${offsetHours}</span> 小时 <span class="result-highlight">${offsetMinutes}</span> 分钟后的时间是：</div>
-                    <div class="result-highlight" style="margin-top: 10px; font-size: 1.5em;">
-                        ${resultDateTime} (星期${weekday})
-                    </div>
-                `;
+                resultNodes = [
+                    resultLine(['从 ', highlightText(baseDateTime.replace('T', ' ')), ' 起']),
+                    resultLine([
+                        '调整 ',
+                        highlightText(String(offsetHours)),
+                        ' 小时 ',
+                        highlightText(String(offsetMinutes)),
+                        ' 分钟后的时间是：'
+                    ]),
+                    resultLine([`${resultDateTime} (星期${weekday})`], 'result-highlight', 'margin-top: 10px; font-size: 1.5em;')
+                ];
             } else if (selectedFunction === 'E') {
                 const startDate = document.getElementById('startDateE').value;
-                const val1 = parseInt(document.getElementById('rangeValue1').value) || 0;
+                const amount1 = DateCalculatorCore.parseInteger(document.getElementById('rangeValue1').value, { emptyZero: true });
+                const val1 = amount1.value;
                 const unit1 = document.getElementById('rangeUnit1').value;
-                const val2 = parseInt(document.getElementById('rangeValue2').value) || 0;
+                const amount2 = DateCalculatorCore.parseInteger(document.getElementById('rangeValue2').value, { emptyZero: true });
+                const val2 = amount2.value;
                 const unit2 = document.getElementById('rangeUnit2').value;
 
                 if (!startDate) {
-                    alert('请输入基准日期！');
+                    failFields([['startDateE', '请输入基准日期！']]);
                     return;
                 }
 
-                const calculateOffsetDate = (baseDateStr, value, unit) => {
-                    const date = parseDateInput(baseDateStr);
-                    if (!date) {
-                        throw new Error('请输入有效的基准日期！');
-                    }
-                    switch (unit) {
-                        case 'days': date.setDate(date.getDate() + value); break;
-                        case 'weeks': date.setDate(date.getDate() + value * 7); break;
-                        case 'months': addCalendarMonths(date, value); break;
-                        case 'years': addCalendarYears(date, value); break;
-                        case 'calendar-months': date.setDate(date.getDate() + value * 30); break;
-                    }
-                    return date;
-                };
-
-                const date1 = calculateOffsetDate(startDate, val1, unit1);
-                const date2 = calculateOffsetDate(startDate, val2, unit2);
+                const baseDate = parseDateInput(startDate);
+                if (!baseDate) { failFields([['startDateE', '请输入有效的基准日期！']]); return; }
+                const errors = [];
+                if (!amount1.ok) errors.push(['rangeValue1', amount1.message]);
+                if (!amount2.ok) errors.push(['rangeValue2', amount2.message]);
+                if (errors.length) { failFields(errors); return; }
+                const computed1 = DateCalculatorCore.offsetCalendar(baseDate, val1, unit1);
+                const computed2 = DateCalculatorCore.offsetCalendar(baseDate, val2, unit2);
+                if (!computed1.ok) errors.push(['rangeValue1', computed1.message]);
+                if (!computed2.ok) errors.push(['rangeValue2', computed2.message]);
+                if (errors.length) { failFields(errors); return; }
+                const date1 = computed1.date, date2 = computed2.date;
 
                 const res1 = formatDateInput(date1);
                 const res2 = formatDateInput(date2);
@@ -1284,32 +1367,43 @@
                 const w1 = weekdays[date1.getDay()];
                 const w2 = weekdays[date2.getDay()];
 
-                result = `
-                    <div>从 <span class="result-highlight">${startDate}</span> 起的时间范围：</div>
-                    <div class="result-highlight" style="margin-top: 10px; font-size: 1.2em;">
-                        ${res1} (星期${w1})
-                    </div>
-                    <div style="margin: 5px 0; color: var(--text-tertiary);">至</div>
-                    <div class="result-highlight" style="font-size: 1.2em;">
-                        ${res2} (星期${w2})
-                    </div>
-                `;
+                resultNodes = [
+                    resultLine(['从 ', highlightText(startDate), ' 起的时间范围：']),
+                    resultLine([`${res1} (星期${w1})`], 'result-highlight', 'margin-top: 10px; font-size: 1.2em;'),
+                    resultLine(['至'], '', 'margin: 5px 0; color: var(--text-tertiary);'),
+                    resultLine([`${res2} (星期${w2})`], 'result-highlight', 'font-size: 1.2em;')
+                ];
             }
 
-            document.getElementById('result').innerHTML = result;
+            if (resultNodes) {
+                setResultNodes(resultNodes);
+            }
         });
 
         // 清空结果
         function clearResult() {
-            document.getElementById('result').innerHTML = '<div style="color: var(--text-tertiary);"><i class="fas fa-info-circle"></i>请选择功能并输入数据进行计算</div>';
+            const resultElement = document.getElementById('result');
+            resultElement.replaceChildren();
+            resultElement.appendChild(resultLine([
+                faIcon('fas fa-info-circle'),
+                '请选择功能并输入数据进行计算'
+            ], '', 'color: var(--text-tertiary);'));
         }
 
-        // 监听输入变化，自动计算（可选）
         document.addEventListener('input', function (e) {
-            if (e.target.type === 'date' || e.target.type === 'number') {
-                // 可以在这里添加实时计算功能
-            }
+            clearErrorForTarget(e.target);
         });
+        document.addEventListener('change', function (e) {
+            clearErrorForTarget(e.target);
+        });
+
+        function clearErrorForTarget(target) {
+            if (!target || !target.id) return;
+            if (target.id === 'solarDate' || target.id === 'lunarYear' || target.id === 'lunarMonth' || target.id === 'lunarDay' || target.id === 'isLeapMonth') {
+                return;
+            }
+            clearFieldError(target.id);
+        }
     </script>
 </body>
 

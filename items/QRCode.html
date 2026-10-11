@@ -2,18 +2,37 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
+    <script>
+        (function applyThemeEarly() {
+            try {
+                var pref = localStorage.getItem('17tools-theme');
+                if (pref == null) {
+                    pref = localStorage.getItem('theme');
+                    if (pref != null) {
+                        localStorage.setItem('17tools-theme', pref);
+                    }
+                }
+                var theme = (pref === 'light' || pref === 'dark')
+                    ? pref
+                    : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) { /* 存储不可用时由 theme.js 降级 */ }
+        })();
+    </script>
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>二维码工具</title>
     <!-- localStorage style key: 17tools-qrcode (QRCodeCore.STORAGE_KEY) -->
     <link rel="stylesheet" href="../css/theme.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="../vendor/fontawesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         html, body { margin: 0; min-height: 100vh; background: var(--background-primary); color: var(--text-primary); font-family: var(--font-family); }
         .page { padding: var(--spacing-lg); max-width: 1280px; margin: 0 auto; }
         h1 { margin: 0 0 var(--spacing-lg); text-align: center; display: flex; align-items: center; justify-content: center; gap: var(--spacing-sm); font-size: 28px; }
         h1 i { color: var(--primary-color); }
-        .layout { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: var(--spacing-lg); }
-        .preview-pane, .control-pane { background: var(--background-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: var(--spacing-lg); box-shadow: var(--shadow-sm); }
+        .layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: var(--spacing-lg); }
+        .preview-pane, .control-pane { min-width: 0; background: var(--background-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: var(--spacing-lg); box-shadow: var(--shadow-sm); }
+        input[type="file"] { max-width: 100%; }
         .preview-box { min-height: 280px; border: 1px dashed var(--border-color); border-radius: var(--radius-md); display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--background-primary); padding: var(--spacing-lg); }
         #previewCanvas { max-width: 100%; max-height: 420px; display: none; }
         #previewCanvas.is-visible { display: block; }
@@ -29,16 +48,37 @@
         label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; }
         .field-error { min-height: 1.2em; color: var(--error-color); font-size: 12px; margin-top: 4px; }
         .field-hint { margin: 6px 0 0; font-size: 12px; line-height: 1.5; color: var(--text-secondary); }
-        .warn, .action-msg { font-size: 13px; margin-top: 8px; min-height: 1.4em; }
+        .warn, .action-msg { font-size: 13px; margin-top: 8px; min-height: 1.4em; line-height: 1.5; }
         .warn { color: var(--warning-color); }
-        .size-row, .color-row { display: flex; flex-wrap: wrap; gap: 6px; }
+        #downloadWarn { min-height: 0; }
+        #downloadWarn:empty { display: none; margin: 0; }
+        .size-row, .color-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+        .download-confirm {
+            margin-top: 8px;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border: 1px solid var(--warning-color);
+            border-radius: var(--radius-md);
+            background: var(--background-primary);
+            color: var(--text-primary);
+        }
+        .download-confirm p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--text-primary); }
+        .confirm-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
         .size-row button { border: 1px solid var(--border-color); background: var(--background-primary); color: var(--text-primary); border-radius: 8px; padding: 8px 12px; cursor: pointer; }
         .size-row button.active { background: var(--primary-light); border-color: var(--primary-color); color: var(--primary-color); }
-        input[type="color"] { width: 48px; height: 36px; padding: 2px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--background-primary); }
+        input[type="color"] { width: 48px; height: 44px; padding: 2px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--background-primary); }
         .actions { display: flex; flex-direction: column; gap: 8px; margin-top: var(--spacing-md); }
         .actions button:disabled { opacity: 0.5; cursor: not-allowed; }
+        button { min-height: 44px; }
+        button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 3px; }
+        .reader { margin-top: var(--spacing-lg); border-top: 1px solid var(--border-color); padding-top: var(--spacing-md); }
+        .reader-result { margin: var(--spacing-sm) 0; padding: var(--spacing-md); background: var(--background-primary); border: 1px solid var(--border-color); border-radius: var(--radius-md); }
+        .reader-result pre { white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--font-family); }
+        .reader-actions { display: flex; flex-wrap: wrap; gap: var(--spacing-sm); }
         .hidden { display: none !important; }
-        @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+        @media (max-width: 900px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+        @media (max-width: 480px) {
+            .page, .preview-pane, .control-pane, .preview-box { padding: var(--spacing-md); }
+        }
     </style>
 </head>
 <body>
@@ -51,10 +91,21 @@
                         <i class="fas fa-qrcode"></i>
                         <div id="previewHintText">填写内容后生成二维码</div>
                     </div>
-                    <canvas id="previewCanvas" width="256" height="256"></canvas>
+                    <canvas id="previewCanvas" width="256" height="256" data-unsaved-ignore></canvas>
                 </div>
-                <div class="warn" id="contrastWarn"></div>
-                <div class="action-msg" id="actionMsg"></div>
+                <div class="warn" id="contrastWarn" role="status"></div>
+                <div class="action-msg" id="actionMsg" role="status"></div>
+                <button type="button" class="btn btn-secondary" id="btnSelfCheck" disabled>核对生成内容</button>
+                <p class="field-hint" id="selfCheckStatus" role="status">生成后可在本机读回核对；通过也不保证所有手机或打印材料能扫到。</p>
+                <section class="reader" aria-labelledby="readerHeading">
+                    <h2 id="readerHeading" style="font-size:18px">从图片读二维码</h2>
+                    <label for="qrReadFile">选择本机 PNG / JPEG / WebP 图片</label>
+                    <input id="qrReadFile" type="file" accept="image/png,image/jpeg,image/webp" data-unsaved-ignore>
+                    <p class="field-hint">不上传图片；最多 10 MiB、8192 边、16MP。大图缩至最多 4MP 检测，最多列出 8 个码；过小、重叠或损坏的码可能读不到。结果可能含 WiFi 密码或联系人，默认遮盖且不保存，网址不会自动打开。</p>
+                    <p id="qrReadStatus" class="action-msg" role="status"></p>
+                    <div id="qrReadResults"></div>
+                    <button type="button" id="qrReadClear" class="btn btn-secondary">清除读码结果</button>
+                </section>
             </div>
             <div class="control-pane">
                 <div class="types">
@@ -167,13 +218,14 @@
                 <div class="form-group">
                     <label>前景色 / 背景色</label>
                     <div class="color-row">
-                        <input id="fgColor" type="color" value="#000000">
-                        <input id="bgColor" type="color" value="#ffffff">
+                        <input id="fgColor" aria-label="二维码前景色" type="color" value="#000000">
+                        <input id="bgColor" aria-label="二维码背景色" type="color" value="#ffffff">
+                        <button class="btn btn-secondary" id="btnResetMono" type="button">恢复黑白</button>
                     </div>
                 </div>
                 <div class="form-group">
                     <label>尺寸</label>
-                    <div class="size-row">
+                    <div class="size-row" role="group" aria-label="二维码像素尺寸">
                         <button type="button" data-size="128">128</button>
                         <button type="button" class="active" data-size="256">256</button>
                         <button type="button" data-size="512">512</button>
@@ -190,26 +242,45 @@
                     </select>
                     <p class="field-hint">决定图案被遮挡或印刷模糊时还能不能扫出来。级别越高越耐损，但格子更密、能装的内容更少。日常用默认 M 即可。</p>
                 </div>
+                <div class="warn" id="downloadWarn" aria-hidden="true"></div>
                 <div class="actions">
                     <button class="btn btn-primary" id="btnPng" type="button" disabled>下载 PNG</button>
                     <button class="btn btn-secondary" id="btnSvg" type="button" disabled>下载 SVG</button>
                     <button class="btn btn-secondary" id="btnCopy" type="button" disabled>复制图片</button>
                 </div>
+                <div class="download-confirm hidden" id="downloadConfirm" role="region" aria-label="低对比下载确认">
+                    <p id="downloadConfirmText"></p>
+                    <div class="confirm-actions">
+                        <button class="btn btn-primary" id="btnConfirmDownload" type="button">仍要下载</button>
+                        <button class="btn btn-secondary" id="btnCancelDownload" type="button">取消</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.1/qrcode.min.js"></script>
+    <script src="../vendor/qrcode/1.5.1/qrcode.min.js"></script>
+    <script src="../vendor/jsqr/1.4.0/jsQR.js"></script>
+    <script src="../js/local-raster-core.js"></script>
+    <script src="../js/qrcode-decode-core.js"></script>
     <script src="../js/qrcode-core.js"></script>
+    <script src="../js/clipboard.js"></script>
+    <script src="../js/safe-storage.js"></script>
     <script>
         const core = window.QRCodeCore;
         const canvas = document.getElementById('previewCanvas');
         const hint = document.getElementById('previewHint');
         const hintText = document.getElementById('previewHintText');
         const contrastWarn = document.getElementById('contrastWarn');
+        const downloadWarn = document.getElementById('downloadWarn');
+        const downloadConfirm = document.getElementById('downloadConfirm');
+        const downloadConfirmText = document.getElementById('downloadConfirmText');
         const actionMsg = document.getElementById('actionMsg');
         const btnPng = document.getElementById('btnPng');
         const btnSvg = document.getElementById('btnSvg');
         const btnCopy = document.getElementById('btnCopy');
+        const btnResetMono = document.getElementById('btnResetMono');
+        const btnConfirmDownload = document.getElementById('btnConfirmDownload');
+        const btnCancelDownload = document.getElementById('btnCancelDownload');
         const fgColor = document.getElementById('fgColor');
         const bgColor = document.getElementById('bgColor');
         const eccSelect = document.getElementById('eccSelect');
@@ -228,6 +299,7 @@
 
         let currentType = 'text';
         let currentPayload = '';
+        let pendingDownload = '';
         let debounceTimer = 0;
         let libraryOk = typeof QRCode !== 'undefined';
 
@@ -260,15 +332,21 @@
             });
         }
 
+        const styleStorage = (window.SafeStorage && (window.SafeStorage.shared || window.SafeStorage.createShared(window))) || null;
+
         function saveStyle() {
-            try {
-                localStorage.setItem(core.STORAGE_KEY, JSON.stringify(readStyle()));
-            } catch (err) { /* ignore quota / private mode */ }
+            if (!styleStorage) {
+                return;
+            }
+            styleStorage.setItem(core.STORAGE_KEY, JSON.stringify(readStyle()));
         }
 
         function loadStyle() {
+            if (!styleStorage) {
+                return core.DEFAULT_STYLE;
+            }
             try {
-                const raw = localStorage.getItem(core.STORAGE_KEY);
+                const raw = styleStorage.getItem(core.STORAGE_KEY);
                 if (!raw) return core.DEFAULT_STYLE;
                 return core.parseStyle(JSON.parse(raw));
             } catch (err) {
@@ -353,7 +431,17 @@
             });
         }
 
+        let renderSequence = 0;
+        let decodedItems = [];
+        let readSequence = 0;
+        const decodeCore = window.QRCodeDecodeCore;
+        const readerFile = $('qrReadFile');
+        const readerStatus = $('qrReadStatus');
+        const readerResults = $('qrReadResults');
+        const selfCheckStatus = $('selfCheckStatus');
+
         function setButtonsEnabled(enabled) {
+            $('btnSelfCheck').disabled = !enabled;
             btnPng.disabled = !enabled;
             btnSvg.disabled = !enabled;
             btnCopy.disabled = !enabled;
@@ -377,16 +465,49 @@
         }
 
         function scheduleRender() {
+            renderSequence += 1;
+            currentPayload = '';
+            setButtonsEnabled(false);
+            selfCheckStatus.textContent = '内容已更改，等待重新生成。';
             window.clearTimeout(debounceTimer);
             debounceTimer = window.setTimeout(renderPreview, 150);
+        }
+
+        function hideDownloadConfirm() {
+            pendingDownload = '';
+            downloadConfirm.classList.add('hidden');
+            downloadConfirmText.textContent = '';
+        }
+
+        function showDownloadConfirm(kind) {
+            pendingDownload = kind;
+            downloadConfirm.classList.remove('hidden');
+            downloadConfirmText.textContent = core.MSG.lowContrastConfirm;
+        }
+
+        function updateContrastWarning(style) {
+            const low = core.isLowContrast(style.foreground, style.background);
+            const text = low ? core.MSG.lowContrast : '';
+            contrastWarn.textContent = text;
+            downloadWarn.textContent = text;
+            if (!low) hideDownloadConfirm();
+        }
+
+        function restoreMono() {
+            const style = readStyle();
+            applyStyle(Object.assign({}, style, {
+                foreground: core.DEFAULT_STYLE.foreground,
+                background: core.DEFAULT_STYLE.background
+            }));
+            saveStyle();
+            updateContrastWarning(readStyle());
+            scheduleRender();
         }
 
         function renderPreview() {
             actionMsg.textContent = '';
             const style = readStyle();
-            contrastWarn.textContent = core.isLowContrast(style.foreground, style.background)
-                ? '前景与背景对比过低，可能无法扫描'
-                : '';
+            updateContrastWarning(style);
             if (!libraryOk) {
                 showPlaceholder('二维码库加载失败');
                 return;
@@ -398,7 +519,9 @@
                 return;
             }
             clearFieldErrors();
+            const sequence = renderSequence;
             QRCode.toCanvas(canvas, built.payload, renderOptions(style), (error) => {
+                if (sequence !== renderSequence) return;
                 if (error) {
                     showPlaceholder('无法生成二维码，请缩短内容');
                     actionMsg.textContent = '无法生成二维码，请缩短内容';
@@ -408,6 +531,7 @@
                 hint.classList.add('is-hidden');
                 canvas.classList.add('is-visible');
                 setButtonsEnabled(true);
+                selfCheckStatus.textContent = '可读回核对生成内容；通过也不保证真机或印刷扫码。';
             });
         }
 
@@ -418,6 +542,37 @@
             link.download = name;
             link.click();
             URL.revokeObjectURL(url);
+        }
+
+        function performDownload(kind) {
+            if (kind === 'png') {
+                if (!currentPayload) return;
+                canvas.toBlob((blob) => {
+                    if (!blob) return;
+                    downloadBlob(blob, core.buildFileName(currentType, 'png'));
+                }, 'image/png');
+                return;
+            }
+            if (!currentPayload || !libraryOk) return;
+            QRCode.toString(currentPayload, Object.assign({ type: 'svg' }, renderOptions(readStyle())), (error, svg) => {
+                if (error) {
+                    actionMsg.textContent = '无法生成二维码，请缩短内容';
+                    return;
+                }
+                downloadBlob(new Blob([svg], { type: 'image/svg+xml' }), core.buildFileName(currentType, 'svg'));
+            });
+        }
+
+        function requestDownload(kind) {
+            if (!currentPayload) return;
+            if (kind === 'svg' && !libraryOk) return;
+            const style = readStyle();
+            if (core.isLowContrast(style.foreground, style.background)) {
+                showDownloadConfirm(kind);
+                return;
+            }
+            hideDownloadConfirm();
+            performDownload(kind);
         }
 
         function switchType(nextType) {
@@ -445,27 +600,24 @@
             scheduleRender();
         });
         ['fgColor', 'bgColor', 'eccSelect'].forEach((id) => {
-            $(id).addEventListener('change', () => { saveStyle(); scheduleRender(); });
+            $(id).addEventListener('change', () => {
+                saveStyle();
+                updateContrastWarning(readStyle());
+                scheduleRender();
+            });
         });
         document.querySelector('.control-pane').addEventListener('input', scheduleRender);
 
-        btnPng.addEventListener('click', () => {
-            if (!currentPayload) return;
-            canvas.toBlob((blob) => {
-                if (!blob) return;
-                downloadBlob(blob, core.buildFileName(currentType, 'png'));
-            }, 'image/png');
+        btnResetMono.addEventListener('click', restoreMono);
+        btnPng.addEventListener('click', () => requestDownload('png'));
+        btnSvg.addEventListener('click', () => requestDownload('svg'));
+        btnConfirmDownload.addEventListener('click', () => {
+            const kind = pendingDownload;
+            if (kind !== 'png' && kind !== 'svg') return;
+            hideDownloadConfirm();
+            performDownload(kind);
         });
-        btnSvg.addEventListener('click', () => {
-            if (!currentPayload || !libraryOk) return;
-            QRCode.toString(currentPayload, Object.assign({ type: 'svg' }, renderOptions(readStyle())), (error, svg) => {
-                if (error) {
-                    actionMsg.textContent = '无法生成二维码，请缩短内容';
-                    return;
-                }
-                downloadBlob(new Blob([svg], { type: 'image/svg+xml' }), core.buildFileName(currentType, 'svg'));
-            });
-        });
+        btnCancelDownload.addEventListener('click', hideDownloadConfirm);
         btnCopy.addEventListener('click', () => {
             if (!currentPayload || !navigator.clipboard || !window.ClipboardItem) {
                 actionMsg.textContent = '无法复制，请改用下载';
@@ -477,6 +629,80 @@
             navigator.clipboard.write([new ClipboardItem({ 'image/png': blobPromise })])
                 .then(() => { actionMsg.textContent = '已复制到剪贴板'; })
                 .catch(() => { actionMsg.textContent = '无法复制，请改用下载'; });
+        });
+
+        async function copyDecoded(text) {
+            try {
+                const copied = await ToolsClipboard.copyText(text);
+                if (!copied.ok) { readerStatus.textContent = copied.message + '；可主动显示后选择文字。'; return; }
+                readerStatus.textContent = '内容已复制，请注意其中可能包含密码或联系人。';
+            } catch (_) { readerStatus.textContent = '复制失败。请主动显示后选中文字复制。'; }
+        }
+        function displayDecoded(codes) {
+            decodedItems = codes.map(code => code.data);
+            readerResults.replaceChildren();
+            decodedItems.forEach((text, index) => {
+                const box = document.createElement('div'); box.className = 'reader-result';
+                const heading = document.createElement('strong'); heading.textContent = `二维码 ${index + 1}`;
+                const pre = document.createElement('pre'); pre.textContent = '内容已遮盖（可能含密码或个人信息）';
+                const actions = document.createElement('div'); actions.className = 'reader-actions';
+                const toggle = document.createElement('button'); toggle.type = 'button'; toggle.className = 'btn btn-secondary'; toggle.textContent = '显示内容'; toggle.setAttribute('aria-expanded', 'false');
+                toggle.addEventListener('click', () => {
+                    const shown = toggle.getAttribute('aria-expanded') === 'true';
+                    toggle.setAttribute('aria-expanded', String(!shown));
+                    toggle.textContent = shown ? '显示内容' : '遮盖内容';
+                    pre.textContent = shown ? '内容已遮盖（可能含密码或个人信息）' : text;
+                });
+                const copy = document.createElement('button'); copy.type = 'button'; copy.className = 'btn btn-secondary'; copy.textContent = '复制内容';
+                copy.addEventListener('click', () => copyDecoded(text));
+                actions.append(toggle, copy); box.append(heading, pre, actions); readerResults.append(box);
+            });
+        }
+        async function readQrFile(file) {
+            const sequence = ++readSequence;
+            displayDecoded([]);
+            if (!file) { readerStatus.textContent = ''; return; }
+            if (!decodeCore || typeof window.jsQR !== 'function' || !window.LocalRasterCore) { readerStatus.textContent = '本浏览器或解码库不可用，请使用支持 Canvas 的浏览器。'; return; }
+            if (file.size > decodeCore.BUDGET.fileBytes) { readerStatus.textContent = '图片超过 10 MiB，请先缩小图片。'; return; }
+            readerStatus.textContent = '正在本机读取与识别…';
+            let bitmap, imageUrl, scan;
+            try {
+                const bytes = new Uint8Array(await file.arrayBuffer());
+                const info = LocalRasterCore.inspect(bytes);
+                const plan = decodeCore.validateImage(info, file.size);
+                if (!plan.ok) { readerStatus.textContent = plan.reason === 'budget' ? '图片尺寸超出预算（8192 边 / 16MP），请先缩小图片。' : '仅支持实际内容为 PNG / JPEG / WebP 的完整图片。'; return; }
+                if (typeof createImageBitmap === 'function') bitmap = await createImageBitmap(file);
+                else {
+                    imageUrl = URL.createObjectURL(file);
+                    bitmap = await new Promise((resolve, reject) => { const image = new Image(); image.onload = () => resolve(image); image.onerror = reject; image.src = imageUrl; });
+                }
+                if (sequence !== readSequence) return;
+                if (bitmap.width !== info.width || bitmap.height !== info.height) {
+                    const actual = decodeCore.validateImage({ ...info, width: bitmap.width, height: bitmap.height }, file.size);
+                    if (!actual.ok) throw new Error('budget');
+                    Object.assign(plan, actual);
+                }
+                scan = document.createElement('canvas'); scan.width = plan.width; scan.height = plan.height;
+                const ctx = scan.getContext('2d', { willReadFrequently: true });
+                if (!ctx) throw new Error('unsupported');
+                ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, scan.width, scan.height); ctx.drawImage(bitmap, 0, 0, scan.width, scan.height);
+                const result = await decodeCore.decodeMultiple(ctx.getImageData(0, 0, scan.width, scan.height), window.jsQR, () => new Promise(resolve => setTimeout(resolve, 0)));
+                if (sequence !== readSequence) return;
+                displayDecoded(result.codes);
+                readerStatus.textContent = result.codes.length ? `识别到 ${result.codes.length} 个码${result.limited ? '（达到 8 个上限，可能还有未列出的码）' : ''}。${plan.resized ? '检测已缩小；小码读不到时请裁切后重试。' : ''}` : '未识别到二维码；可能损坏、过小或对比太低。请裁切到二维码并使用清晰原图重试。';
+            } catch (_) { if (sequence === readSequence) readerStatus.textContent = '图片无法解码或资源不足，请使用较小的完整图片重试。'; }
+            finally { if (bitmap && bitmap.close) bitmap.close(); if (imageUrl) URL.revokeObjectURL(imageUrl); if (scan) scan.width = scan.height = 0; }
+        }
+        readerFile.addEventListener('change', () => readQrFile(readerFile.files[0]));
+        $('qrReadClear').addEventListener('click', () => { readSequence++; readerFile.value = ''; displayDecoded([]); readerStatus.textContent = '读码结果已清除。'; });
+        $('btnSelfCheck').addEventListener('click', () => {
+            if (!currentPayload) return;
+            if (typeof window.jsQR !== 'function') { selfCheckStatus.textContent = '解码库不可用，无法核对。'; return; }
+            try {
+                const pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+                const decoded = window.jsQR(pixels.data, pixels.width, pixels.height, { inversionAttempts: 'attemptBoth' });
+                selfCheckStatus.textContent = decoded && decoded.data === currentPayload ? '本机自检通过：读回内容与输入一致。仍请用目标手机及实际打印材料试扫。' : decoded ? '读回内容与输入不一致，请重新生成并检查。' : '本机未能读回；请恢复黑白、增大尺寸或缩短内容。';
+            } catch (_) { selfCheckStatus.textContent = '本机自检失败，请增大尺寸或重新生成。'; }
         });
 
         applyStyle(loadStyle());

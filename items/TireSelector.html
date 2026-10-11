@@ -3,10 +3,28 @@
 
 <head>
     <meta charset="UTF-8">
+    <script>
+        (function applyThemeEarly() {
+            try {
+                var pref = localStorage.getItem('17tools-theme');
+                if (pref == null) {
+                    pref = localStorage.getItem('theme');
+                    if (pref != null) {
+                        localStorage.setItem('17tools-theme', pref);
+                    }
+                }
+                var theme = (pref === 'light' || pref === 'dark')
+                    ? pref
+                    : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) { /* 存储不可用时由 theme.js 降级 */ }
+        })();
+    </script>
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>轮胎选择器</title>
     <link rel="stylesheet" href="../css/theme.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="../vendor/fontawesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         html,
         body {
@@ -437,15 +455,72 @@
             display: grid;
             grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: var(--spacing-sm);
-            padding: 0 var(--spacing-lg) var(--spacing-lg);
+            padding: 0 var(--spacing-lg) var(--spacing-sm);
             background: transparent;
         }
 
         .metric-item {
+            min-width: 0;
             border: 1px solid var(--border-color);
             border-radius: var(--radius-md);
             background: var(--background-secondary);
             padding: var(--spacing-sm) var(--spacing-md);
+            overflow-wrap: anywhere;
+        }
+
+        .metric-formula {
+            margin-top: var(--spacing-xs);
+            color: var(--text-tertiary);
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.45;
+            overflow-wrap: anywhere;
+        }
+
+        .assumption-card {
+            position: relative;
+            min-width: 0;
+            max-width: 100%;
+            margin: 0 var(--spacing-lg) var(--spacing-lg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--background-secondary);
+            color: var(--text-secondary);
+            padding: var(--spacing-md);
+            font-size: 13px;
+            line-height: 1.65;
+            overflow-wrap: anywhere;
+        }
+
+        .assumption-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .assumption-title {
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .assumption-card p {
+            margin: 0 0 var(--spacing-xs);
+            min-width: 0;
+        }
+
+        .copy-assumption-btn {
+            min-height: 44px;
+            white-space: normal;
+        }
+
+        .copy-assumption-status {
+            min-height: 1.2em;
+            margin-bottom: 0;
+            color: var(--text-tertiary);
         }
 
         .metric-label {
@@ -506,6 +581,7 @@
 
         .purchase-item {
             display: grid;
+            min-width: 0;
             grid-template-columns: minmax(128px, 0.3fr) minmax(230px, 0.7fr) minmax(260px, 1fr);
             gap: var(--spacing-md);
             align-items: center;
@@ -518,9 +594,20 @@
         .purchase-kind {
             display: flex;
             align-items: center;
+            flex-wrap: wrap;
             gap: var(--spacing-sm);
             min-width: 0;
             font-weight: 900;
+        }
+
+        .status-check {
+            flex: 1 1 100%;
+            min-width: 0;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.5;
+            overflow-wrap: anywhere;
         }
 
         .purchase-kind i {
@@ -639,7 +726,21 @@
             .marker-aspect {
                 width: 96px;
             }
+
+            .assumption-toolbar .copy-assumption-btn {
+                flex: 1 1 100%;
+            }
         }
+        .comparison-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:var(--spacing-md); }
+        .comparison-fields { min-width:0;border:1px solid var(--border-color);border-radius:var(--radius-md);padding:var(--spacing-md);display:grid;gap:var(--spacing-sm); }
+        .comparison-fields .form-input, .comparison-actions .form-input { width:100%;box-sizing:border-box;min-width:0;min-height:44px; }
+        .comparison-actions { display:flex;flex-wrap:wrap;align-items:end;gap:var(--spacing-md);margin:var(--spacing-md) 0; }
+        .comparison-actions label { display:grid;gap:var(--spacing-sm);flex:1 1 180px; }
+        .comparison-actions .btn { min-height:44px;white-space:normal; }
+        .comparison-result { overflow-wrap:anywhere;color:var(--text-secondary);line-height:1.6; }
+        .comparison-result table { width:100%;table-layout:fixed;border-collapse:collapse; }
+        .comparison-result th, .comparison-result td { padding:var(--spacing-sm);border-bottom:1px solid var(--border-color);text-align:left;overflow-wrap:anywhere; }
+        .comparison-result [data-state="invalid"] { color:var(--error-color); }
     </style>
 </head>
 
@@ -713,21 +814,63 @@
                     <div class="metric-item">
                         <div class="metric-label">外径估算</div>
                         <div class="metric-value" id="overallDiameterValue">797.3mm</div>
+                        <div class="metric-formula" id="overallFormula"></div>
                     </div>
                     <div class="metric-item">
                         <div class="metric-label">胎壁高度</div>
                         <div class="metric-value" id="sidewallValue">119.3mm</div>
+                        <div class="metric-formula" id="sidewallFormula"></div>
                     </div>
                     <div class="metric-item">
                         <div class="metric-label">轮毂直径</div>
                         <div class="metric-value" id="rimDiameterValue">558.8mm</div>
+                        <div class="metric-formula" id="rimFormula"></div>
                     </div>
                     <div class="metric-item">
                         <div class="metric-label">滚动周长</div>
                         <div class="metric-value" id="circumferenceValue">2505mm</div>
+                        <div class="metric-formula" id="circumferenceFormula"></div>
                     </div>
                 </div>
+
+                <div class="assumption-card" id="assumptionCard">
+                    <div class="assumption-toolbar">
+                        <div class="assumption-title">计算假设</div>
+                        <button type="button" class="btn btn-secondary copy-assumption-btn" id="copyAssumptionBtn">复制参数与假设</button>
+                    </div>
+                    <p id="assumptionFormula"></p>
+                    <p id="assumptionUnits"></p>
+                    <p id="assumptionRounding"></p>
+                    <p id="assumptionMatrix"></p>
+                    <p id="assumptionManual"></p>
+                    <p class="copy-assumption-status" id="copyAssumptionStatus" aria-live="polite"></p>
+                    <pre id="assumptionCopySource" hidden></pre>
+                </div>
             </div>
+        </section>
+
+        <section class="tool-section" id="tireComparisonSection" aria-labelledby="tireComparisonTitle">
+            <div class="section-header"><h2 class="section-title" id="tireComparisonTitle">原厂 / 候选规格对比</h2><div class="section-subtitle">按真实输入计算，不自动替换矩阵外规格。初始数字仅是可修改算例。</div></div>
+            <div class="comparison-grid">
+                <fieldset class="comparison-fields"><legend>原厂规格</legend>
+                    <label class="field-label" for="originalWidth">胎宽（50–500mm）</label><input class="form-input" id="originalWidth" type="text" inputmode="decimal" autocomplete="off" value="215">
+                    <label class="field-label" for="originalAspect">扁平比（10–100%）</label><input class="form-input" id="originalAspect" type="text" inputmode="decimal" autocomplete="off" value="55">
+                    <label class="field-label" for="originalRim">轮毂（5–30英寸）</label><input class="form-input" id="originalRim" type="text" inputmode="decimal" autocomplete="off" value="17">
+                </fieldset>
+                <fieldset class="comparison-fields"><legend>候选规格</legend>
+                    <label class="field-label" for="candidateWidth">胎宽（50–500mm）</label><input class="form-input" id="candidateWidth" type="text" inputmode="decimal" autocomplete="off" value="225">
+                    <label class="field-label" for="candidateAspect">扁平比（10–100%）</label><input class="form-input" id="candidateAspect" type="text" inputmode="decimal" autocomplete="off" value="50">
+                    <label class="field-label" for="candidateRim">轮毂（5–30英寸）</label><input class="form-input" id="candidateRim" type="text" inputmode="decimal" autocomplete="off" value="17">
+                </fieldset>
+            </div>
+            <div class="comparison-actions">
+                <label for="indicatedSpeed">表显车速（0–500km/h）<input class="form-input" id="indicatedSpeed" type="text" inputmode="decimal" autocomplete="off" value="100"></label>
+                <button class="btn btn-secondary" id="useCurrentAsCandidate" type="button">将上方规格用于候选</button>
+                <button class="btn btn-secondary" id="copyComparison" type="button">复制对比与假设</button>
+            </div>
+            <p id="comparisonCopyStatus" role="status"></p>
+            <div id="tireComparisonResult" class="comparison-result" aria-live="polite"></div>
+            <p class="safety-note">比较的是理论尺寸，不能仅凭尺寸保证安装或合规。请另核对载荷指数、速度等级、轮圈宽度、ET、车身与制动间隙及当地要求。</p>
         </section>
 
         <section class="tool-section" id="tireExplanationSection">
@@ -777,8 +920,9 @@
             WIDTH_OPTIONS,
             getConstrainedOptions,
             normalizeTireSelection,
-            calculateTireMetrics,
             getPurchaseReferences,
+            getResultAssumptions,
+            buildResultCopy,
             getVisualModel
         } = window.TireSelectorCore;
 
@@ -787,6 +931,9 @@
             aspectRatio: 45,
             rimDiameter: 22
         };
+
+        let lastSelectionAdjustment = window.TireSelectorCore.describeSelectionAdjustment(state);
+        let latestComparison = null;
 
         const elements = {
             widthSelect: document.getElementById('tireWidthSelect'),
@@ -808,6 +955,18 @@
             sidewallValue: document.getElementById('sidewallValue'),
             rimDiameterValue: document.getElementById('rimDiameterValue'),
             circumferenceValue: document.getElementById('circumferenceValue'),
+            overallFormula: document.getElementById('overallFormula'),
+            sidewallFormula: document.getElementById('sidewallFormula'),
+            rimFormula: document.getElementById('rimFormula'),
+            circumferenceFormula: document.getElementById('circumferenceFormula'),
+            assumptionFormula: document.getElementById('assumptionFormula'),
+            assumptionUnits: document.getElementById('assumptionUnits'),
+            assumptionRounding: document.getElementById('assumptionRounding'),
+            assumptionMatrix: document.getElementById('assumptionMatrix'),
+            assumptionManual: document.getElementById('assumptionManual'),
+            assumptionCopySource: document.getElementById('assumptionCopySource'),
+            copyAssumptionBtn: document.getElementById('copyAssumptionBtn'),
+            copyAssumptionStatus: document.getElementById('copyAssumptionStatus'),
             widthTitle: document.getElementById('widthTitle'),
             aspectTitle: document.getElementById('aspectTitle'),
             rimTitle: document.getElementById('rimTitle'),
@@ -837,6 +996,7 @@
         }
 
         function renderTireSelection() {
+            lastSelectionAdjustment = window.TireSelectorCore.describeSelectionAdjustment(state);
             const constraints = getConstrainedOptions(state);
             Object.assign(state, constraints.normalized);
 
@@ -845,7 +1005,7 @@
             renderOptions(elements.rimSelect, constraints.rimDiameters, state.rimDiameter, value => `R${value}`);
 
             elements.constraintHint.querySelector('span').textContent =
-                `当前 ${state.width}/${state.aspectRatio} 常见轮毂为 ${formatRange('R', constraints.rimDiameters)}；${state.width}mm 胎宽常见扁平比为 ${formatRange('', constraints.aspectRatios)}%。已隐藏明显不常见组合，最终以车辆手册和门店库存为准。`;
+                `原选择 ${lastSelectionAdjustment.requestedSpec}。${lastSelectionAdjustment.changes.length ? lastSelectionAdjustment.changes.map(item => item.text + '：' + item.reason).join('；') + '。' : '本次未自动调整。'}当前 ${state.width}/${state.aspectRatio} 常见轮毂为 ${formatRange('R', constraints.rimDiameters)}；${state.width}mm 胎宽常见扁平比为 ${formatRange('', constraints.aspectRatios)}%。已隐藏明显不常见组合，最终以车辆手册和门店库存为准。`;
         }
 
         function setMarkerBox(element, styles) {
@@ -936,8 +1096,60 @@
             elements.rimExplanation.textContent = `${metrics.rimCategory}。当前轮圈直径约 ${formatMm(metrics.rimDiameterMm)}，换更大轮毂前要确认刹车、轮拱和原厂允许范围。`;
         }
 
+        function renderAssumptions(summary) {
+            const assumptions = summary.assumptions;
+
+            elements.overallFormula.textContent = assumptions.formulaLines[2];
+            elements.sidewallFormula.textContent = assumptions.formulaLines[0];
+            elements.rimFormula.textContent = assumptions.formulaLines[1];
+            elements.circumferenceFormula.textContent = assumptions.formulaLines[3];
+            elements.assumptionFormula.textContent = `公式：${assumptions.formulaLines.join('；')}。`;
+            elements.assumptionUnits.textContent = assumptions.units;
+            elements.assumptionRounding.textContent = assumptions.rounding;
+            elements.assumptionMatrix.textContent = `矩阵是${assumptions.matrixNote}。`;
+            elements.assumptionManual.textContent = assumptions.manualCheck;
+            elements.assumptionCopySource.textContent = summary.text;
+        }
+
+        function copyPlainText(text) {
+            if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+                return navigator.clipboard.writeText(text).catch(function () {
+                    return copyWithTextarea(text);
+                });
+            }
+            return copyWithTextarea(text);
+        }
+
+        function copyWithTextarea(text) {
+            return new Promise(function (resolve, reject) {
+                const area = document.createElement('textarea');
+                area.value = text;
+                area.setAttribute('readonly', '');
+                area.style.position = 'fixed';
+                area.style.top = '0';
+                area.style.left = '0';
+                area.style.opacity = '0';
+                document.body.appendChild(area);
+                area.focus();
+                area.select();
+                let ok = false;
+                try {
+                    ok = document.execCommand('copy');
+                } catch (error) {
+                    ok = false;
+                }
+                area.remove();
+                if (ok) {
+                    resolve();
+                } else {
+                    reject(new Error('copy failed'));
+                }
+            });
+        }
+
         function renderPurchaseReferences(metrics) {
             const references = getPurchaseReferences(metrics);
+            const manualCheck = getResultAssumptions().manualCheck;
 
             elements.purchaseReferenceList.innerHTML = references.map(item => `
                 <div class="purchase-item">
@@ -950,11 +1162,21 @@
                     <div class="advice-text">${item.advice}</div>
                 </div>
             `).join('');
+
+            elements.purchaseReferenceList.querySelectorAll('.status-badge').forEach((badge) => {
+                if (badge.textContent !== '适合') return;
+                const note = document.createElement('span');
+                note.className = 'status-check';
+                note.textContent = manualCheck;
+                badge.insertAdjacentElement('afterend', note);
+            });
         }
 
         function updatePage() {
             Object.assign(state, normalizeTireSelection(state));
-            const metrics = calculateTireMetrics(state);
+            const summary = buildResultCopy(state);
+            summary.text += '\n原选择：' + lastSelectionAdjustment.requestedSpec + '\n' + (lastSelectionAdjustment.changes.map(item => item.text + '：' + item.reason).join('；') || '本次未自动调整');
+            const metrics = summary.metrics;
 
             elements.currentSpec.textContent = metrics.spec;
             elements.widthMarkerValue.textContent = `断面宽 ${metrics.width}mm`;
@@ -966,29 +1188,85 @@
             elements.sidewallValue.textContent = formatMm(metrics.sidewallHeightMm);
             elements.rimDiameterValue.textContent = formatMm(metrics.rimDiameterMm);
             elements.circumferenceValue.textContent = formatMm(metrics.circumferenceMm);
+            renderAssumptions(summary);
 
             updateTireVisualization(metrics);
             updateExplanations(metrics);
             renderPurchaseReferences(metrics);
         }
 
+        function readComparisonSpec(prefix) {
+            return { width: document.getElementById(prefix + 'Width').value, aspectRatio: document.getElementById(prefix + 'Aspect').value, rimDiameter: document.getElementById(prefix + 'Rim').value };
+        }
+
+        function renderComparison() {
+            const core = window.TireSelectorCore;
+            latestComparison = core.compareTireSizes(readComparisonSpec('original'), readComparisonSpec('candidate'), document.getElementById('indicatedSpeed').value);
+            document.getElementById('comparisonCopyStatus').textContent = '';
+            document.getElementById('copyComparison').disabled = latestComparison.status !== 'ok';
+            const host = document.getElementById('tireComparisonResult');
+            host.replaceChildren();
+            function paragraph(text, invalid = false) { const node = document.createElement('p'); node.textContent = text; if (invalid) node.dataset.state = 'invalid'; host.appendChild(node); }
+            if (latestComparison.status !== 'ok') { paragraph(latestComparison.error, true); return; }
+            const result = latestComparison;
+            paragraph('原厂：' + result.original.spec + '；候选：' + result.candidate.spec);
+            const table = document.createElement('table');
+            const heading = document.createElement('tr');
+            ['尺寸', '原厂', '候选', '差值'].forEach(text => { const cell = document.createElement('th'); cell.textContent = text; cell.scope = 'col'; heading.appendChild(cell); });
+            table.appendChild(heading);
+            [['外径(mm)', result.original.overallDiameterMm, result.candidate.overallDiameterMm, result.diameterDeltaMm], ['周长(mm)', result.original.circumferenceMm, result.candidate.circumferenceMm, result.circumferenceDeltaMm]].forEach(row => {
+                const node = document.createElement('tr'); row.forEach((value, index) => { const cell = document.createElement(index ? 'td' : 'th'); cell.textContent = index ? value.toFixed(1) : value; if (!index) cell.scope = 'row'; node.appendChild(cell); }); table.appendChild(node);
+            });
+            host.appendChild(table);
+            paragraph('外径与周长变化 ' + result.deltaPercent.toFixed(2) + '%（先用未舍入原值计算，最后展示）');
+            ['original', 'candidate'].forEach(key => paragraph((key === 'original' ? '原厂' : '候选') + (result[key].inMatrix ? '在页面常见矩阵内，仍需核对车辆手册。' : '在矩阵外：仅理论计算，不是推荐搭配。')));
+            paragraph('以原厂周长作为仪表标定基准，相同轮转速：理论真实车速 = 表显车速 × 候选周长 ÷ 原厂周长。');
+            paragraph('表显 ' + result.indicatedSpeed + ' km/h 时，理论真实 ' + result.theoreticalSpeed.toFixed(2) + ' km/h，差 ' + result.speedDelta.toFixed(2) + ' km/h。');
+            paragraph('轮胎形变、胎压、载荷、磨耗及仪表校准会改变实际结果；并非实际测速。');
+        }
+
         function bindEvents() {
+            ['originalWidth', 'originalAspect', 'originalRim', 'candidateWidth', 'candidateAspect', 'candidateRim', 'indicatedSpeed'].forEach(id => document.getElementById(id).addEventListener('input', renderComparison));
+            document.getElementById('useCurrentAsCandidate').addEventListener('click', () => {
+                document.getElementById('candidateWidth').value = state.width;
+                document.getElementById('candidateAspect').value = state.aspectRatio;
+                document.getElementById('candidateRim').value = state.rimDiameter;
+                renderComparison();
+            });
+            document.getElementById('copyComparison').addEventListener('click', () => {
+                renderComparison();
+                const text = window.TireSelectorCore.buildComparisonCopy(latestComparison);
+                if (!text) return;
+                copyPlainText(text).then(() => { document.getElementById('comparisonCopyStatus').textContent = '已复制对比与假设'; }).catch(() => { document.getElementById('comparisonCopyStatus').textContent = '复制失败，请手动选择结果'; });
+            });
             elements.widthSelect.addEventListener('change', () => {
                 state.width = Number(elements.widthSelect.value);
+                elements.copyAssumptionStatus.textContent = '';
                 renderTireSelection();
                 updatePage();
             });
 
             elements.aspectSelect.addEventListener('change', () => {
                 state.aspectRatio = Number(elements.aspectSelect.value);
+                elements.copyAssumptionStatus.textContent = '';
                 renderTireSelection();
                 updatePage();
             });
 
             elements.rimSelect.addEventListener('change', () => {
                 state.rimDiameter = Number(elements.rimSelect.value);
+                elements.copyAssumptionStatus.textContent = '';
                 renderTireSelection();
                 updatePage();
+            });
+
+            elements.copyAssumptionBtn.addEventListener('click', () => {
+                const text = elements.assumptionCopySource.textContent;
+                copyPlainText(text).then(() => {
+                    elements.copyAssumptionStatus.textContent = '已复制参数、假设和结果';
+                }).catch(() => {
+                    elements.copyAssumptionStatus.textContent = '复制失败，请重试';
+                });
             });
 
             window.addEventListener('resize', () => {
@@ -999,6 +1277,7 @@
         renderTireSelection();
         bindEvents();
         updatePage();
+        renderComparison();
     </script>
 </body>
 

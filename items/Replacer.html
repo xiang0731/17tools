@@ -5,26 +5,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>文本替换工具</title>
+    <script>
+        (function applyThemeEarly() {
+            try {
+                var pref = localStorage.getItem('17tools-theme');
+                if (pref == null) {
+                    pref = localStorage.getItem('theme');
+                    if (pref != null) {
+                        localStorage.setItem('17tools-theme', pref);
+                    }
+                }
+                var theme = (pref === 'light' || pref === 'dark')
+                    ? pref
+                    : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) { /* 存储不可用时由 theme.js 降级 */ }
+        })();
+    </script>
     <link rel="stylesheet" href="../css/theme.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="../vendor/fontawesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
-            /* Fallback colors if theme.css is missing or incomplete */
-            --spacing-xs: 4px;
-            --spacing-sm: 8px;
-            --spacing-md: 16px;
-            --spacing-lg: 24px;
-            --spacing-xl: 32px;
-            --radius-sm: 4px;
-            --radius-md: 8px;
-            --radius-lg: 12px;
-            --radius-full: 9999px;
-            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.05);
-            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
-            --transition-fast: 0.2s ease;
-            --font-mono: 'Menlo', 'Monaco', 'Courier New', monospace;
-
             --error-color: #ff4d4f;
             --warning-color: #faad14;
             --success-color: #52c41a;
@@ -62,6 +63,7 @@
             display: grid;
             gap: var(--spacing-lg);
             padding-bottom: var(--spacing-xl);
+            min-width: 0;
         }
 
         /* 标题样式 */
@@ -179,10 +181,14 @@
             gap: var(--spacing-xs);
             align-items: stretch;
             position: relative;
+            flex-wrap: wrap;
+            min-width: 0;
         }
 
         .input-with-dropdown input[type="text"] {
-            flex: 1;
+            flex: 1 1 8rem;
+            min-width: 0;
+            max-width: 100%;
         }
 
         input[type="text"] {
@@ -238,7 +244,9 @@
             border: 1px solid var(--border-color);
             border-radius: var(--radius-md);
             box-shadow: var(--shadow-lg);
-            min-width: 220px;
+            min-width: 0;
+            max-width: min(220px, 100%);
+            width: max-content;
             max-height: 300px;
             overflow-y: auto;
             z-index: 1000;
@@ -404,6 +412,30 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: var(--spacing-sm);
+            flex-wrap: wrap;
+        }
+
+        .history-toolbar {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            flex-wrap: wrap;
+        }
+
+        .history-persist {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        #history-status {
+            font-size: 12px;
+            color: var(--text-secondary);
         }
 
         .history-title {
@@ -508,7 +540,7 @@
 
         .btn-restore {
             background: var(--success-color);
-            color: white;
+            color: var(--text-inverse);
             border: none;
             padding: 4px 12px;
             border-radius: var(--radius-sm);
@@ -543,16 +575,22 @@
         /* 响应式设计 */
         @media (max-width: 768px) {
             body {
+                padding: var(--spacing-sm);
+            }
+
+            .input-container,
+            .control-panel,
+            .result-section {
                 padding: var(--spacing-md);
+            }
+
+            h1 {
+                font-size: 22px;
+                margin-bottom: var(--spacing-md);
             }
 
             .input-section {
                 grid-template-columns: 1fr;
-            }
-
-            h1 {
-                font-size: 24px;
-                margin-bottom: var(--spacing-lg);
             }
 
             .button-container {
@@ -584,6 +622,7 @@
                 right: auto;
                 left: 0;
                 width: 100%;
+                max-width: 100%;
             }
         }
 
@@ -718,7 +757,7 @@
                     <i class="fas fa-file-text"></i>
                     原始文本
                 </div>
-                <textarea id="originalText" placeholder="请在此输入需要处理的原始文本..."></textarea>
+                <textarea id="originalText" aria-label="替换原文" placeholder="请在此输入需要处理的原始文本..."></textarea>
                 <div class="button-container">
                     <button class="btn btn-secondary" onclick="copyToClipboard('originalText')">
                         <i class="fas fa-copy"></i>
@@ -810,7 +849,7 @@
                     </div>
                 </div>
             </div>
-            <textarea id="resultText" placeholder="替换结果将在此显示..." readonly></textarea>
+            <textarea id="resultText" aria-label="替换结果" placeholder="替换结果将在此显示..." readonly></textarea>
             <div class="button-container">
                 <button class="btn btn-secondary" onclick="copyToClipboard('resultText')">
                     <i class="fas fa-copy"></i>
@@ -831,10 +870,25 @@
                     操作历史
                     <span class="history-count" id="historyCount">0</span>
                 </h3>
-                <button class="btn btn-secondary" onclick="clearHistory()">
-                    <i class="fas fa-trash"></i>
-                    清空历史
-                </button>
+                <div class="history-toolbar">
+                    <label class="history-persist">
+                        <input type="checkbox" id="persist-history" checked>
+                        将历史保存在本机
+                    </label>
+                    <span id="history-status">仅本次会话</span>
+                    <button type="button" class="btn btn-secondary" id="history-export" hidden>
+                        <i class="fas fa-download"></i>
+                        导出历史
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="history-retry" hidden>
+                        <i class="fas fa-redo"></i>
+                        重试保存
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearHistory()">
+                        <i class="fas fa-trash"></i>
+                        清空历史
+                    </button>
+                </div>
             </div>
             <div class="history-content">
                 <div id="historyList">
@@ -850,12 +904,19 @@
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
 
+    <script src="../js/safe-storage.js"></script>
+    <script src="../js/replacer-history-core.js"></script>
+    <script src="../js/text-budget-core.js"></script>
+    <script src="../js/clipboard.js"></script>
+    <script src="../js/replacer-core.js"></script>
     <script src="../js/unsaved-guard.js"></script>
     <script src="../js/theme.js"></script>
     <script>
         // 历史记录数据
         let historyData = [];
-        const HISTORY_STORAGE_KEY = 'text_replacer_history_v1';
+        const historyStorage = (window.SafeStorage && (window.SafeStorage.shared || window.SafeStorage.createShared(window))) || null;
+        let persistHistoryEnabled = true;
+        const HISTORY_NEW_KEY = ReplacerHistoryCore.NEW_KEY;
 
         // 特殊字符列表
         const specialChars = [
@@ -945,22 +1006,11 @@
             dropdown.classList.remove('show');
         }
 
-        // 处理特殊字符转换
-        function processSpecialChars(text) {
-            // 修正后的处理顺序：先处理反斜杠转义，再处理其他转义
-            return text
-                .replace(/\\\\/g, '\0')     // 先将双反斜杠临时标记，避免干扰
-                .replace(/\\n/g, '\n')      // 换行符
-                .replace(/\\t/g, '\t')      // 制表符
-                .replace(/\\r/g, '\r')      // 回车符
-                .replace(/\0/g, '\\');      // 恢复反斜杠
-        }
-
         // 执行替换操作
         function performReplace() {
             const originalText = document.getElementById('originalText').value;
-            let searchText = document.getElementById('searchText').value;
-            let replaceText = document.getElementById('replaceText').value;
+            const searchText = document.getElementById('searchText').value;
+            const replaceText = document.getElementById('replaceText').value;
 
             if (!originalText) {
                 showToast('请先输入原始文本！', 'error');
@@ -975,46 +1025,30 @@
             }
 
             try {
-                // 处理特殊字符
-                const processedSearchText = processSpecialChars(searchText);
-                const processedReplaceText = processSpecialChars(replaceText);
+                const result = ReplacerCore.replaceLiteral(originalText, searchText, replaceText);
 
-                // 执行替换
-                const regex = new RegExp(escapeRegExp(processedSearchText), 'g');
-                const matches = originalText.match(regex) || [];
-
-                if (matches.length === 0) {
-                    showToast('未找到匹配的文本', 'warning');
+                if (!result.ok || result.matchCount === 0) {
+                    showToast(result.ok ? '未找到匹配的文本' : (result.reason === 'empty-search' ? '请输入查找内容' : result.reason), 'warning');
                     return;
                 }
 
-                const resultText = originalText.replace(regex, processedReplaceText);
+                document.getElementById('resultText').value = result.resultText;
+                document.getElementById('foundCount').textContent = result.matchCount;
+                document.getElementById('replaceCount').textContent = result.matchCount;
 
-                // 更新结果
-                document.getElementById('resultText').value = resultText;
-                document.getElementById('foundCount').textContent = matches.length;
-                document.getElementById('replaceCount').textContent = matches.length;
-
-                // 添加成功提示动画
                 const resultSection = document.querySelector('.result-section');
                 resultSection.classList.remove('success-flash');
                 void resultSection.offsetWidth; // Trigger reflow
                 resultSection.classList.add('success-flash');
 
-                showToast(`成功替换 ${matches.length} 处文本`, 'success');
+                showToast('成功替换 ' + result.matchCount + ' 处文本', 'success');
 
-                // 自动保存到历史（如果不重复）
-                saveToHistory(originalText, searchText, replaceText, resultText, matches.length, false);
+                saveToHistory(originalText, searchText, replaceText, result.resultText, result.matchCount, false);
 
             } catch (error) {
                 console.error('Replacement error:', error);
                 showToast('替换过程中发生错误', 'error');
             }
-        }
-
-        // 转义正则表达式特殊字符
-        function escapeRegExp(string) {
-            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         }
 
         // 复制到剪贴板
@@ -1025,15 +1059,8 @@
                 return;
             }
 
-            try {
-                await navigator.clipboard.writeText(textarea.value);
-                showToast('已复制到剪贴板', 'success');
-            } catch (err) {
-                // 降级处理
-                textarea.select();
-                document.execCommand('copy');
-                showToast('已复制到剪贴板', 'success');
-            }
+            const result = await ToolsClipboard.copyText(textarea.value, { element: textarea });
+            showToast(result.message, result.ok ? 'success' : 'error');
         }
 
         // 从剪贴板粘贴
@@ -1104,40 +1131,89 @@
                 replaceCount: count
             };
 
-            historyData.unshift(historyItem);
-            // 限制历史记录数量为 50 条
-            if (historyData.length > 50) {
-                historyData.pop();
+            const added = ReplacerHistoryCore.addItem(historyData, historyItem);
+            historyData = added.items;
+            if (added.rejected) {
+                if (isManual) showToast('单条记录过大，未写入历史，可先导出', 'warning');
+                updateHistoryDisplay();
+                return;
             }
 
-            saveHistoryToStorage();
+            const persistResult = saveHistoryToStorage();
             updateHistoryDisplay();
 
             if (isManual) {
-                showToast('已保存到历史记录', 'success');
+                if (persistResult.verified) {
+                    showToast('此设备（需手动开启）', 'success');
+                } else {
+                    showToast(historyLifetimeText(persistResult.status), persistResult.status === ReplacerHistoryCore.STATUS.SESSION ? 'info' : 'error');
+                }
             }
         }
 
         // 从本地存储加载历史
-        function loadHistoryFromStorage() {
-            try {
-                const stored = localStorage.getItem(HISTORY_STORAGE_KEY);
-                if (stored) {
-                    historyData = JSON.parse(stored);
-                    updateHistoryDisplay();
-                }
-            } catch (e) {
-                console.error('Failed to load history', e);
+        function historyLifetimeText(status) {
+            if (status === ReplacerHistoryCore.STATUS.SAVED) {
+                return '此设备（需手动开启）';
             }
+            if (status === ReplacerHistoryCore.STATUS.FAILED || status === ReplacerHistoryCore.STATUS.QUOTA) {
+                return ReplacerHistoryCore.statusMessage(status);
+            }
+            return '仅本次会话';
         }
 
-        // 保存历史到本地存储
-        function saveHistoryToStorage() {
-            try {
-                localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(historyData));
-            } catch (e) {
-                console.error('Failed to save history', e);
+        function applyHistoryStatus(result) {
+            const statusEl = document.getElementById('history-status');
+            const exportBtn = document.getElementById('history-export');
+            const retryBtn = document.getElementById('history-retry');
+            const status = result && result.status ? result.status : ReplacerHistoryCore.STATUS.SESSION;
+            statusEl.textContent = historyLifetimeText(status);
+            const needsExport = historyData.length > 0 && status !== ReplacerHistoryCore.STATUS.SAVED;
+            exportBtn.hidden = !needsExport;
+            retryBtn.hidden = !(status === ReplacerHistoryCore.STATUS.FAILED || status === ReplacerHistoryCore.STATUS.QUOTA);
+        }
+
+        function loadHistoryFromStorage() {
+            const migrated = ReplacerHistoryCore.migrate(historyStorage);
+            historyData = migrated.items || [];
+            persistHistoryEnabled = migrated.persistHistory !== false;
+            document.getElementById('persist-history').checked = persistHistoryEnabled;
+            if (migrated.source === 'migrated' || migrated.source === 'new') {
+                applyHistoryStatus({ status: persistHistoryEnabled ? ReplacerHistoryCore.STATUS.SAVED : ReplacerHistoryCore.STATUS.SESSION });
+            } else if (migrated.error === ReplacerHistoryCore.STATUS.QUOTA) {
+                applyHistoryStatus({ status: ReplacerHistoryCore.STATUS.QUOTA });
+            } else if (migrated.error) {
+                applyHistoryStatus({ status: ReplacerHistoryCore.STATUS.FAILED });
+                if (migrated.error === 'corrupt-new' || migrated.error === 'corrupt-old') {
+                    showToast(ReplacerHistoryCore.MESSAGES.corrupt, 'warning');
+                }
+            } else {
+                applyHistoryStatus({ status: ReplacerHistoryCore.STATUS.SESSION });
             }
+            updateHistoryDisplay();
+        }
+
+        function saveHistoryToStorage() {
+            const result = ReplacerHistoryCore.persistItems(historyStorage, historyData, {
+                persistEnabled: persistHistoryEnabled,
+                removeOldKey: persistHistoryEnabled
+            });
+            if (Array.isArray(result.items)) {
+                historyData = result.items;
+            }
+            applyHistoryStatus(result);
+            return result;
+        }
+
+        function exportHistoryFile() {
+            const payload = ReplacerHistoryCore.exportPayload(historyData);
+            const blob = new Blob([payload], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'replacer-history.json';
+            link.click();
+            URL.revokeObjectURL(url);
         }
 
         // 更新历史记录显示
@@ -1145,49 +1221,80 @@
             const historyList = document.getElementById('historyList');
             const historyCount = document.getElementById('historyCount');
 
-            historyCount.textContent = historyData.length;
+            historyCount.textContent = String(historyData.length);
+            historyList.textContent = '';
 
             if (historyData.length === 0) {
-                historyList.innerHTML = `
-                    <div class="history-empty">
-                        <i class="fas fa-clock"></i>
-                        <span>暂无操作历史</span>
-                    </div>
-                `;
+                const empty = document.createElement('div');
+                empty.className = 'history-empty';
+                const icon = document.createElement('i');
+                icon.className = 'fas fa-clock';
+                const span = document.createElement('span');
+                span.textContent = '暂无操作历史';
+                empty.appendChild(icon);
+                empty.appendChild(span);
+                historyList.appendChild(empty);
                 return;
             }
 
-            historyList.innerHTML = historyData.map(item => `
-                <div class="history-item">
-                    <div class="history-meta">
-                        <span><i class="fas fa-clock"></i> ${item.timestamp}</span>
-                        <span class="history-badge">
-                            替换 ${item.replaceCount} 处
-                        </span>
-                    </div>
-                    <div class="history-operation">
-                        <span style="font-weight:600; color:var(--text-primary)">"${escapeHtml(item.searchText)}"</span>
-                        <i class="fas fa-arrow-right history-arrow"></i>
-                        <span style="font-weight:600; color:var(--success-color)">"${escapeHtml(item.replaceText)}"</span>
-                    </div>
-                    <div class="history-actions">
-                        <button class="btn-restore" onclick="restoreFromHistory(${item.id})">
-                            <i class="fas fa-undo"></i>
-                            恢复
-                        </button>
-                        <button class="btn-delete-history" onclick="deleteHistoryItem(${item.id})">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-        }
+            historyData.forEach((item) => {
+                const wrap = document.createElement('div');
+                wrap.className = 'history-item';
 
-        // HTML 转义防止 XSS
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+                const meta = document.createElement('div');
+                meta.className = 'history-meta';
+                const time = document.createElement('span');
+                const timeIcon = document.createElement('i');
+                timeIcon.className = 'fas fa-clock';
+                time.appendChild(timeIcon);
+                time.appendChild(document.createTextNode(' ' + String(item.timestamp || '')));
+                const badge = document.createElement('span');
+                badge.className = 'history-badge';
+                badge.textContent = '替换 ' + String(item.replaceCount) + ' 处';
+                meta.appendChild(time);
+                meta.appendChild(badge);
+
+                const operation = document.createElement('div');
+                operation.className = 'history-operation';
+                const search = document.createElement('span');
+                search.style.fontWeight = '600';
+                search.style.color = 'var(--text-primary)';
+                search.textContent = '"' + String(item.searchText || '') + '"';
+                const arrow = document.createElement('i');
+                arrow.className = 'fas fa-arrow-right history-arrow';
+                const replace = document.createElement('span');
+                replace.style.fontWeight = '600';
+                replace.style.color = 'var(--success-color)';
+                replace.textContent = '"' + String(item.replaceText || '') + '"';
+                operation.appendChild(search);
+                operation.appendChild(arrow);
+                operation.appendChild(replace);
+
+                const actions = document.createElement('div');
+                actions.className = 'history-actions';
+                const restoreBtn = document.createElement('button');
+                restoreBtn.type = 'button';
+                restoreBtn.className = 'btn-restore';
+                restoreBtn.addEventListener('click', () => restoreFromHistory(item.id));
+                const restoreIcon = document.createElement('i');
+                restoreIcon.className = 'fas fa-undo';
+                restoreBtn.appendChild(restoreIcon);
+                restoreBtn.appendChild(document.createTextNode(' 恢复'));
+                const deleteBtn = document.createElement('button');
+                deleteBtn.type = 'button';
+                deleteBtn.className = 'btn-delete-history';
+                deleteBtn.addEventListener('click', () => deleteHistoryItem(item.id));
+                const deleteIcon = document.createElement('i');
+                deleteIcon.className = 'fas fa-times';
+                deleteBtn.appendChild(deleteIcon);
+                actions.appendChild(restoreBtn);
+                actions.appendChild(deleteBtn);
+
+                wrap.appendChild(meta);
+                wrap.appendChild(operation);
+                wrap.appendChild(actions);
+                historyList.appendChild(wrap);
+            });
         }
 
         // 从历史记录恢复
@@ -1243,10 +1350,13 @@
 
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            toast.innerHTML = `
-                <i class="fas ${icons[type] || icons.info} toast-icon"></i>
-                <span class="toast-message">${message}</span>
-            `;
+            const icon = document.createElement('i');
+            icon.className = `fas ${icons[type] || icons.info} toast-icon`;
+            const text = document.createElement('span');
+            text.className = 'toast-message';
+            text.textContent = message;
+            toast.appendChild(icon);
+            toast.appendChild(text);
 
             container.appendChild(toast);
 
@@ -1268,6 +1378,20 @@
 
             // 加载历史记录
             loadHistoryFromStorage();
+
+            document.getElementById('persist-history').addEventListener('change', function () {
+                persistHistoryEnabled = this.checked;
+                if (historyStorage && typeof historyStorage.setItem === 'function') {
+                    historyStorage.setItem(ReplacerHistoryCore.PREF_KEY, JSON.stringify({ persistHistory: persistHistoryEnabled }));
+                }
+                saveHistoryToStorage();
+                updateHistoryDisplay();
+            });
+            document.getElementById('history-export').addEventListener('click', exportHistoryFile);
+            document.getElementById('history-retry').addEventListener('click', function () {
+                saveHistoryToStorage();
+                updateHistoryDisplay();
+            });
 
             // 绑定回车键执行替换
             document.getElementById('replaceText').addEventListener('keypress', function (e) {

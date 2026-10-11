@@ -3,13 +3,61 @@
 
 <head>
     <meta charset="UTF-8">
+    <script>
+        (function applyThemeEarly() {
+            try {
+                var pref = localStorage.getItem('17tools-theme');
+                if (pref == null) {
+                    pref = localStorage.getItem('theme');
+                    if (pref != null) {
+                        localStorage.setItem('17tools-theme', pref);
+                    }
+                }
+                var theme = (pref === 'light' || pref === 'dark')
+                    ? pref
+                    : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) { /* 存储不可用时由 theme.js 降级 */ }
+        })();
+    </script>
     <title>Markdown 编辑器</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../css/theme.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="../vendor/fontawesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css"
-        id="hljs-light">
+        integrity="sha512-0aPQyyeZrWj9sCA46UlmWgKOP0mUipLQ6OZXu8l4IcAmD2u31EPEy9VcIMvl7SoAaKe8bLXZhYoMaE/in+gcgA=="
+        crossorigin="anonymous"
+        id="hljs-light" data-hljs-managed="pair">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
-        id="hljs-dark" disabled>
+        integrity="sha512-rO+olRTkcf304DQBxSWxln8JXCzTHlKnIdnMUwYvQa9/Jd4cQaNkItIUj6Z4nvW1dqK0SKXLbn9h4KwZTNtAyw=="
+        crossorigin="anonymous"
+        id="hljs-dark" data-hljs-managed="pair" disabled>
+    <script>
+        (function syncHljsEarly() {
+            var theme = document.documentElement.getAttribute('data-theme');
+            try {
+                if (theme !== 'light' && theme !== 'dark') {
+                    var pref = localStorage.getItem('17tools-theme') || localStorage.getItem('theme');
+                    if (pref === 'light' || pref === 'dark') {
+                        theme = pref;
+                    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                        theme = 'dark';
+                    } else {
+                        theme = 'light';
+                    }
+                }
+            } catch (e) { /* 存储不可用时保持页面默认浅色高亮 */ }
+            var light = document.getElementById('hljs-light');
+            var dark = document.getElementById('hljs-dark');
+            if (theme === 'dark') {
+                if (light) light.disabled = true;
+                if (dark) dark.disabled = false;
+            } else {
+                if (light) light.disabled = false;
+                if (dark) dark.disabled = true;
+            }
+        })();
+    </script>
     <style>
         body {
             height: 100vh;
@@ -31,6 +79,9 @@
             background: var(--background-secondary);
             border-bottom: 1px solid var(--border-color);
             flex-shrink: 0;
+            flex-wrap: wrap;
+            gap: 8px;
+            min-width: 0;
         }
 
         .editor-title {
@@ -49,6 +100,51 @@
         .header-actions {
             display: flex;
             align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            min-width: 0;
+        }
+
+        .draft-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .draft-controls label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        #draft-status {
+            color: var(--text-secondary);
+        }
+
+        .draft-banner {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 8px 12px;
+            background: var(--background-secondary);
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .draft-banner.is-visible {
+            display: flex;
+        }
+
+        .draft-banner-actions {
+            display: flex;
             gap: 8px;
         }
 
@@ -149,7 +245,20 @@
             display: flex;
             flex: 1;
             min-height: 0;
+            min-width: 0;
             overflow: hidden;
+        }
+
+        .editor-body[data-layout="split-h"] {
+            flex-direction: row;
+        }
+
+        .editor-body[data-layout="split-v"] {
+            flex-direction: column;
+        }
+
+        .editor-body[data-layout="single"] {
+            flex-direction: row;
         }
 
         .editor-pane {
@@ -157,7 +266,13 @@
             display: flex;
             flex-direction: column;
             min-width: 0;
+            min-height: 0;
             position: relative;
+        }
+
+        .editor-body[data-layout="split-v"] .editor-pane {
+            flex: 1 1 0;
+            min-height: 0;
         }
 
         .pane-header {
@@ -173,12 +288,25 @@
             text-transform: uppercase;
             letter-spacing: 0.05em;
             flex-shrink: 0;
+            flex-wrap: wrap;
+            gap: 6px;
+            min-width: 0;
         }
 
         .pane-header-left {
             display: flex;
             align-items: center;
             gap: 6px;
+            min-width: 0;
+            flex-wrap: wrap;
+        }
+
+        #compute-hint {
+            font-size: 12px;
+            font-weight: 400;
+            text-transform: none;
+            letter-spacing: 0;
+            color: var(--text-secondary);
         }
 
         .pane-header-right {
@@ -230,7 +358,7 @@
 
         .pane-action-btn.danger:hover {
             border-color: var(--error-color);
-            color: var(--error-color);
+            color: var(--text-error);
         }
 
         .divider {
@@ -259,6 +387,7 @@
         #md-input {
             flex: 1;
             width: 100%;
+            min-height: 0;
             padding: 16px;
             border: none;
             outline: none;
@@ -269,7 +398,7 @@
             font-size: 14px;
             line-height: 1.7;
             tab-size: 4;
-            overflow-y: auto;
+            overflow: auto;
         }
 
         #md-input::placeholder {
@@ -278,7 +407,8 @@
 
         .preview-pane {
             flex: 1;
-            overflow-y: auto;
+            min-height: 0;
+            overflow: auto;
             padding: 16px 24px;
             background: var(--background-primary);
         }
@@ -631,6 +761,62 @@
             color: var(--success-color);
         }
 
+        .manual-copy-dialog {
+            width: calc(100% - 2 * var(--spacing-md));
+            max-width: 680px;
+            max-height: calc(100dvh - 2 * var(--spacing-md));
+            overflow: auto;
+            padding: var(--spacing-lg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            background: var(--background-primary);
+            color: var(--text-primary);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .manual-copy-dialog::backdrop {
+            background: var(--background-tertiary);
+            opacity: 0.8;
+        }
+
+        .manual-copy-dialog h2 {
+            margin: 0 0 var(--spacing-sm);
+            font-size: 18px;
+        }
+
+        .manual-copy-dialog p {
+            margin: 0 0 var(--spacing-md);
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .manual-copy-dialog textarea {
+            display: block;
+            box-sizing: border-box;
+            width: 100%;
+            height: 40vh;
+            min-height: 160px;
+            padding: var(--spacing-sm);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--background-secondary);
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 14px;
+            resize: vertical;
+        }
+
+        .manual-copy-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: var(--spacing-md);
+        }
+
+        .manual-copy-actions button {
+            min-width: 44px;
+            min-height: 44px;
+        }
+
         /* 视图模式切换 */
         .view-mode-btns {
             display: flex;
@@ -651,6 +837,14 @@
             cursor: pointer;
             transition: all var(--transition-fast);
             font-family: inherit;
+        }
+
+        .view-mode-btn:focus-visible,
+        .header-btn:focus-visible,
+        .toolbar-btn:focus-visible,
+        .pane-action-btn:focus-visible {
+            outline: 2px solid var(--primary-color);
+            outline-offset: 2px;
         }
 
         .view-mode-btn.active {
@@ -680,7 +874,7 @@
         /* 移动端响应式 */
         @media (max-width: 768px) {
             .editor-header {
-                padding: 10px 12px;
+                padding: 8px 10px;
                 flex-wrap: wrap;
                 gap: 8px;
             }
@@ -697,23 +891,33 @@
                 padding: 4px 8px;
             }
 
-            .editor-body {
-                flex-direction: column;
-            }
-
-            .divider {
+            .editor-body[data-layout="split-v"] .divider {
                 width: auto;
                 height: 4px;
                 cursor: row-resize;
             }
 
-            .editor-pane {
-                min-height: 200px;
-            }
-
             .header-btn span.btn-text {
                 display: none;
             }
+
+            .pane-header {
+                padding: 6px 10px;
+            }
+
+            #md-input,
+            .preview-pane {
+                padding: 12px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .view-mode-btn, .header-btn, .pane-action-btn, .toolbar-btn { min-height: 44px; min-width: 44px; }
+            .header-actions, .draft-controls, .pane-header, .pane-actions { flex-wrap: wrap; }
+            .pane-header { gap: 6px; }
+            .draft-controls { max-width: 100%; }
+            #draft-status { white-space: normal; }
+            .toolbar { flex-wrap: wrap; overflow: visible; }
         }
     </style>
 </head>
@@ -721,94 +925,110 @@
 <body>
     <div class="editor-header">
         <div class="editor-title">
-            <i class="fab fa-markdown"></i>
+            <i class="fab fa-markdown" aria-hidden="true"></i>
             Markdown 编辑器
         </div>
         <div class="header-actions">
-            <div class="view-mode-btns">
-                <button class="view-mode-btn active" data-mode="split" title="分栏视图">
-                    <i class="fas fa-columns"></i>
+            <div class="draft-controls">
+                <label>
+                    <input type="checkbox" id="persist-draft">
+                    在本机保存草稿
+                </label>
+                <span role="status" aria-live="polite" id="draft-status">仅本次会话</span>
+                <button type="button" class="header-btn" id="btn-delete-draft" title="停止继续保存并删除此设备旧草稿，保留当前正文" aria-label="删除本机旧草稿并停止保存">删除本机旧草稿</button>
+            </div>
+            <div class="view-mode-btns" role="group" aria-label="视图模式">
+                <button type="button" class="view-mode-btn" data-mode="split" title="分栏视图" aria-label="分栏视图" aria-pressed="false">
+                    <i class="fas fa-columns" aria-hidden="true"></i>
                 </button>
-                <button class="view-mode-btn" data-mode="edit" title="仅编辑">
-                    <i class="fas fa-edit"></i>
+                <button type="button" class="view-mode-btn" data-mode="edit" title="仅编辑" aria-label="仅编辑" aria-pressed="false">
+                    <i class="fas fa-edit" aria-hidden="true"></i>
                 </button>
-                <button class="view-mode-btn" data-mode="preview" title="仅预览">
-                    <i class="fas fa-eye"></i>
+                <button type="button" class="view-mode-btn" data-mode="preview" title="仅预览" aria-label="仅预览" aria-pressed="false">
+                    <i class="fas fa-eye" aria-hidden="true"></i>
                 </button>
             </div>
             <input type="file" id="file-input" accept=".md,.markdown,.txt,.text">
-            <button class="header-btn" onclick="document.getElementById('file-input').click()" title="打开文件">
-                <i class="fas fa-folder-open"></i>
+            <button class="header-btn" onclick="document.getElementById('file-input').click()" title="打开文件" aria-label="打开文件">
+                <i class="fas fa-folder-open" aria-hidden="true"></i>
                 <span class="btn-text">打开</span>
             </button>
-            <button class="header-btn" id="btn-save-md" title="保存为 .md 文件">
-                <i class="fas fa-download"></i>
+            <button class="header-btn" id="btn-save-md" title="保存为 .md 文件" aria-label="保存为 .md 文件">
+                <i class="fas fa-download" aria-hidden="true"></i>
                 <span class="btn-text">保存 MD</span>
             </button>
-            <button class="header-btn" id="btn-save-html" title="导出为 HTML">
-                <i class="fas fa-file-code"></i>
+            <button class="header-btn" id="btn-save-html" title="导出为 HTML" aria-label="导出为 HTML">
+                <i class="fas fa-file-code" aria-hidden="true"></i>
                 <span class="btn-text">导出 HTML</span>
             </button>
-            <button class="header-btn" id="btn-copy-html" title="复制 HTML 源码">
-                <i class="fas fa-copy"></i>
+            <button class="header-btn" id="btn-copy-html" title="复制 HTML 源码" aria-label="复制 HTML 源码">
+                <i class="fas fa-copy" aria-hidden="true"></i>
                 <span class="btn-text">复制 HTML</span>
             </button>
         </div>
     </div>
 
+    <div class="draft-banner" id="draft-restore-banner">
+        <span id="draft-restore-text">本机仍留有上次草稿</span>
+        <div class="draft-banner-actions">
+            <button type="button" class="header-btn" id="btn-restore-draft">恢复并开启</button>
+            <button type="button" class="header-btn" id="btn-dismiss-draft">暂不恢复</button>
+        </div>
+    </div>
+
     <div class="toolbar" id="toolbar">
-        <button class="toolbar-btn" data-action="heading1" data-tooltip="一级标题"><b>H1</b></button>
-        <button class="toolbar-btn" data-action="heading2" data-tooltip="二级标题"><b>H2</b></button>
-        <button class="toolbar-btn" data-action="heading3" data-tooltip="三级标题"><b>H3</b></button>
+        <button class="toolbar-btn" data-action="heading1" data-tooltip="一级标题" aria-label="一级标题"><b>H1</b></button>
+        <button class="toolbar-btn" data-action="heading2" data-tooltip="二级标题" aria-label="二级标题"><b>H2</b></button>
+        <button class="toolbar-btn" data-action="heading3" data-tooltip="三级标题" aria-label="三级标题"><b>H3</b></button>
         <span class="toolbar-sep"></span>
-        <button class="toolbar-btn" data-action="bold" data-tooltip="粗体 (Ctrl+B)"><i class="fas fa-bold"></i></button>
-        <button class="toolbar-btn" data-action="italic" data-tooltip="斜体 (Ctrl+I)"><i
-                class="fas fa-italic"></i></button>
-        <button class="toolbar-btn" data-action="strikethrough" data-tooltip="删除线"><i
-                class="fas fa-strikethrough"></i></button>
-        <button class="toolbar-btn" data-action="mark" data-tooltip="高亮"><i
-                class="fas fa-highlighter"></i></button>
+        <button class="toolbar-btn" data-action="bold" data-tooltip="粗体 (Ctrl+B)" aria-label="粗体 (Ctrl+B)"><i class="fas fa-bold" aria-hidden="true"></i></button>
+        <button class="toolbar-btn" data-action="italic" data-tooltip="斜体 (Ctrl+I)" aria-label="斜体 (Ctrl+I)"><i
+                class="fas fa-italic" aria-hidden="true"></i></button>
+        <button class="toolbar-btn" data-action="strikethrough" data-tooltip="删除线" aria-label="删除线"><i
+                class="fas fa-strikethrough" aria-hidden="true"></i></button>
+        <button class="toolbar-btn" data-action="mark" data-tooltip="高亮" aria-label="高亮"><i
+                class="fas fa-highlighter" aria-hidden="true"></i></button>
         <span class="toolbar-sep"></span>
-        <button class="toolbar-btn" data-action="ul" data-tooltip="无序列表"><i class="fas fa-list-ul"></i></button>
-        <button class="toolbar-btn" data-action="ol" data-tooltip="有序列表"><i class="fas fa-list-ol"></i></button>
-        <button class="toolbar-btn" data-action="task" data-tooltip="任务列表"><i
-                class="fas fa-tasks"></i></button>
+        <button class="toolbar-btn" data-action="ul" data-tooltip="无序列表" aria-label="无序列表"><i class="fas fa-list-ul" aria-hidden="true"></i></button>
+        <button class="toolbar-btn" data-action="ol" data-tooltip="有序列表" aria-label="有序列表"><i class="fas fa-list-ol" aria-hidden="true"></i></button>
+        <button class="toolbar-btn" data-action="task" data-tooltip="任务列表" aria-label="任务列表"><i
+                class="fas fa-tasks" aria-hidden="true"></i></button>
         <span class="toolbar-sep"></span>
-        <button class="toolbar-btn" data-action="quote" data-tooltip="引用"><i
-                class="fas fa-quote-left"></i></button>
-        <button class="toolbar-btn" data-action="code" data-tooltip="行内代码"><i class="fas fa-code"></i></button>
-        <button class="toolbar-btn" data-action="codeblock" data-tooltip="代码块"><i
-                class="fas fa-file-code"></i></button>
+        <button class="toolbar-btn" data-action="quote" data-tooltip="引用" aria-label="引用"><i
+                class="fas fa-quote-left" aria-hidden="true"></i></button>
+        <button class="toolbar-btn" data-action="code" data-tooltip="行内代码" aria-label="行内代码"><i class="fas fa-code" aria-hidden="true"></i></button>
+        <button class="toolbar-btn" data-action="codeblock" data-tooltip="代码块" aria-label="代码块"><i
+                class="fas fa-file-code" aria-hidden="true"></i></button>
         <span class="toolbar-sep"></span>
-        <button class="toolbar-btn" data-action="link" data-tooltip="链接"><i class="fas fa-link"></i></button>
-        <button class="toolbar-btn" data-action="image" data-tooltip="图片"><i class="fas fa-image"></i></button>
-        <button class="toolbar-btn" data-action="table" data-tooltip="表格"><i class="fas fa-table"></i></button>
-        <button class="toolbar-btn" data-action="hr" data-tooltip="分隔线"><i class="fas fa-minus"></i></button>
+        <button class="toolbar-btn" data-action="link" data-tooltip="链接" aria-label="链接"><i class="fas fa-link" aria-hidden="true"></i></button>
+        <button class="toolbar-btn" data-action="image" data-tooltip="图片" aria-label="图片"><i class="fas fa-image" aria-hidden="true"></i></button>
+        <button class="toolbar-btn" data-action="table" data-tooltip="表格" aria-label="表格"><i class="fas fa-table" aria-hidden="true"></i></button>
+        <button class="toolbar-btn" data-action="hr" data-tooltip="分隔线" aria-label="分隔线"><i class="fas fa-minus" aria-hidden="true"></i></button>
     </div>
 
     <div class="editor-body" id="editor-body">
         <div class="editor-pane" id="edit-pane">
             <div class="pane-header">
                 <div class="pane-header-left">
-                    <i class="fas fa-pen-nib"></i> 编辑
+                    <i class="fas fa-pen-nib" aria-hidden="true"></i> 编辑
                 </div>
                 <div class="pane-header-right">
                     <span class="pane-stats" id="editor-stats">0 字符 · 0 词 · 0 行</span>
                     <button class="pane-action-btn" id="btn-edit-copy" title="复制 Markdown 源码">
-                        <i class="fas fa-copy"></i> 复制
+                        <i class="fas fa-copy" aria-hidden="true"></i> 复制
                     </button>
                     <button class="pane-action-btn" id="btn-edit-paste" title="从剪贴板粘贴">
-                        <i class="fas fa-paste"></i> 粘贴
+                        <i class="fas fa-paste" aria-hidden="true"></i> 粘贴
                     </button>
                     <button class="pane-action-btn danger" id="btn-edit-clear" title="清空编辑器内容">
-                        <i class="fas fa-trash-alt"></i> 清空
+                        <i class="fas fa-trash-alt" aria-hidden="true"></i> 清空
                     </button>
                 </div>
             </div>
-            <textarea id="md-input" placeholder="在这里输入 Markdown 内容...&#10;&#10;支持：标题、粗体、斜体、列表、代码块、表格等&#10;&#10;试试 Ctrl+B 粗体，Ctrl+I 斜体，Tab 缩进"
+            <textarea aria-label="Markdown 正文" id="md-input" placeholder="在这里输入 Markdown 内容...&#10;&#10;支持：标题、粗体、斜体、列表、代码块、表格等&#10;&#10;试试 Ctrl+B 粗体，Ctrl+I 斜体，Tab 缩进"
                 spellcheck="false"></textarea>
             <div class="drop-overlay" id="drop-overlay">
-                <i class="fas fa-file-import"></i>
+                <i class="fas fa-file-import" aria-hidden="true"></i>
                 <span>拖放 Markdown 文件到此处</span>
             </div>
         </div>
@@ -818,30 +1038,34 @@
         <div class="editor-pane" id="preview-pane">
             <div class="pane-header">
                 <div class="pane-header-left">
-                    <i class="fas fa-eye"></i> 预览
+                    <i class="fas fa-eye" aria-hidden="true"></i> 预览
+                    <span id="compute-hint" role="status" aria-live="polite" hidden></span>
                 </div>
                 <div class="pane-header-right">
                     <div class="sync-scroll-indicator active" id="sync-indicator">
-                        <i class="fas fa-link"></i> 同步滚动
+                        <i class="fas fa-link" aria-hidden="true"></i> 同步滚动
                     </div>
+                    <button class="pane-action-btn" id="btn-render-preview" title="渲染预览">
+                        <i class="fas fa-play" aria-hidden="true"></i> 渲染预览
+                    </button>
                     <button class="pane-action-btn" id="btn-preview-copy" title="复制预览内容为纯文本">
-                        <i class="fas fa-copy"></i> 复制
+                        <i class="fas fa-copy" aria-hidden="true"></i> 复制
                     </button>
                     <button class="pane-action-btn" id="btn-preview-paste" title="从剪贴板粘贴到编辑器">
-                        <i class="fas fa-paste"></i> 粘贴
+                        <i class="fas fa-paste" aria-hidden="true"></i> 粘贴
                     </button>
                     <button class="pane-action-btn danger" id="btn-preview-clear" title="清空所有内容">
-                        <i class="fas fa-trash-alt"></i> 清空
+                        <i class="fas fa-trash-alt" aria-hidden="true"></i> 清空
                     </button>
                 </div>
             </div>
             <div class="preview-pane" id="preview-area">
                 <div class="preview-empty" id="preview-empty">
-                    <i class="fab fa-markdown guide-icon"></i>
+                    <i class="fab fa-markdown guide-icon" aria-hidden="true"></i>
                     <div class="guide-title">在左侧输入 Markdown，这里将实时预览</div>
                     <div class="guide-content">
                         <div class="guide-section">
-                            <div class="guide-section-title"><i class="fas fa-keyboard"></i> 快捷键</div>
+                            <div class="guide-section-title"><i class="fas fa-keyboard" aria-hidden="true"></i> 快捷键</div>
                             <table class="guide-table">
                                 <tr><td><span class="guide-kbd">Ctrl</span>+<span class="guide-kbd">B</span></td><td>粗体</td></tr>
                                 <tr><td><span class="guide-kbd">Ctrl</span>+<span class="guide-kbd">I</span></td><td>斜体</td></tr>
@@ -851,7 +1075,7 @@
                             </table>
                         </div>
                         <div class="guide-section">
-                            <div class="guide-section-title"><i class="fas fa-code"></i> 常用语法</div>
+                            <div class="guide-section-title"><i class="fas fa-code" aria-hidden="true"></i> 常用语法</div>
                             <table class="guide-table">
                                 <tr><td><code># 标题</code></td><td>一级标题（## 二级，### 三级）</td></tr>
                                 <tr><td><code>**粗体**</code></td><td><strong>粗体文本</strong></td></tr>
@@ -869,7 +1093,7 @@
                             </table>
                         </div>
                         <div class="guide-section">
-                            <div class="guide-section-title"><i class="fas fa-star"></i> 功能特性</div>
+                            <div class="guide-section-title"><i class="fas fa-star" aria-hidden="true"></i> 功能特性</div>
                             <div class="guide-chips">
                                 <span class="guide-chip">实时预览</span>
                                 <span class="guide-chip">同步滚动</span>
@@ -879,7 +1103,7 @@
                                 <span class="guide-chip">任务列表</span>
                                 <span class="guide-chip">打开/保存文件</span>
                                 <span class="guide-chip">导出 HTML</span>
-                                <span class="guide-chip">自动保存</span>
+                                <span class="guide-chip">可选本机草稿</span>
                                 <span class="guide-chip">拖放文件</span>
                             </div>
                         </div>
@@ -890,14 +1114,29 @@
         </div>
     </div>
 
-    <div class="toast" id="toast">
-        <i class="fas fa-check-circle"></i>
+    <div class="toast" id="toast" role="status" aria-live="polite">
+        <i class="fas fa-check-circle" aria-hidden="true"></i>
         <span id="toast-msg"></span>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <dialog id="manual-copy-dialog" class="manual-copy-dialog" aria-labelledby="manual-copy-title" aria-describedby="manual-copy-description" data-unsaved-ignore>
+        <h2 id="manual-copy-title">复制未成功，请手动复制</h2>
+        <p id="manual-copy-description"></p>
+        <textarea id="manual-copy-result" readonly aria-label="完整手动复制结果"></textarea>
+        <div class="manual-copy-actions">
+            <button id="manual-copy-close" class="header-btn" type="button">关闭</button>
+        </div>
+    </dialog>
+
+    <script src="../js/editor-runtime-core.js"></script>
+    <script src="../js/editor-task-core.js"></script>
+    <script src="../js/clipboard.js"></script>
+    <script src="../js/lazy-script-core.js"></script>
+    <script src="../js/safe-storage.js"></script>
+    <script src="../js/markdown-draft-core.js"></script>
+    <script src="../js/markdown-preview-core.js"></script>
     <script src="../js/unsaved-guard.js"></script>
+    <script src="../js/theme.js"></script>
     <script>
         const input = document.getElementById('md-input');
         const preview = document.getElementById('md-preview');
@@ -910,107 +1149,213 @@
         const previewPane = document.getElementById('preview-pane');
         const editorBody = document.getElementById('editor-body');
         const dropOverlay = document.getElementById('drop-overlay');
+        const tokenStyles = document.createElement('style');
+        tokenStyles.textContent = MarkdownPreviewCore.highlightCss();
+        document.head.appendChild(tokenStyles);
 
         let syncScroll = true;
         let isScrolling = false;
         let currentFileName = 'untitled.md';
 
         // --- 主题同步 ---
-        let _currentTheme = null;
-        function applyThemeByName(theme) {
-            if (!theme || theme === _currentTheme) return;
-            _currentTheme = theme;
-            document.documentElement.setAttribute('data-theme', theme);
-            document.getElementById('hljs-light').disabled = (theme === 'dark');
-            document.getElementById('hljs-dark').disabled = (theme !== 'dark');
+        function syncMarkdownHighlight(theme) {
+            if (theme !== 'light' && theme !== 'dark') {
+                return;
+            }
+            const light = document.getElementById('hljs-light');
+            const dark = document.getElementById('hljs-dark');
+            if (light) {
+                light.disabled = (theme === 'dark');
+            }
+            if (dark) {
+                dark.disabled = (theme !== 'dark');
+            }
+        }
+        function currentMarkdownTheme() {
+            const attr = document.documentElement.getAttribute('data-theme');
+            if (attr === 'light' || attr === 'dark') {
+                return attr;
+            }
+            if (window.themeManager && typeof window.themeManager.getCurrentTheme === 'function') {
+                return window.themeManager.getCurrentTheme();
+            }
+            return 'light';
+        }
+        syncMarkdownHighlight(currentMarkdownTheme());
+        window.addEventListener('themeChange', function (event) {
+            syncMarkdownHighlight(event.detail && event.detail.theme);
+        });
+
+        let lastFullSanitizedHtml = '';
+        let latestPreviewId = 0;
+        let sourceVersion = 0;
+        let renderedVersion = -1;
+        let renderedSource = null;
+        const previewTasks = EditorTaskCore.createController();
+        let markdownDepsReady = false;
+        let markedConfigured = false;
+        let previewWorker = null;
+        let previewWorkerBusy = false;
+        let previewWorkerLoaded = false;
+        let previewWorkerUnavailable = false;
+        let previewWorkerChain = Promise.resolve();
+        let shownWorkerFallback = false;
+        const markdownLoader = LazyScriptCore.createResourceLoader({ document: document });
+        const WORKER_URL = '../js/markdown-preview-worker.js';
+        const MARKED_URL = 'https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js';
+        const MARKED_INTEGRITY = 'sha512-pSeTnZAQF/RHxb0ysMoYQI/BRZsa5XuklcrgFfU3YZIdnD3LvkkqzrIeHxzFi6gKtI8Cpq2DEWdZjMTcNVhUYA==';
+        const MARKDOWN_HLJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js';
+        const MARKDOWN_HLJS_INTEGRITY = 'sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==';
+
+        function setComputeHint(message) {
+            const hint = document.getElementById('compute-hint');
+            if (!hint) return;
+            if (!message) {
+                hint.hidden = true;
+                hint.textContent = '';
+                return;
+            }
+            hint.hidden = false;
+            hint.textContent = message;
         }
 
-        function detectTheme() {
-            try {
-                const parentRoot = getSafeParentDocumentElement();
-                const parentTheme = parentRoot ? parentRoot.getAttribute('data-theme') : null;
-                if (parentTheme) return parentTheme;
-            } catch (e) { }
-            try {
-                const stored = localStorage.getItem('theme');
-                if (stored) return stored;
-            } catch (e) { }
-            return null;
+        function configureMarked() {
+            if (markedConfigured) return;
+            MarkdownPreviewCore.configureMarked(marked, typeof hljs !== 'undefined' ? hljs : null);
+            markedConfigured = true;
         }
 
-        function getSafeParentDocumentElement() {
+        async function ensureMarkdownDeps() {
+            if (markdownDepsReady) return;
+            await markdownLoader.loadScript({ url: MARKED_URL, integrity: MARKED_INTEGRITY });
             try {
-                if (window.parent === window) return null;
-                const parentDoc = window.parent && window.parent.document;
-                const parentRoot = parentDoc && parentDoc.documentElement;
-                return parentRoot instanceof Node ? parentRoot : null;
-            } catch (e) {
+                await markdownLoader.loadScript({ url: MARKDOWN_HLJS_URL, integrity: MARKDOWN_HLJS_INTEGRITY });
+            } catch (error) {
+                showToast('高亮库加载失败，代码将安全显示为普通文本');
+            }
+            configureMarked();
+            markdownDepsReady = true;
+        }
+
+        function disposePreviewWorker(reason) {
+            const kind = reason || 'cancelled';
+            previewTasks.dispose(null, kind);
+            previewTasks.dispose(previewWorker, kind);
+            previewWorker = null;
+            previewWorkerBusy = false;
+            previewWorkerLoaded = false;
+            return MarkdownPreviewCore.disposeReason(kind);
+        }
+
+        function ensurePreviewWorker() {
+            if (previewWorker) {
+                return previewWorker;
+            }
+            try {
+                previewWorker = new Worker(WORKER_URL);
+                return previewWorker;
+            } catch (error) {
                 return null;
             }
         }
 
-        // 初始化时读取一次
-        applyThemeByName(detectTheme());
-
-        // 主要通道：监听父页面 postMessage（最可靠，无跨域限制）
-        window.addEventListener('message', (e) => {
-            if (e.data && e.data.type === '17tools-theme') {
-                applyThemeByName(e.data.theme);
-            }
-        });
-
-        // 兜底：监听自身 data-theme 变化（父页面直接 setAttribute 时触发）
-        new MutationObserver(() => {
-            const theme = document.documentElement.getAttribute('data-theme');
-            if (theme) applyThemeByName(theme);
-        }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-
-        // 兜底：监听父页面 data-theme 变化（同源时生效）
-        try {
-            const parentRoot = getSafeParentDocumentElement();
-            if (parentRoot) {
-                new MutationObserver(() => applyThemeByName(detectTheme()))
-                    .observe(parentRoot, { attributes: true, attributeFilter: ['data-theme'] });
-            }
-        } catch (e) { }
-
-        // --- Marked 配置 ---
-        const renderer = new marked.Renderer();
-
-        renderer.listitem = function (text) {
-            if (typeof text === 'object' && text.text !== undefined) {
-                text = text.text;
-            }
-            if (/^\s*\[x\]\s*/i.test(text)) {
-                return '<li class="task-list-item"><input type="checkbox" checked disabled> ' +
-                    text.replace(/^\s*\[x\]\s*/i, '') + '</li>\n';
-            }
-            if (/^\s*\[\s\]\s*/.test(text)) {
-                return '<li class="task-list-item"><input type="checkbox" disabled> ' +
-                    text.replace(/^\s*\[\s\]\s*/, '') + '</li>\n';
-            }
-            return '<li>' + text + '</li>\n';
-        };
-
-        renderer.paragraph = function (text) {
-            if (typeof text === 'object' && text.text !== undefined) {
-                text = text.text;
-            }
-            text = text.replace(/==([^=]+)==/g, '<mark>$1</mark>');
-            return '<p>' + text + '</p>\n';
-        };
-
-        marked.setOptions({
-            gfm: true,
-            breaks: true,
-            renderer: renderer,
-            highlight: function (code, lang) {
-                if (lang && hljs.getLanguage(lang)) {
-                    try { return hljs.highlight(code, { language: lang }).value; } catch (e) { }
+        function postToPreviewWorker(target, message) {
+            return previewTasks.wait(target, message).then(function (data) {
+                return MarkdownPreviewCore.handleWorkerMessage(message.requestId, data);
+            }).catch(function (error) {
+                if (error.reason === 'timeout') {
+                    disposePreviewWorker('timeout');
+                    throw Object.assign(new Error(MarkdownPreviewCore.MESSAGES.timeout), { reason: 'timeout' });
                 }
-                return code;
+                throw error;
+            });
+        }
+
+        async function parseMarkdownOnMain(markdown) {
+            await ensureMarkdownDeps();
+            return MarkdownPreviewCore.parseMarkdown(marked, markdown);
+        }
+
+        async function parseMarkdownOnWorker(markdown, requestId) {
+            if (previewWorkerUnavailable) {
+                throw Object.assign(new Error(MarkdownPreviewCore.MESSAGES.unavailable), { reason: 'unavailable' });
             }
-        });
+            if (previewWorkerBusy) {
+                disposePreviewWorker('cancelled');
+            }
+            const job = previewWorkerChain.then(async function () {
+                if (!EditorRuntimeCore.isCurrentRequest(latestPreviewId, requestId)) {
+                    return null;
+                }
+                const target = ensurePreviewWorker();
+                if (!target) {
+                    throw Object.assign(new Error('NO_WORKER'), { reason: 'unavailable' });
+                }
+                if (!previewWorkerLoaded) {
+                    const loaded = await postToPreviewWorker(target, MarkdownPreviewCore.createLoadRequest(requestId, [
+                        MARKED_URL,
+                        MARKDOWN_HLJS_URL
+                    ]));
+                    if (loaded.warning) showToast(loaded.warning);
+                    previewWorkerLoaded = true;
+                }
+                if (!EditorRuntimeCore.isCurrentRequest(latestPreviewId, requestId)) {
+                    return null;
+                }
+                previewWorkerBusy = true;
+                try {
+                    const result = await postToPreviewWorker(
+                        target,
+                        MarkdownPreviewCore.createParseRequest(requestId, markdown)
+                    );
+                    return result && result.html;
+                } finally {
+                    previewWorkerBusy = false;
+                }
+            });
+            previewWorkerChain = job.then(function () { /* keep queue */ }, function () { /* keep queue */ });
+            return job;
+        }
+
+        async function parseMarkdownSource(markdown, requestId) {
+            if (!previewWorkerUnavailable) {
+                try {
+                    const html = await parseMarkdownOnWorker(markdown, requestId);
+                    if (!EditorRuntimeCore.isCurrentRequest(latestPreviewId, requestId)) {
+                        return null;
+                    }
+                    if (html != null) {
+                        return html;
+                    }
+                } catch (error) {
+                    if (!EditorRuntimeCore.isCurrentRequest(latestPreviewId, requestId)) {
+                        return null;
+                    }
+                    const reason = error && error.reason;
+                    if (reason === 'timeout') {
+                        throw error;
+                    }
+                    if (reason === 'cancelled') {
+                        return null;
+                    }
+                    previewWorkerUnavailable = reason === 'unavailable' || String(error.message) === 'NO_WORKER';
+                    disposePreviewWorker('cancelled');
+                    if (EditorRuntimeCore.shouldUseWorker(markdown.length)) {
+                        if (previewWorkerUnavailable) throw EditorTaskCore.taskError('unavailable');
+                        throw new Error('后台预览失败，输入仍保留，可点击重试：' + String(error.message || error));
+                    }
+                    if (!shownWorkerFallback) {
+                        shownWorkerFallback = true;
+                        setComputeHint(EditorRuntimeCore.workerFallbackMessage());
+                    }
+                }
+            }
+            if (!EditorRuntimeCore.isCurrentRequest(latestPreviewId, requestId)) {
+                return null;
+            }
+            if (EditorRuntimeCore.shouldUseWorker(markdown.length)) throw EditorTaskCore.taskError('unavailable');
+            return previewTasks.waitPromise(parseMarkdownOnMain(markdown));
+        }
 
         const ALLOWED_MARKDOWN_TAGS = new Set([
             'A', 'ABBR', 'B', 'BLOCKQUOTE', 'BR', 'CODE', 'DEL', 'DETAILS', 'DIV',
@@ -1096,30 +1441,104 @@
         }
 
         function getSanitizedPreviewHtml() {
-            return sanitizeMarkdownHtml(preview.innerHTML);
+            return renderedVersion === sourceVersion && renderedSource === input.value ? lastFullSanitizedHtml : '';
+        }
+
+        function applyPreviewHtml(sanitized) {
+            lastFullSanitizedHtml = sanitized;
+            const template = document.createElement('template');
+            template.innerHTML = sanitized;
+            const nodes = Array.from(template.content.childNodes);
+            const plan = EditorRuntimeCore.planPreviewChildren(nodes.length);
+            preview.replaceChildren();
+            const keep = plan.truncated ? nodes.slice(0, plan.keep) : nodes;
+            keep.forEach(function (node) {
+                preview.appendChild(node);
+            });
+            if (plan.truncated) {
+                setComputeHint(EditorRuntimeCore.displayTruncatedMessage());
+            }
+            return plan;
         }
 
         // --- 实时预览 ---
-        function updatePreview() {
+        async function updatePreview(options) {
+            const opts = options || {};
+            if (previewTasks.pendingCount()) disposePreviewWorker('cancelled');
+            const requestId = EditorRuntimeCore.nextRequestId(latestPreviewId);
+            latestPreviewId = requestId;
             const val = input.value;
+            const version = sourceVersion;
+            const budget = EditorTaskCore.checkBudget(val);
+            if (!budget.ok) { setComputeHint(budget.message); return; }
+            updateStats(val);
             if (!val.trim()) {
+                lastFullSanitizedHtml = '';
+                renderedSource = val;
+                renderedVersion = version;
                 previewEmpty.style.display = 'flex';
                 preview.style.display = 'none';
-                preview.innerHTML = '';
-            } else {
-                previewEmpty.style.display = 'none';
-                preview.style.display = 'block';
-                try {
-                    preview.innerHTML = sanitizeMarkdownHtml(marked.parse(val));
-                } catch (e) {
-                    preview.innerHTML = '';
-                    const errorMessage = document.createElement('p');
-                    errorMessage.style.color = 'var(--error-color)';
-                    errorMessage.textContent = '解析出错：' + e.message;
-                    preview.appendChild(errorMessage);
-                }
+                preview.replaceChildren();
+                setComputeHint('');
+                return;
             }
-            updateStats(val);
+            if (!opts.force && !EditorRuntimeCore.shouldAutoCompute(val.length)) {
+                setComputeHint(EditorRuntimeCore.heavyInputMessage());
+                previewEmpty.style.display = 'flex';
+                preview.style.display = 'none';
+                return;
+            }
+            previewEmpty.style.display = 'none';
+            preview.style.display = 'block';
+            const t0 = performance.now();
+            try {
+                const parsed = await parseMarkdownSource(val, requestId);
+                const tParse = performance.now();
+                if (!EditorRuntimeCore.isCurrentRequest(latestPreviewId, requestId) || parsed == null) {
+                    return;
+                }
+                const sanitized = sanitizeMarkdownHtml(parsed);
+                const tSan = performance.now();
+                if (!EditorRuntimeCore.isCurrentRequest(latestPreviewId, requestId)) {
+                    return;
+                }
+                if (input.value !== val || sourceVersion !== version) return;
+                const plan = applyPreviewHtml(sanitized);
+                renderedSource = val;
+                renderedVersion = version;
+                if (!plan.truncated) {
+                    setComputeHint('');
+                }
+                window.__EDITOR_PERF__ = window.__EDITOR_PERF__ || { marks: [] };
+                window.__EDITOR_PERF__.marks.push({
+                    name: 'markdown-preview',
+                    computeMs: tParse - t0,
+                    sanitizeMs: tSan - tParse,
+                    domMs: performance.now() - tSan,
+                    nodeCount: preview.querySelectorAll('*').length,
+                    requestId: requestId
+                });
+            } catch (e) {
+                if (!EditorRuntimeCore.isCurrentRequest(latestPreviewId, requestId)) {
+                    return;
+                }
+                if (e && e.reason === 'timeout') {
+                    setComputeHint(MarkdownPreviewCore.MESSAGES.timeout);
+                    return;
+                }
+                if (e && e.reason === 'cancelled') {
+                    return;
+                }
+                if (/加载失败|尚未加载/.test(String(e && e.message))) {
+                    setComputeHint(EditorRuntimeCore.dependencyFailedMessage());
+                    return;
+                }
+                preview.replaceChildren();
+                const errorMessage = document.createElement('p');
+                errorMessage.style.color = 'var(--text-error)';
+                errorMessage.textContent = '解析出错：' + (e && e.message ? e.message : e);
+                preview.appendChild(errorMessage);
+            }
         }
 
         function updateStats(val) {
@@ -1130,13 +1549,118 @@
             editorStats.textContent = `${chars} 字符 · ${words} 词 · ${lines} 行`;
         }
 
+        window.addEventListener('pagehide', function () { latestPreviewId += 1; disposePreviewWorker('cancelled'); clearTimeout(debounceTimer); clearTimeout(saveTimer); });
+
         let debounceTimer;
         let saveTimer;
-        input.addEventListener('input', () => {
+        const persistDraftCheckbox = document.getElementById('persist-draft');
+        const draftStatusEl = document.getElementById('draft-status');
+        const restoreBanner = document.getElementById('draft-restore-banner');
+        const restoreText = document.getElementById('draft-restore-text');
+        const draftStorage = (window.SafeStorage && (window.SafeStorage.shared || window.SafeStorage.createShared(window))) || null;
+        let persistDraftEnabled = false;
+        let pendingLegacyContent = '';
+
+        function draftLifetimeText(status, reason) {
+            if (status === MarkdownDraftCore.STATUS.SAVED) {
+                return '此设备（需手动开启）';
+            }
+            if (status === MarkdownDraftCore.STATUS.FAILED) {
+                return MarkdownDraftCore.statusMessage(status, reason);
+            }
+            if (status === MarkdownDraftCore.STATUS.UNAVAILABLE || (draftStorage && draftStorage.isAvailable && !draftStorage.isAvailable())) return '存储不可用；本机旧草稿状态无法确认';
+            if (draftStorage && draftStorage.getItem(MarkdownDraftCore.CONTENT_KEY)) return '已停止继续保存；本机仍有旧草稿';
+            return '仅本次会话';
+        }
+
+        function setDraftStatus(status, reason) {
+            draftStatusEl.textContent = draftLifetimeText(status, reason);
+        }
+
+        function saveDraftNow() {
+            const result = MarkdownDraftCore.persistContent(draftStorage, persistDraftEnabled, input.value);
+            setDraftStatus(result.status, result.reason);
+            return result;
+        }
+
+        function commitEditorChange(options) {
+            sourceVersion += 1;
+            latestPreviewId = EditorRuntimeCore.nextRequestId(latestPreviewId);
+            disposePreviewWorker('cancelled');
             clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(updatePreview, 80);
+            if (input.value.trim()) setComputeHint('正文已变化，正在更新预览；输出会等待当前正文');
+            const opts = options || {};
+            if (opts.preview !== false) {
+                const force = !!opts.immediate && EditorRuntimeCore.shouldAutoCompute(input.value.length);
+                if (opts.immediate && force) {
+                    updatePreview({ force: true });
+                } else if (!EditorRuntimeCore.shouldAutoCompute(input.value.length)) {
+                    setComputeHint(EditorRuntimeCore.heavyInputMessage());
+                    updateStats(input.value);
+                } else {
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(function () { updatePreview(); }, 80);
+                }
+            }
+            if (!persistDraftEnabled) {
+                setDraftStatus(MarkdownDraftCore.STATUS.SESSION);
+                return;
+            }
             clearTimeout(saveTimer);
-            saveTimer = setTimeout(saveToStorage, 1000);
+            saveTimer = setTimeout(saveDraftNow, opts.immediate ? 0 : 1000);
+        }
+
+        function setPersistEnabled(enabled, writePref) {
+            clearTimeout(saveTimer);
+            persistDraftEnabled = !!enabled;
+            persistDraftCheckbox.checked = persistDraftEnabled;
+            if (writePref !== false) {
+                MarkdownDraftCore.persistPreference(draftStorage, persistDraftEnabled);
+            }
+            if (persistDraftEnabled) {
+                saveDraftNow();
+            } else {
+                setDraftStatus(draftStorage && draftStorage.isAvailable && !draftStorage.isAvailable()
+                    ? MarkdownDraftCore.STATUS.UNAVAILABLE
+                    : MarkdownDraftCore.STATUS.SESSION);
+            }
+        }
+
+        document.getElementById('btn-render-preview').addEventListener('click', function () {
+            updatePreview({ force: true });
+        });
+
+        persistDraftCheckbox.addEventListener('change', () => {
+            setPersistEnabled(persistDraftCheckbox.checked, true);
+        });
+
+        document.getElementById('btn-restore-draft').addEventListener('click', () => {
+            if (pendingLegacyContent) {
+                input.value = pendingLegacyContent;
+            }
+            restoreBanner.classList.remove('is-visible');
+            setPersistEnabled(true, true);
+            commitEditorChange({ immediate: true });
+        });
+
+        document.getElementById('btn-delete-draft').addEventListener('click', function () {
+            clearTimeout(saveTimer);
+            setPersistEnabled(false, true);
+            const result = MarkdownDraftCore.deleteContent(draftStorage);
+            if (result.ok) {
+                pendingLegacyContent = '';
+                restoreBanner.classList.remove('is-visible');
+                draftStatusEl.textContent = '已删除本机旧草稿；当前正文仅本次会话';
+            } else draftStatusEl.textContent = result.message;
+            showToast(result.message);
+        });
+
+        document.getElementById('btn-dismiss-draft').addEventListener('click', () => {
+            restoreBanner.classList.remove('is-visible');
+        });
+
+        input.addEventListener('input', () => {
+            commitEditorChange();
         });
 
         // --- 工具栏操作 ---
@@ -1195,7 +1719,7 @@
                     input.setSelectionRange(selectStart, selectStart + action.placeholder.length);
                 }
             }
-            updatePreview();
+            commitEditorChange({ immediate: true });
         }
 
         document.getElementById('toolbar').addEventListener('click', (e) => {
@@ -1240,7 +1764,7 @@
                         input.setSelectionRange(start, start + indented.length);
                     }
                 }
-                updatePreview();
+                commitEditorChange({ immediate: true });
             }
 
             if (e.key === 'Enter') {
@@ -1269,7 +1793,7 @@
                         const newPos = pos + 1 + nextPrefix.length;
                         input.setSelectionRange(newPos, newPos);
                     }
-                    updatePreview();
+                    commitEditorChange({ immediate: true });
                 }
             }
         });
@@ -1299,8 +1823,8 @@
             syncScroll = !syncScroll;
             this.classList.toggle('active', syncScroll);
             this.innerHTML = syncScroll
-                ? '<i class="fas fa-link"></i> 同步滚动'
-                : '<i class="fas fa-unlink"></i> 独立滚动';
+                ? '<i class="fas fa-link" aria-hidden="true"></i> 同步滚动'
+                : '<i class="fas fa-unlink" aria-hidden="true"></i> 独立滚动';
         });
 
         // --- 拖拽分栏调整 ---
@@ -1308,7 +1832,8 @@
         divider.addEventListener('mousedown', (e) => {
             isDragging = true;
             divider.classList.add('dragging');
-            document.body.style.cursor = 'col-resize';
+            const vertical = editorBody.getAttribute('data-layout') === 'split-v';
+            document.body.style.cursor = vertical ? 'row-resize' : 'col-resize';
             document.body.style.userSelect = 'none';
             e.preventDefault();
         });
@@ -1316,8 +1841,9 @@
         document.addEventListener('mousemove', (e) => {
             if (!isDragging) return;
             const rect = editorBody.getBoundingClientRect();
-            const offset = e.clientX - rect.left;
-            const total = rect.width;
+            const vertical = editorBody.getAttribute('data-layout') === 'split-v';
+            const offset = vertical ? (e.clientY - rect.top) : (e.clientX - rect.left);
+            const total = vertical ? rect.height : rect.width;
             const ratio = Math.max(0.2, Math.min(0.8, offset / total));
             editPane.style.flex = `0 0 ${ratio * 100}%`;
             previewPane.style.flex = `0 0 ${(1 - ratio) * 100 - 0.5}%`;
@@ -1332,19 +1858,66 @@
             }
         });
 
-        // --- 视图模式 ---
+        const NARROW_VIEW = window.matchMedia('(max-width: 768px)');
+        let userChoseViewMode = false;
+        let currentViewMode = NARROW_VIEW.matches ? 'edit' : 'split';
+
+        function saveEditorSelection() {
+            return {
+                start: input.selectionStart,
+                end: input.selectionEnd
+            };
+        }
+
+        function restoreEditorSelection(sel) {
+            if (!sel || currentViewMode === 'preview') return;
+            requestAnimationFrame(() => {
+                try {
+                    input.focus();
+                    input.setSelectionRange(sel.start, sel.end);
+                } catch (e) { /* ignore */ }
+            });
+        }
+
+        function layoutForMode(mode) {
+            if (mode !== 'split') return 'single';
+            return NARROW_VIEW.matches ? 'split-v' : 'split-h';
+        }
+
+        function applyViewMode(mode, options) {
+            const explicit = options && options.explicit;
+            if (explicit) userChoseViewMode = true;
+            const selection = saveEditorSelection();
+            currentViewMode = mode;
+            document.querySelectorAll('.view-mode-btn').forEach((btn) => {
+                const active = btn.dataset.mode === mode;
+                btn.classList.toggle('active', active);
+                btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+            });
+            editPane.style.display = mode === 'preview' ? 'none' : 'flex';
+            previewPane.style.display = mode === 'edit' ? 'none' : 'flex';
+            divider.style.display = mode === 'split' ? 'block' : 'none';
+            editPane.style.flex = '';
+            previewPane.style.flex = '';
+            editorBody.setAttribute('data-layout', layoutForMode(mode));
+            restoreEditorSelection(selection);
+        }
+
         document.querySelectorAll('.view-mode-btn').forEach(btn => {
             btn.addEventListener('click', function () {
-                document.querySelectorAll('.view-mode-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                const mode = this.dataset.mode;
-                editPane.style.display = mode === 'preview' ? 'none' : 'flex';
-                previewPane.style.display = mode === 'edit' ? 'none' : 'flex';
-                divider.style.display = mode === 'split' ? 'block' : 'none';
-                editPane.style.flex = '';
-                previewPane.style.flex = '';
+                applyViewMode(this.dataset.mode, { explicit: true });
             });
         });
+
+        NARROW_VIEW.addEventListener('change', () => {
+            if (!userChoseViewMode) {
+                applyViewMode(NARROW_VIEW.matches ? 'edit' : 'split');
+            } else {
+                applyViewMode(currentViewMode);
+            }
+        });
+
+        applyViewMode(currentViewMode);
 
         // --- 文件操作 ---
         function saveMD() {
@@ -1353,38 +1926,46 @@
             showToast('已保存 Markdown 文件');
         }
 
+        async function currentCompleteHtml() {
+            const source = input.value;
+            const version = sourceVersion;
+            if (renderedSource !== source || renderedVersion !== version) {
+                clearTimeout(debounceTimer);
+                await updatePreview({ force: true });
+            }
+            if (source !== input.value || version !== sourceVersion) throw new Error('正文在处理期间已变化，请重新执行输出');
+            if (renderedSource !== source || renderedVersion !== version) throw new Error('当前正文尚未成功渲染，无法输出；请检查提示后重试');
+            return lastFullSanitizedHtml;
+        }
+
+        async function outputCurrentHtml(action) {
+            const buttons = ['btn-save-html', 'btn-copy-html', 'btn-preview-copy'].map(function (id) { return document.getElementById(id); });
+            buttons.forEach(function (button) { button.disabled = true; button.setAttribute('aria-busy', 'true'); });
+            try {
+                const outputSource = input.value;
+                const outputVersion = sourceVersion;
+                const html = await currentCompleteHtml();
+                await action(html, function () { return outputSource === input.value && outputVersion === sourceVersion; });
+            } catch (error) {
+                showToast(error.message || '当前正文处理失败，未输出旧结果');
+            } finally {
+                buttons.forEach(function (button) { button.disabled = false; button.removeAttribute('aria-busy'); });
+            }
+        }
+
         function saveHTML() {
-            const html = `<!DOCTYPE html>
-<html lang="zh">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>${sanitizeMarkdownHtml(currentFileName.replace(/\.\w+$/, ''))}</title>
-<style>
-body { max-width: 800px; margin: 40px auto; padding: 0 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.8; color: #1f2937; }
-h1,h2,h3,h4,h5,h6 { margin-top: 1.2em; margin-bottom: 0.4em; }
-h1 { border-bottom: 2px solid #e5e7eb; padding-bottom: 0.3em; }
-h2 { border-bottom: 1px solid #e5e7eb; padding-bottom: 0.2em; }
-code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
-pre { background: #f8fafc; padding: 16px; border-radius: 8px; overflow-x: auto; border: 1px solid #e5e7eb; }
-pre code { background: none; padding: 0; }
-blockquote { border-left: 4px solid #6366f1; padding: 8px 16px; margin: 1em 0; background: #f8fafc; color: #6b7280; }
-table { border-collapse: collapse; width: 100%; margin: 1em 0; }
-th, td { padding: 10px 14px; border: 1px solid #e5e7eb; text-align: left; }
-th { background: #f8fafc; font-weight: 600; }
-img { max-width: 100%; height: auto; }
-a { color: #6366f1; }
-mark { background: rgba(245,158,11,0.25); padding: 1px 4px; border-radius: 2px; }
-hr { border: none; border-top: 2px solid #e5e7eb; margin: 1.5em 0; }
-</style>
-</head>
-<body>
-${getSanitizedPreviewHtml()}
-</body>
-</html>`;
-            const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-            downloadBlob(blob, currentFileName.replace(/\.\w+$/, '') + '.html');
-            showToast('已导出 HTML 文件');
+            return outputCurrentHtml(function (bodyHtml) {
+                const styles = getComputedStyle(document.documentElement);
+                const html = MarkdownPreviewCore.buildExportDocument({
+                    title: currentFileName.replace(/\.\w+$/, ''),
+                    bodyHtml: bodyHtml,
+                    theme: currentMarkdownTheme(),
+                    vars: MarkdownPreviewCore.readThemeVars(function (name) { return styles.getPropertyValue(name); })
+                });
+                const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+                downloadBlob(blob, currentFileName.replace(/\.\w+$/, '') + '.html');
+                showToast('已导出当前正文的完整 HTML 文件');
+            });
         }
 
         function downloadBlob(blob, filename) {
@@ -1397,20 +1978,38 @@ ${getSanitizedPreviewHtml()}
 
         document.getElementById('btn-save-md').addEventListener('click', saveMD);
         document.getElementById('btn-save-html').addEventListener('click', saveHTML);
-        document.getElementById('btn-copy-html').addEventListener('click', () => {
-            navigator.clipboard.writeText(getSanitizedPreviewHtml()).then(() => {
-                showToast('HTML 源码已复制到剪贴板');
-            }).catch(() => {
-                showToast('复制失败，请手动复制');
+        function showManualCopy(value, kind, isCurrent) {
+            const dialog = document.getElementById('manual-copy-dialog');
+            const result = document.getElementById('manual-copy-result');
+            document.getElementById('manual-copy-description').textContent =
+                `已选择完整${kind}，请按 Ctrl/Cmd+C 或使用系统复制菜单。` +
+                (isCurrent() ? '当前文章保留。' : '这是点击时的结果，编辑器后来已有修改。');
+            result.value = value;
+            if (!dialog.open) dialog.showModal();
+            result.focus();
+            result.select();
+        }
+        document.getElementById('manual-copy-close').addEventListener('click', function () {
+            document.getElementById('manual-copy-dialog').close();
+        });
+        document.getElementById('manual-copy-dialog').addEventListener('close', function () {
+            document.getElementById('manual-copy-result').value = '';
+            document.getElementById('manual-copy-description').textContent = '';
+        });
+        document.getElementById('btn-copy-html').addEventListener('click', function () {
+            outputCurrentHtml(async function (html, isCurrent) {
+                const result = await ToolsClipboard.copyText(html);
+                if (result.ok) showToast(isCurrent() ? '当前正文 HTML 源码已复制到剪贴板' : '已复制操作时的 HTML；编辑器后来已有修改');
+                else showManualCopy(html, ' HTML 源码', isCurrent);
             });
         });
 
         // --- 编辑区：复制 / 粘贴 / 清空 ---
         document.getElementById('btn-edit-copy').addEventListener('click', () => {
             if (!input.value) { showToast('编辑器内容为空'); return; }
-            navigator.clipboard.writeText(input.value).then(() => {
-                showToast('Markdown 源码已复制');
-            }).catch(() => showToast('复制失败'));
+            ToolsClipboard.copyText(input.value, { element: input }).then(function (result) {
+                showToast(result.ok ? 'Markdown 源码已复制' : result.message);
+            });
         });
 
         document.getElementById('btn-edit-paste').addEventListener('click', () => {
@@ -1422,7 +2021,7 @@ ${getSanitizedPreviewHtml()}
                 const newPos = start + text.length;
                 input.setSelectionRange(newPos, newPos);
                 input.focus();
-                updatePreview();
+                commitEditorChange({ immediate: true });
                 showToast('已粘贴到编辑器');
             }).catch(() => showToast('无法读取剪贴板，请检查浏览器权限'));
         });
@@ -1432,27 +2031,21 @@ ${getSanitizedPreviewHtml()}
             if (confirm('确定要清空编辑器中的所有内容吗？')) {
                 input.value = '';
                 input.focus();
-                updatePreview();
+                commitEditorChange({ immediate: true });
                 showToast('编辑器已清空');
             }
         });
 
         // --- 预览区：复制 / 粘贴 / 清空 ---
-        document.getElementById('btn-preview-copy').addEventListener('click', () => {
-            const text = preview.innerText;
-            if (!text.trim()) { showToast('预览内容为空'); return; }
-            const htmlBlob = new Blob([getSanitizedPreviewHtml()], { type: 'text/html' });
-            const textBlob = new Blob([text], { type: 'text/plain' });
-            const item = new ClipboardItem({
-                'text/html': htmlBlob,
-                'text/plain': textBlob,
-            });
-            navigator.clipboard.write([item]).then(() => {
-                showToast('预览内容已复制（富文本）');
-            }).catch(() => {
-                navigator.clipboard.writeText(text).then(() => {
-                    showToast('预览内容已复制（纯文本）');
-                }).catch(() => showToast('复制失败'));
+        document.getElementById('btn-preview-copy').addEventListener('click', function () {
+            outputCurrentHtml(async function (html, isCurrent) {
+                if (!html.trim()) { showToast('当前正文内容为空'); return; }
+                const holder = document.createElement('div');
+                holder.innerHTML = html; // html already passed the Markdown sanitizer
+                const text = holder.textContent;
+                const result = await ToolsClipboard.copyHtml(html, text, { element: preview });
+                if (result.ok) showToast(isCurrent() ? (result.method === 'plain-text' || result.method === 'legacy' ? '当前预览已复制（纯文本）' : '当前预览已复制（富文本）') : '已复制操作时的预览；编辑器后来已有修改');
+                else showManualCopy(text, '预览纯文本', isCurrent);
             });
         });
 
@@ -1460,7 +2053,7 @@ ${getSanitizedPreviewHtml()}
             navigator.clipboard.readText().then(text => {
                 if (!text) { showToast('剪贴板为空'); return; }
                 input.value += (input.value && !input.value.endsWith('\n') ? '\n' : '') + text;
-                updatePreview();
+                commitEditorChange({ immediate: true });
                 input.focus();
                 input.scrollTop = input.scrollHeight;
                 showToast('已粘贴到编辑器末尾');
@@ -1472,7 +2065,7 @@ ${getSanitizedPreviewHtml()}
             if (confirm('确定要清空所有内容吗？')) {
                 input.value = '';
                 input.focus();
-                updatePreview();
+                commitEditorChange({ immediate: true });
                 showToast('内容已清空');
             }
         });
@@ -1484,7 +2077,7 @@ ${getSanitizedPreviewHtml()}
             const reader = new FileReader();
             reader.onload = (ev) => {
                 input.value = ev.target.result;
-                updatePreview();
+                commitEditorChange({ immediate: true });
                 showToast(`已打开 ${file.name}`);
             };
             reader.readAsText(file);
@@ -1524,7 +2117,7 @@ ${getSanitizedPreviewHtml()}
                 const reader = new FileReader();
                 reader.onload = (ev) => {
                     input.value = ev.target.result;
-                    updatePreview();
+                    commitEditorChange({ immediate: true });
                     showToast(`已打开 ${file.name}`);
                 };
                 reader.readAsText(file);
@@ -1541,24 +2134,29 @@ ${getSanitizedPreviewHtml()}
         }
 
         // --- 本地存储 ---
-        function saveToStorage() {
-            try {
-                localStorage.setItem('17tools-md-content', input.value);
-            } catch (e) { }
+        function initDraftStorage() {
+            const loaded = MarkdownDraftCore.loadFromStorage(draftStorage);
+            pendingLegacyContent = loaded.content || '';
+            persistDraftCheckbox.checked = !!loaded.persistDraft;
+            persistDraftEnabled = !!loaded.persistDraft;
+            if (loaded.autoRestore) {
+                input.value = loaded.content;
+                MarkdownDraftCore.persistPreference(draftStorage, true);
+                const result = MarkdownDraftCore.persistContent(draftStorage, true, input.value);
+                setDraftStatus(result.status, result.reason);
+            } else if (loaded.pendingRestore) {
+                restoreText.textContent = loaded.banner || MarkdownDraftCore.MESSAGES.legacyBanner;
+                restoreBanner.classList.add('is-visible');
+                setDraftStatus(MarkdownDraftCore.STATUS.SESSION);
+            } else {
+                setDraftStatus(persistDraftEnabled ? MarkdownDraftCore.STATUS.SESSION : MarkdownDraftCore.STATUS.SESSION);
+            }
+            if (draftStorage && typeof draftStorage.isAvailable === 'function' && !draftStorage.isAvailable() && persistDraftEnabled) {
+                setDraftStatus(MarkdownDraftCore.STATUS.UNAVAILABLE);
+            }
         }
 
-        function loadFromStorage() {
-            try {
-                const saved = localStorage.getItem('17tools-md-content');
-                if (saved) {
-                    input.value = saved;
-                    updatePreview();
-                }
-            } catch (e) { }
-        }
-
-        // --- 初始化 ---
-        loadFromStorage();
+        initDraftStorage();
         updatePreview();
     </script>
 </body>

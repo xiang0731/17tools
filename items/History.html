@@ -3,10 +3,28 @@
 
 <head>
     <meta charset="UTF-8">
+    <script>
+        (function applyThemeEarly() {
+            try {
+                var pref = localStorage.getItem('17tools-theme');
+                if (pref == null) {
+                    pref = localStorage.getItem('theme');
+                    if (pref != null) {
+                        localStorage.setItem('17tools-theme', pref);
+                    }
+                }
+                var theme = (pref === 'light' || pref === 'dark')
+                    ? pref
+                    : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) { /* 存储不可用时由 theme.js 降级 */ }
+        })();
+    </script>
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>更新历史</title>
     <link rel="stylesheet" href="../css/theme.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="../vendor/fontawesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         body {
             font-family: var(--font-family);
@@ -304,6 +322,270 @@
         </header>
 
         <div class="timeline">
+            <!-- 版本 2.19.1 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 2.19.1</div>
+                    <div class="version-date">2026-10-11</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">新功能</div>
+                    <ul>
+                        <li><span class="tag new">新增</span>图片处理：新增展示用与防盗用增强水印预设，支持随机错行平铺、可拖动定位的主体大水印和分享尺寸副本，预览与导出使用相同布局</li>
+                    </ul>
+                    <div class="feature-category">逻辑改动与优化</div>
+                    <ul>
+                        <li><span class="tag ux">体验</span>图片处理：水印不透明度显示百分比，底栏禁用不生效设置；明确裁切与 AI 重绘风险，敏感内容引导使用隐私遮挡</li>
+                    </ul>
+                    <div class="feature-category">缺陷修复</div>
+                    <ul>
+                        <li><span class="tag fixed">修复</span>图片处理：阻止不可见水印导出，限制极窄图片的平铺绘制数量，主体长文字按图片尺寸缩小</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- 版本 2.19.0 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 2.19.0</div>
+                    <div class="version-date">2026-10-04</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">新功能</div>
+                    <ul>
+                        <li><span class="tag new">新增</span>工具导航：支持压缩、去追踪、WiFi等任务词，增加收藏、最近使用和主页任务入口，只保存工具名称对应的编号</li>
+                        <li><span class="tag new">新增</span>二维码工具：本地图片读码与生成自检，敏感结果默认遮盖，不自动打开网址</li>
+                        <li><span class="tag new">新增</span>正则表达式：明确JavaScript引擎，支持规则、正反例和精确预期结果的本地导入导出与核验</li>
+                        <li><span class="tag new">新增</span>万年历与时间计算：工作日偏移、区间计数、周末及自定义例外，内置已核验的2025、2026年法定放假与补班</li>
+                        <li><span class="tag new">新增</span>轮胎选择器：显示联动原因，独立比较原厂与候选规格的外径、周长和理论车速</li>
+                        <li><span class="tag new">新增</span>汽车能耗成本：可选充电损耗、家充与公共电价、年度保险保养和折旧，未填费用保持未知</li>
+                        <li><span class="tag new">新增</span>文本转换：逐行生成标准JSON数组、保留首次原文的顺序去重，可下载完整结果</li>
+                    </ul>
+                    <div class="feature-category">逻辑改动与优化</div>
+                    <ul>
+                        <li><span class="tag improved">优化</span>智能白板：限制文件、图片块及画布预算，导出可选当前视野、全部内容与倍率，超限仍保留完整画板</li>
+                        <li><span class="tag ux">体验</span>图片处理：区分隐私遮挡与效果装饰，默认不透明覆盖，原尺寸合成导出并检查常见元数据</li>
+                        <li><span class="tag improved">优化</span>文本分割与文本工具：紧凑行索引、按页生成结果，输入和输出有明确预算，分页不截断完整复制下载</li>
+                        <li><span class="tag ux">体验</span>日历与工具控件：补中文名称、日期键盘焦点和状态；手机主要按钮扩大可点范围，说明文字更清楚</li>
+                        <li><span class="tag ux">体验</span>Markdown编辑器：独立删除本机旧草稿，停止继续保存并保留当前文章，删除失败明确反馈</li>
+                        <li><span class="tag ux">体验</span>代码格式化：结果框默认显示行号栏，等待格式化、清空和无结果失败时保留首行行号</li>
+                        <li><span class="tag improved">优化</span>公共行为与开发回归：共享复制和后台等待控制，版本查询有超时与会话缓存；锁定开发依赖，分层运行并隔离验收产物</li>
+                    </ul>
+                    <div class="feature-category">缺陷修复</div>
+                    <ul>
+                        <li><span class="tag fixed">修复</span>页面布局：时间计算器与工作日卡片统一宽度和间距，工作日控件对齐；修复二维码、关于页和白板提示的窄屏越界，以及关于页减少动画时内容不可见</li>
+                        <li><span class="tag fixed">修复</span>优惠计算器：整数分分摊不再出现负数，B模式保留错误行并校验完整列数</li>
+                        <li><span class="tag fixed">修复</span>极速计算：微小非零值不再显示成0，单行与合计溢出明确报错，不复制或保存错误总数</li>
+                        <li><span class="tag fixed">修复</span>Markdown编辑器：复制和导出等待当前完整净化文章，代码块实际高亮且导出自带样式</li>
+                        <li><span class="tag fixed">修复</span>代码格式化与对比：上次有效结果明确标注来源，下载保留原语言后缀；取消、失败和超时结束等待并恢复按钮</li>
+                        <li><span class="tag fixed">修复</span>代码格式化：补齐输入与结果的第1行行号，保持多行增减及滚动时行号与代码对齐</li>
+                        <li><span class="tag fixed">修复</span>时间计算与世界时间：拒绝被截断的小数和无效范围，跨夏令时及页面恢复及时刷新；偏移异常明确说明时差不可用</li>
+                        <li><span class="tag critical">安全</span>智能白板：导入只接受校验后的内嵌图片，候选文件全部解码成功后才替换，不请求文件指定的外部图片</li>
+                        <li><span class="tag fixed">修复</span>接口带宽计算：未知容量不再当成0超载，可填写实际容量并标注来源</li>
+                        <li><span class="tag fixed">修复</span>链接清理：保留非追踪参数的编码、顺序与重复项，统一规则大小写，签名链接提供原文回退</li>
+                        <li><span class="tag fixed">修复</span>文本工具：保护完整emoji与组合字符，明确换行和反斜线规则，复制失败不再显示成功；Markdown可手动复制完整结果</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- 版本 2.18.2 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 2.18.2</div>
+                    <div class="version-date">2026-10-03</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">逻辑改动与优化</div>
+                    <ul>
+                        <li><span class="tag ux">体验</span>汽车能耗成本：默认不保存油耗和电价，勾选后才留在此设备，并可清除</li>
+                        <li><span class="tag ux">体验</span>正则表达式：手机上用中文短路径，高级规则可折叠并记住展开状态</li>
+                        <li><span class="tag ux">体验</span>智能白板：增加「移动画布」，手机可单指平移、双指缩放</li>
+                        <li><span class="tag ux">体验</span>二维码工具：低对比时明确警告，可恢复黑白，下载前需确认，且不保证一定能扫</li>
+                        <li><span class="tag ux">体验</span>历史与草稿：各工具标明仅本次页面、仅本次会话或此设备</li>
+                        <li><span class="tag ux">体验</span>链接清理：复制前显示将复制和将跳过的行数，并可保留无效行占位</li>
+                        <li><span class="tag ux">体验</span>文本分割与接口带宽计算：限制超长文本和负载条数，复制和下载仍是完整结果</li>
+                        <li><span class="tag ux">体验</span>轮胎选择器与接口带宽计算：结果旁显示假设，并提示以手册或实测为准</li>
+                    </ul>
+                    <div class="feature-category">缺陷修复</div>
+                    <ul>
+                        <li><span class="tag fixed">修复</span>优惠计算器：无法比价的行会留在结果中并说明原因，不再悄悄消失</li>
+                        <li><span class="tag fixed">修复</span>极速计算：负号与幂按 -2**2 = -4 计算，错误行不再显示成完整合计</li>
+                        <li><span class="tag fixed">修复</span>时间计算：清空保持空白，恢复默认才填今天，错误显示在输入旁边</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- 版本 2.18.1 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 2.18.1</div>
+                    <div class="version-date">2026-09-25</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">新功能</div>
+                    <ul>
+                        <li><span class="tag new">新增</span>能耗成本：按油箱容积或电池容量和百公里能耗估算续航，并对照本次里程显示占用比例</li>
+                    </ul>
+                    <div class="feature-category">逻辑改动与优化</div>
+                    <ul>
+                        <li><span class="tag ux">体验</span>汽车能耗成本：工具名称由「能耗成本」改为「汽车能耗成本」</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- 版本 2.18.0 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 2.18.0</div>
+                    <div class="version-date">2026-09-24</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">新功能</div>
+                    <ul>
+                        <li><span class="tag new">新增</span>能耗成本：按油耗或电耗和单价计算每公里、每百公里和行程花费，并可对比油车与电车</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- 版本 2.17.4 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 2.17.4</div>
+                    <div class="version-date">2026-09-10</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">逻辑改动与优化</div>
+                    <ul>
+                        <li><span class="tag ux">体验</span>优惠计算器：输入列表标题改为简洁文案，右侧可一键清空，并在输入框补充比价格式说明</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- 版本 2.17.3 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 2.17.3</div>
+                    <div class="version-date">2026-09-07</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">新功能</div>
+                    <ul>
+                        <li><span class="tag new">新增</span>代码格式化、代码对比、Markdown 编辑器：解析器与高亮按语言按需加载，失败可重试且保留输入</li>
+                        <li><span class="tag new">新增</span>代码格式化、代码对比、Markdown 编辑器：超过 100KB 改为显式执行，避免输入时全量计算</li>
+                    </ul>
+                    <div class="feature-category">逻辑改动与优化</div>
+                    <ul>
+                        <li><span class="tag improved">优化</span>代码格式化：去掉重复的 highlight 语言模块和未使用的 parser-json，首屏不再拉取 29 个远程脚本</li>
+                        <li><span class="tag improved">优化</span>代码对比：锁 diff2html 3.4.56 slim，差异计算带 requestId，大结果截断展示但复制完整补丁</li>
+                        <li><span class="tag ux">体验</span>Markdown 编辑器：大预览可截断显示，复制与导出仍用完整清洗结果</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- 版本 2.17.2 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 2.17.2</div>
+                    <div class="version-date">2026-09-07</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">逻辑改动与优化</div>
+                    <ul>
+                        <li><span class="tag ux">体验</span>主题：独立打开与嵌入均幂等初始化，并接收校验后的主题消息</li>
+                        <li><span class="tag ui">界面</span>应用壳、欢迎页、关于页、文本替换：界面色改为 theme.css 变量，插画与输出色不变</li>
+                    </ul>
+                    <div class="feature-category">缺陷修复</div>
+                    <ul>
+                        <li><span class="tag fixed">修复</span>主题：独立打开工具页时会应用已保存的浅色/深色，非法主题消息会被忽略</li>
+                        <li><span class="tag fixed">修复</span>智能白板、Markdown 编辑器：接入通用主题同步，去掉写死的浅色根节点，切换时画布笔色与代码高亮跟随</li>
+                        <li><span class="tag fixed">修复</span>研发中占位页：接入通用主题同步，解锁后跟随浅色/深色</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- 版本 2.17.1 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 2.17.1</div>
+                    <div class="version-date">2026-09-06</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">新功能</div>
+                    <ul>
+                        <li><span class="tag new">新增</span>Markdown 编辑器：窄屏默认在编辑与预览之间单面板切换，大屏仍为左右双栏</li>
+                    </ul>
+                    <div class="feature-category">逻辑改动与优化</div>
+                    <ul>
+                        <li><span class="tag ux">体验</span>本地存储：主题和界面偏好读取失败时改用内存，导航不受中断</li>
+                        <li><span class="tag ux">体验</span>Markdown 编辑器：本机草稿改为可开关，仅在写入成功后显示已保存到浏览器</li>
+                        <li><span class="tag ux">体验</span>文本替换：操作历史改用新键并限制条数与总字节，保存失败可导出重试</li>
+                        <li><span class="tag improved">优化</span>未保存保护：只读预览、平移和缩放不再当作正文编辑</li>
+                        <li><span class="tag improved">优化</span>代码格式化：分开格式化、仅高亮和通用文本整理，无格式化器的语言不再做伪缩进</li>
+                        <li><span class="tag ux">体验</span>代码对比：统一空、待更新、有效、失败状态，输入变化立即标记过期</li>
+                        <li><span class="tag improved">优化</span>正则表达式：匹配与替换改到可中断后台计算，并限制输入、匹配条数、展示条数和替换输出</li>
+                        <li><span class="tag ux">体验</span>智能白板：主要绘制工具常驻，当前工具参数收入可展开的「当前工具参数」</li>
+                        <li><span class="tag ui">界面</span>正则、文本替换、代码格式化、万年历：窄屏控件换行并收缩，月份切换与「今天」可分行</li>
+                    </ul>
+                    <div class="feature-category">缺陷修复</div>
+                    <ul>
+                        <li><span class="tag fixed">修复</span>应用壳：localStorage 抛出读取错误时不再中断导航</li>
+                        <li><span class="tag fixed">修复</span>二维码工具：点击预览画布不再误报未保存</li>
+                        <li><span class="tag fixed">修复</span>Markdown 编辑器：工具栏、快捷键、粘贴和导入也会纳入草稿保存</li>
+                        <li><span class="tag fixed">修复</span>文本替换：保存失败不再显示成功；旧历史键仅在新键验证后清理</li>
+                        <li><span class="tag fixed">修复</span>代码格式化：Python 等仅高亮路径保留缩进、Tab、换行，显示、复制和下载不再 trim</li>
+                        <li><span class="tag fixed">修复</span>代码格式化：YAML / Markdown / GraphQL 解析失败不再报成功，并保留上次有效结果</li>
+                        <li><span class="tag fixed">修复</span>代码对比：删除、单侧清空、全部清空和粘贴共用清理路径，延迟任务不再回放旧差异</li>
+                        <li><span class="tag fixed">修复</span>正则表达式：空表达式不再生成海量零宽匹配；超时、取消和语法错误分别提示</li>
+                        <li><span class="tag fixed">修复</span>智能白板、正则、文本替换、代码格式化、万年历、Markdown：窄屏不再靠裁切隐藏横向溢出；Markdown 上下双栏可滚动且保留光标与选择</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- 版本 2.17.0 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 2.17.0</div>
+                    <div class="version-date">2026-08-31</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">新功能</div>
+                    <ul>
+                        <li><span class="tag new">新增</span>应用导航：新增 19 个公开工具的侧栏快速搜索，支持键盘选择和无结果提示</li>
+                    </ul>
+                    <div class="feature-category">逻辑改动与优化</div>
+                    <ul>
+                        <li><span class="tag ux">体验</span>应用导航：工具入口支持 Tab、Enter、Space、可见焦点和当前页状态</li>
+                        <li><span class="tag improved">优化</span>未保存保护：离开确认增加焦点闭环、背景隔离、Escape 留下和焦点恢复</li>
+                        <li><span class="tag ui">界面</span>应用壳：优化手机、平板和桌面的顶部栏与底部状态栏，底部不再遮挡工具内容</li>
+                        <li><span class="tag ux">体验</span>动效：跟随系统减少动态效果设置，关闭非必要入场、位移和装饰动画</li>
+                        <li><span class="tag improved">优化</span>图片处理：解码后校验最长边与总像素，四类预览改用低分辨率画布，最终导出保持原图目标尺寸</li>
+                        <li><span class="tag ux">体验</span>图片处理：批量导出改为受控串行队列，显示当前项、单项状态和总体进度，并可取消未开始任务</li>
+                        <li><span class="tag ui">界面</span>图片处理：桌面端导出区域固定在参数面板底部，手机端保持自然滚动与 44px 触控高度</li>
+                    </ul>
+                    <div class="feature-category">缺陷修复</div>
+                    <ul>
+                        <li><span class="tag fixed">修复</span>应用壳与关于页：移除右键、开发者工具快捷键和调试器拦截</li>
+                        <li><span class="tag fixed">修复</span>页面元数据：补齐移动端 viewport、外链安全属性和 favicon</li>
+                        <li><span class="tag fixed">修复</span>图片处理：统一释放位图、Object URL、临时画布和 Blob，并补充解码、内存、编码与 ZIP 失败恢复提示</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- 版本 2.16.3 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 2.16.3</div>
+                    <div class="version-date">2026-08-25</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">新功能</div>
+                    <ul>
+                        <li><span class="tag new">新增</span>图片处理：批量处理完成后可选择打包下载或单独下载</li>
+                        <li><span class="tag new">新增</span>代码格式化：新增通用语言（文本 / 请求 Body）模式，有效 JSON 自动缩进，其他文本安全清理空白</li>
+                    </ul>
+                </div>
+            </div>
             <!-- 版本 2.16.2 -->
             <div class="version-entry">
                 <div class="version-dot"></div>

@@ -2,12 +2,34 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
+    <script>
+        (function applyThemeEarly() {
+            try {
+                var pref = localStorage.getItem('17tools-theme');
+                if (pref == null) {
+                    pref = localStorage.getItem('theme');
+                    if (pref != null) {
+                        localStorage.setItem('17tools-theme', pref);
+                    }
+                }
+                var theme = (pref === 'light' || pref === 'dark')
+                    ? pref
+                    : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) { /* 存储不可用时由 theme.js 降级 */ }
+        })();
+    </script>
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>图片处理</title>
     <link rel="stylesheet" href="../css/theme.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+    <link href="../vendor/fontawesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css" integrity="sha512-UtLOu9C7NuThQhuXXrGwx9Jb/z9zPQJctuAgNUBK3Z6kkSYT9wJ+2+dh6klS+TDBCV9kNPBbAxbVD+vCcfGPaA==" crossorigin="anonymous">
     <style>
+        #rdPurpose { width: 100%; }
+        #rdTools button, #rdEffects button, #rdUndo, #rdDelete, #rdEmojis button { min-height: 44px; min-width: 44px; }
+        #rdPurpose:focus-visible, #rdTools button:focus-visible, #rdEffects button:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 3px; }
+
         html, body { margin: 0; height: 100vh; width: 100%; overflow: hidden; background: var(--background-primary); color: var(--text-primary); font-family: var(--font-family); }
         .page { display: flex; flex-direction: column; height: 100vh; padding: var(--spacing-lg); box-sizing: border-box; }
         h1 { margin: 0 0 var(--spacing-md); text-align: center; display: flex; align-items: center; justify-content: center; gap: var(--spacing-sm); font-size: 28px; flex-shrink: 0; }
@@ -20,7 +42,8 @@
         .layout { display: flex; flex: 1; gap: var(--spacing-lg); min-height: 0; }
         .preview-pane, .control-pane { background: var(--background-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: var(--spacing-lg); box-shadow: var(--shadow-sm); min-height: 0; }
         .preview-pane { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-        .control-pane { flex: 0 1 300px; width: 300px; min-width: 260px; max-width: 320px; overflow-y: auto; }
+        .control-pane { flex: 0 1 300px; width: 300px; min-width: 260px; max-width: 320px; overflow: hidden; display: flex; flex-direction: column; }
+        .control-scroll { min-height: 0; overflow-y: auto; padding-right: 4px; }
         .dropzone { flex: 1; min-height: 200px; width: 100%; border: 1px dashed var(--border-color); border-radius: var(--radius-md); display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--background-primary); cursor: pointer; position: relative; overflow: hidden; padding: var(--spacing-lg); box-sizing: border-box; }
         .dropzone:hover { border-color: var(--border-focus); }
         .dropzone.has-image { border-style: solid; }
@@ -34,18 +57,25 @@
         [hidden] { display: none !important; }
         #cpPreview:not([hidden]), .preview-zoom canvas { position: absolute; inset: 0; margin: auto; max-width: 100%; max-height: 100%; min-width: 0; min-height: 0; width: auto; height: auto; object-fit: contain; display: block; }
         #rdCanvas { touch-action: none; }
+        #wmMainHandle { position: absolute; z-index: 2; transform: translate(-50%, -50%); width: 44px; height: 44px; border: 2px solid var(--primary-color); border-radius: var(--radius-md); background: var(--background-secondary); color: var(--primary-color); cursor: move; touch-action: none; }
+        #wmMainHandle:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 3px; }
+        #wmMainControls { margin: var(--spacing-sm) 0; padding: var(--spacing-sm); border: 1px solid var(--border-color); border-radius: var(--radius-md); }
+        #wmShuffle { min-height: 44px; width: 100%; }
+        #wmRiskNote { overflow-wrap: anywhere; }
         #rdDrop.has-image { cursor: crosshair; overflow: hidden; padding: 0; }
         .tool-row button.active, .emoji-grid button.active { background: var(--primary-light); border-color: var(--primary-color); color: var(--primary-color); }
         .emoji-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
         .emoji-grid button { border: 1px solid var(--border-color); background: var(--background-primary); border-radius: 8px; padding: 8px; cursor: pointer; font-size: 20px; line-height: 1; }
         #cropWrap:not([hidden]) { width: 100%; height: 100%; flex: 1; min-height: 0; overflow: hidden; }
         #cropWrap .cropper-container { width: 100% !important; height: 100% !important; }
-        #cropImage { display: block; max-width: 100%; }
+        #cropCanvas { display: block; max-width: 100%; }
         .thumbs { display: flex; gap: 8px; overflow-x: auto; margin-top: 12px; flex-shrink: 0; }
-        .thumbs button { border: 2px solid transparent; background: var(--background-primary); color: var(--text-secondary); border-radius: 8px; padding: 4px; cursor: pointer; min-width: 72px; }
-        .thumbs button.active { border-color: var(--primary-color); }
+        .thumb-item { position: relative; flex: 0 0 auto; }
+        .thumb-select { border: 2px solid transparent; background: var(--background-primary); color: var(--text-secondary); border-radius: 8px; padding: 4px; cursor: pointer; min-width: 72px; }
+        .thumb-select.active { border-color: var(--primary-color); }
         .thumbs img { width: 64px; height: 48px; object-fit: cover; display: block; border-radius: 4px; }
         .thumbs span { display: block; max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+        .thumb-delete { position: absolute; top: -6px; right: -6px; width: 24px; height: 24px; border: 1px solid var(--border-color); border-radius: 50%; background: var(--background-secondary); color: var(--text-secondary); cursor: pointer; line-height: 1; }
         .form-group { margin-bottom: 12px; }
         .form-row { display: flex; gap: 10px; }
         .form-row .form-group { flex: 1; min-width: 0; }
@@ -57,10 +87,32 @@
         .pos-grid button.active, .ratio-row button.active { background: var(--primary-light); border-color: var(--primary-color); color: var(--primary-color); }
         .ratio-row, .tool-row, .size-presets { display: flex; flex-wrap: wrap; gap: 6px; }
         .pick-btn { margin-bottom: var(--spacing-md); }
-        .export-btn { width: 100%; }
+        .download-choice { min-width: 0; margin: 0 0 12px; padding: 0; border: 0; }
+        .download-choice legend { margin-bottom: 6px; color: var(--text-secondary); font-size: 13px; }
+        .download-mode-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+        .download-mode-option { display: block; margin: 0; cursor: pointer; }
+        .download-mode-option input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+        .download-mode-card { display: flex; min-height: 36px; align-items: center; justify-content: center; gap: 6px; padding: 8px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--background-primary); color: var(--text-primary); font-weight: 500; transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast); }
+        .download-mode-option:hover .download-mode-card { border-color: var(--border-focus); }
+        .download-mode-option input:checked + .download-mode-card { border-color: var(--primary-color); background: var(--primary-light); color: var(--primary-color); }
+        .download-mode-option input:focus-visible + .download-mode-card { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+        .download-mode-note { min-height: 18px; margin: 6px 0 0; color: var(--text-tertiary); font-size: 12px; line-height: 1.5; }
+        .export-area { position: sticky; z-index: 3; bottom: 0; flex: 0 0 auto; margin-top: auto; padding-top: 12px; background: var(--background-secondary); border-top: 1px solid var(--border-color); }
+        .export-btn, .batch-cancel { width: 100%; min-height: 44px; }
         .export-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
-        .errors { white-space: pre-wrap; color: var(--error-color); font-size: 13px; min-height: 1.4em; margin-top: 8px; }
+        .errors { white-space: pre-wrap; color: var(--text-error); font-size: 13px; min-height: 1.4em; margin-top: 8px; }
         .stats { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+        .safety-note, .preview-metrics { color: var(--text-tertiary); font-size: 12px; line-height: 1.5; }
+        .safety-note { margin: 8px 0 0; }
+        .preview-metrics { margin: 8px 0 0; min-height: 18px; }
+        .batch-status { margin-bottom: 10px; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--background-primary); }
+        .batch-current { margin-bottom: 6px; font-size: 13px; color: var(--text-primary); }
+        .batch-status progress { width: 100%; height: 8px; accent-color: var(--primary-color); }
+        .batch-list { max-height: 128px; margin: 8px 0; padding: 0; overflow-y: auto; list-style: none; font-size: 12px; color: var(--text-secondary); }
+        .batch-list li { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; }
+        .batch-list .batch-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .batch-list .batch-state { flex: 0 0 auto; }
+        .batch-cancel { margin-top: 6px; }
         #toastContainer { position: fixed; right: 20px; top: 20px; z-index: 20; display: flex; flex-direction: column; gap: 8px; }
         .toast { background: var(--background-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 12px; display: flex; gap: 8px; align-items: center; box-shadow: var(--shadow-md); }
         .hidden-file { display: none; }
@@ -70,7 +122,17 @@
             .layout { flex-direction: column; }
             .tab-panel.active { flex: none; }
             .dropzone { min-height: 50vh; }
-            .control-pane { min-width: 0; width: auto; max-width: none; flex: none; }
+            .control-pane { min-width: 0; width: auto; max-width: none; flex: none; overflow: visible; }
+            .control-scroll { overflow: visible; padding-right: 0; }
+            .export-area { position: static; margin-top: 12px; box-shadow: none; }
+            .export-btn, .batch-cancel { min-height: 44px; }
+        }
+        @media (max-width: 480px) {
+            .page { padding: var(--spacing-md); }
+            .tabs { justify-content: flex-start; overflow-x: auto; padding-bottom: 2px; }
+            .tab-btn { flex: 0 0 auto; min-height: 44px; padding: 10px 12px; }
+            .preview-toolbar { align-items: stretch; }
+            .batch-toggle { min-height: 44px; }
         }
     </style>
 </head>
@@ -96,10 +158,14 @@
                         <input class="hidden-file" id="wmFile" type="file" accept="image/jpeg,image/png,image/webp">
                         <div class="drop-hint" id="wmHint"><i class="fas fa-cloud-upload-alt"></i><div>点击或拖拽上传一张图片</div></div>
                         <div class="preview-zoom" id="wmZoom" hidden><canvas id="wmCanvas"></canvas></div>
+                        <button id="wmMainHandle" type="button" aria-label="拖动定位主水印，也可用方向键调整" title="拖动定位主水印，方向键微调" hidden><i class="fas fa-arrows-alt" aria-hidden="true"></i></button>
                     </div>
+                    <p class="preview-metrics" id="wmPreviewMetrics"></p>
                     <div class="thumbs" id="wmThumbs" hidden></div>
                 </div>
                 <div class="control-pane">
+                    <div class="control-scroll">
+                    <div class="form-group"><label for="wmPreset">水印预设</label><select id="wmPreset" class="form-input form-select"><option value="custom">自由设置</option><option value="display">展示用</option><option value="enhanced">防盗用增强</option></select></div>
                     <div class="form-group"><label for="wmText">水印文字</label><input id="wmText" class="form-input" type="text" placeholder="输入水印文字"></div>
                     <div class="form-row">
                         <div class="form-group"><label for="wmStyle">水印样式</label>
@@ -122,13 +188,50 @@
                     <div class="form-group"><label><input id="wmBold" type="checkbox"> 粗体</label></div>
                     <div class="form-group"><label for="wmFont">字号（短边百分比）</label><input id="wmFont" type="range" min="1" max="20" value="5"></div>
                     <div class="form-group"><label for="wmColor">颜色</label><input id="wmColor" type="color" value="#ffffff"></div>
-                    <div class="form-group"><label for="wmOpacity">透明度</label><input id="wmOpacity" type="range" min="0" max="100" value="50"></div>
+                    <div class="form-group"><label for="wmOpacity">不透明度 <output id="wmOpacityValue">50%</output></label><input id="wmOpacity" type="range" min="0" max="100" value="50"></div>
                     <div class="form-group"><label for="wmRotation">旋转</label><input id="wmRotation" type="range" min="-90" max="90" value="0"></div>
-                    <div class="form-group"><label>位置</label><div class="pos-grid" id="wmPosition"></div></div>
+                    <div class="form-group" id="wmPositionGroup"><label>位置</label><div class="pos-grid" id="wmPosition"></div></div>
+                    <div class="form-group" id="wmBannerPositionGroup" hidden><label for="wmBannerPosition">底栏位置</label><select id="wmBannerPosition" class="form-input form-select"><option value="t">顶部</option><option value="b">底部</option></select></div>
                     <div class="form-group"><label><input id="wmTiled" type="checkbox"> 对角线平铺</label></div>
                     <div class="form-group"><label for="wmGap">平铺间距（短边百分比）</label><input id="wmGap" type="range" min="8" max="40" value="18"></div>
+                    <div class="form-group"><label><input id="wmRandomized" type="checkbox"> 平铺错行与随机变化</label><p class="safety-note">开启后每张图片布局不同；预览和导出保持一致。</p></div>
+                    <button class="btn btn-secondary" id="wmShuffle" type="button">重新随机当前图片</button>
+                    <div class="form-group"><label><input id="wmMainEnabled" type="checkbox"> 叠加主体大水印</label></div>
+                    <div id="wmMainControls" hidden>
+                        <label><input id="wmMainOpaque" type="checkbox"> 主水印使用不透明文字</label>
+                        <p class="safety-note">拖动预览中的定位手柄，或使用下面的滑块覆盖主体。批量图片可逐张定位。</p>
+                        <label for="wmMainX">主水印水平位置 <output id="wmMainXValue">50%</output></label><input id="wmMainX" type="range" min="5" max="95" value="50">
+                        <label for="wmMainY">主水印垂直位置 <output id="wmMainYValue">50%</output></label><input id="wmMainY" type="range" min="5" max="95" value="50">
+                    </div>
+                    <div class="form-group"><label for="wmMaxSide">导出尺寸</label><select id="wmMaxSide" class="form-input form-select"><option value="0">原图尺寸</option><option value="1920">分享副本 · 最长边 1920 像素</option><option value="1280">分享副本 · 最长边 1280 像素</option><option value="960">分享副本 · 最长边 960 像素</option></select><p class="safety-note">保持比例，小图不放大；原图仍留在本机。</p></div>
+                    <p class="safety-note" id="wmRiskNote" role="status"></p>
+                    <p class="safety-note">增强水印可提高去除成本，无法阻止 AI 重绘。敏感信息请用「图片打码」中的隐私遮挡。</p>
+                    <p class="safety-note">仅在本地处理；单张不超过 20 MB、最长边 8192 像素、总像素 1678 万。</p>
+                    </div>
+                    <div class="export-area" id="wmExportArea">
+                    <fieldset class="download-choice" id="wmDownloadChoice" hidden>
+                        <legend>批量下载方式</legend>
+                        <div class="download-mode-options">
+                            <label class="download-mode-option">
+                                <input type="radio" name="wmDownloadMode" value="zip" checked>
+                                <span class="download-mode-card"><i class="fas fa-file-archive" aria-hidden="true"></i>打包下载</span>
+                            </label>
+                            <label class="download-mode-option">
+                                <input type="radio" name="wmDownloadMode" value="separate">
+                                <span class="download-mode-card"><i class="fas fa-images" aria-hidden="true"></i>单独下载</span>
+                            </label>
+                        </div>
+                        <p class="download-mode-note" id="wmDownloadNote">合并为一个 ZIP 文件</p>
+                    </fieldset>
+                    <div class="batch-status" id="wmBatchStatus" hidden aria-live="polite">
+                        <div class="batch-current" id="wmBatchCurrent">准备处理</div>
+                        <progress id="wmBatchProgress" max="1" value="0"></progress>
+                        <ul class="batch-list" id="wmBatchList"></ul>
+                        <button class="btn btn-secondary batch-cancel" id="wmCancel" type="button" disabled>取消未开始任务</button>
+                    </div>
                     <button class="btn btn-primary export-btn" id="wmExport" type="button" disabled>导出</button>
                     <div class="errors" id="wmErrors"></div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -143,10 +246,12 @@
                     <div class="dropzone" id="cropDrop">
                         <input class="hidden-file" id="cropFile" type="file" accept="image/jpeg,image/png,image/webp">
                         <div class="drop-hint" id="cropHint"><i class="fas fa-crop"></i><div>点击或拖拽上传一张图片</div></div>
-                        <div id="cropWrap" hidden><img id="cropImage" alt="裁切预览"></div>
+                        <div id="cropWrap" hidden><canvas id="cropCanvas" aria-label="裁切预览"></canvas></div>
                     </div>
+                    <p class="preview-metrics" id="cropPreviewMetrics"></p>
                 </div>
                 <div class="control-pane">
+                    <div class="control-scroll">
                     <div class="form-group"><label>比例</label><div class="ratio-row" id="cropRatios"></div></div>
                     <div class="tool-row">
                         <button type="button" id="cropRotateCcw">逆时针 90°</button>
@@ -155,8 +260,12 @@
                         <button type="button" id="cropFlipV">垂直翻转</button>
                         <button type="button" id="cropReset">还原裁切</button>
                     </div>
-                    <button class="btn btn-primary export-btn" id="cropExport" type="button" disabled>导出</button>
-                    <div class="errors" id="cropErrors"></div>
+                    <p class="safety-note">预览会自动降采样；导出仍按原图裁切尺寸处理。</p>
+                    </div>
+                    <div class="export-area" id="cropExportArea">
+                        <button class="btn btn-primary export-btn" id="cropExport" type="button" disabled>导出</button>
+                        <div class="errors" id="cropErrors"></div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -174,9 +283,11 @@
                         <div class="drop-hint" id="cpHint"><i class="fas fa-compress"></i><div>点击或拖拽上传一张图片</div></div>
                         <img id="cpPreview" alt="" hidden>
                     </div>
+                    <p class="preview-metrics" id="cpPreviewMetrics"></p>
                     <div class="thumbs" id="cpThumbs" hidden></div>
                 </div>
                 <div class="control-pane">
+                    <div class="control-scroll">
                     <div class="form-group"><label for="cpQuality">质量</label><input id="cpQuality" type="range" min="1" max="100" value="80"></div>
                     <div class="form-group"><label for="cpSize">目标体积</label>
                         <div style="display:flex;gap:8px;">
@@ -196,8 +307,32 @@
                         </select>
                     </div>
                     <div class="stats" id="cpStats"></div>
+                    <p class="safety-note">预览使用低分辨率画布；最终体积和尺寸在导出时按原图重新计算。</p>
+                    </div>
+                    <div class="export-area" id="cpExportArea">
+                    <fieldset class="download-choice" id="cpDownloadChoice" hidden>
+                        <legend>批量下载方式</legend>
+                        <div class="download-mode-options">
+                            <label class="download-mode-option">
+                                <input type="radio" name="cpDownloadMode" value="zip" checked>
+                                <span class="download-mode-card"><i class="fas fa-file-archive" aria-hidden="true"></i>打包下载</span>
+                            </label>
+                            <label class="download-mode-option">
+                                <input type="radio" name="cpDownloadMode" value="separate">
+                                <span class="download-mode-card"><i class="fas fa-images" aria-hidden="true"></i>单独下载</span>
+                            </label>
+                        </div>
+                        <p class="download-mode-note" id="cpDownloadNote">合并为一个 ZIP 文件</p>
+                    </fieldset>
+                    <div class="batch-status" id="cpBatchStatus" hidden aria-live="polite">
+                        <div class="batch-current" id="cpBatchCurrent">准备处理</div>
+                        <progress id="cpBatchProgress" max="1" value="0"></progress>
+                        <ul class="batch-list" id="cpBatchList"></ul>
+                        <button class="btn btn-secondary batch-cancel" id="cpCancel" type="button" disabled>取消未开始任务</button>
+                    </div>
                     <button class="btn btn-primary export-btn" id="cpExport" type="button" disabled>导出</button>
                     <div class="errors" id="cpErrors"></div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -213,15 +348,22 @@
                         <div class="drop-hint" id="rdHint"><i class="fas fa-eraser"></i><div>点击或拖拽上传一张图片</div></div>
                         <div class="preview-zoom" id="rdZoom" hidden><canvas id="rdCanvas"></canvas></div>
                     </div>
+                    <p class="preview-metrics" id="rdPreviewMetrics"></p>
                 </div>
                 <div class="control-pane">
+                    <div class="control-scroll">
+                    <div class="form-group"><label for="rdPurpose">用途</label>
+                        <select class="form-input form-select" id="rdPurpose"><option value="privacy" selected>隐私遮挡（不透明纯色）</option><option value="effect">效果装饰（模糊 / 马赛克 / 表情）</option></select>
+                        <p class="safety-note" id="rdRiskNote">隐私遮挡会用不透明纯色覆盖所有区域，并向外多盖原图至少 1 像素。下载后请打开原尺寸检查边缘；原文件仍在电脑里。</p>
+                        <p class="safety-note" id="rdMetadataStatus" role="status"></p>
+                    </div>
                     <div class="form-group"><label>工具</label>
                         <div class="tool-row" id="rdTools">
                             <button type="button" id="rdToolRect" data-tool="rect" class="active">矩形</button>
                             <button type="button" id="rdToolBrush" data-tool="brush">画笔</button>
                         </div>
                     </div>
-                    <div class="form-group"><label>效果</label>
+                    <div class="form-group" id="rdEffectChoice"><label>效果</label>
                         <div class="tool-row" id="rdEffects">
                             <button type="button" data-effect="mosaic" class="active">马赛克</button>
                             <button type="button" data-effect="blur">模糊</button>
@@ -238,20 +380,27 @@
                         <button type="button" id="rdUndo" disabled>撤销</button>
                         <button type="button" id="rdDelete" disabled>删除选中</button>
                     </div>
-                    <button class="btn btn-primary export-btn" id="rdExport" type="button" disabled>导出</button>
-                    <div class="errors" id="rdErrors"></div>
+                    <p class="safety-note">预览会自动降采样；打码坐标按原图保存并导出。</p>
+                    </div>
+                    <div class="export-area" id="rdExportArea">
+                        <button class="btn btn-primary export-btn" id="rdExport" type="button" disabled>导出</button>
+                        <div class="errors" id="rdErrors"></div>
+                    </div>
                 </div>
             </div>
         </section>
     </div>
     <div id="toastContainer"></div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js" integrity="sha512-JyCZjCOZoyeQZSd5+YEAcFgz2fowJ1F1hyJOXgtKu4llIa0KneLcidn5bwfutiehUTiOuK87A986BZJMko0eWQ==" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg==" crossorigin="anonymous"></script>
+    <script src="../js/local-raster-core.js"></script>
     <script src="../js/image-processor-core.js"></script>
+    <script src="../js/safe-storage.js"></script>
     <script>
         const core = window.ImageProcessorCore;
         const STORAGE_KEY = '17tools-image-processor';
+        const settingsStorage = (window.SafeStorage && (window.SafeStorage.shared || window.SafeStorage.createShared(window))) || null;
         const POS_LABELS = { tl: '左上', t: '上', tr: '右上', l: '左', c: '中', r: '右', bl: '左下', b: '下', br: '右下' };
         const FONT_STACKS = {
             sans: '"PingFang SC", "Microsoft YaHei", sans-serif',
@@ -263,9 +412,10 @@
             watermark: {
                 text: '', fontPercent: 5, color: '#ffffff', opacity: 50, rotation: 0,
                 position: 'br', tiled: false, tileGapPercent: 18,
-                style: 'fill', font: 'sans', bold: false
+                style: 'fill', font: 'sans', bold: false, downloadMode: 'zip',
+                preset: 'custom', randomized: false, mainEnabled: false, mainOpaque: false, maxSide: 0
             },
-            compress: { outputMime: 'image/jpeg' },
+            compress: { outputMime: 'image/jpeg', downloadMode: 'zip' },
             redact: {
                 mosaicSize: 16, blurStrength: 8, solidColor: '#000000',
                 emoji: '🫣', brushPercent: 4, effect: 'mosaic'
@@ -273,22 +423,46 @@
         };
 
         const state = {
-            watermark: { items: [], selectedId: null, zoomItemId: null, previewZoom: { scale: 1, tx: 0, ty: 0 } },
-            crop: { items: [], selectedId: null, cropper: null, cropImageUrl: null, ratio: 'free' },
+            activeTab: 'watermark',
+            watermark: { items: [], selectedId: null, zoomItemId: null, previewRunId: 0, mainDrag: null, previewZoom: { scale: 1, tx: 0, ty: 0 } },
+            crop: {
+                items: [], selectedId: null, cropper: null, cropImageUrl: null, ratio: 'free', previewRunId: 0,
+                rotation: 0, scaleX: 1, scaleY: 1, previewWidth: 0, previewHeight: 0
+            },
             compress: { items: [], selectedId: null, controlMode: 'quality', previewUrl: null, lastBlob: null, lastPlan: null, runId: 0 },
             redact: {
                 items: [], selectedId: null, regions: [], selectedRegionId: null,
-                tool: 'rect', undo: [], drag: null, zoomItemId: null,
+                tool: 'rect', undo: [], drag: null, zoomItemId: null, previewRunId: 0,
                 previewZoom: { scale: 1, tx: 0, ty: 0 }
-            }
+            },
+            batch: {
+                watermark: { running: false, cancelRequested: false, discardResults: false, records: [], runId: 0 },
+                compress: { running: false, cancelRequested: false, discardResults: false, records: [], runId: 0 }
+            },
+            objectUrls: new Set()
         };
+
+        function normalizeDownloadMode(value) {
+            return value === 'separate' ? 'separate' : 'zip';
+        }
 
         function loadSettings() {
             try {
-                const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '');
+                const raw = settingsStorage ? settingsStorage.getItem(STORAGE_KEY) : '';
+                const parsed = JSON.parse(raw || '');
+                const savedWatermark = { ...(parsed.watermark || {}) };
+                delete savedWatermark.text;
                 return {
-                    watermark: { ...DEFAULTS.watermark, ...(parsed.watermark || {}) },
-                    compress: { ...DEFAULTS.compress, ...(parsed.compress || {}) },
+                    watermark: {
+                        ...DEFAULTS.watermark,
+                        ...savedWatermark,
+                        downloadMode: normalizeDownloadMode(parsed.watermark?.downloadMode)
+                    },
+                    compress: {
+                        ...DEFAULTS.compress,
+                        ...(parsed.compress || {}),
+                        downloadMode: normalizeDownloadMode(parsed.compress?.downloadMode)
+                    },
                     redact: { ...DEFAULTS.redact, ...(parsed.redact || {}) }
                 };
             } catch (error) {
@@ -302,9 +476,14 @@
 
         const settings = loadSettings();
         function saveSettings() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify({
-                watermark: readWatermarkSettings(),
-                compress: { outputMime: document.getElementById('cpFormat').value },
+            if (!settingsStorage) return;
+            const { text: ignoredText, ...watermark } = readWatermarkSettings();
+            settingsStorage.setItem(STORAGE_KEY, JSON.stringify({
+                watermark,
+                compress: {
+                    outputMime: document.getElementById('cpFormat').value,
+                    downloadMode: readDownloadMode('compress')
+                },
                 redact: {
                     mosaicSize: Number(document.getElementById('rdMosaic').value),
                     blurStrength: Number(document.getElementById('rdBlur').value),
@@ -331,23 +510,296 @@
             document.getElementById(id).textContent = lines.join('\n');
         }
 
+        function makeError(code, message) {
+            const error = new Error(message || code);
+            error.code = code;
+            return error;
+        }
+
+        function trackedObjectUrl(blob) {
+            const url = URL.createObjectURL(blob);
+            state.objectUrls.add(url);
+            return url;
+        }
+
+        function revokeTrackedUrl(url) {
+            if (!url) return;
+            URL.revokeObjectURL(url);
+            state.objectUrls.delete(url);
+        }
+
+        function closeBitmap(bitmap) {
+            if (!bitmap) return;
+            if (typeof bitmap.close === 'function') bitmap.close();
+            else if (bitmap.tagName === 'CANVAS') releaseCanvas(bitmap);
+            else if (typeof bitmap.removeAttribute === 'function') {
+                bitmap.removeAttribute('src');
+                bitmap.src = '';
+            }
+        }
+
+        function releaseCanvas(canvas) {
+            if (!canvas) return;
+            try {
+                const ctx = canvas.getContext && canvas.getContext('2d');
+                if (ctx) ctx.clearRect(0, 0, canvas.width || 1, canvas.height || 1);
+                canvas.width = 1;
+                canvas.height = 1;
+            } catch (error) { /* best-effort release */ }
+        }
+
+        function createSafeCanvas(width, height, preview = false, contextOptions) {
+            const limits = preview
+                ? { maxEdge: core.MAX_PREVIEW_EDGE, maxPixels: core.MAX_PREVIEW_PIXELS }
+                : undefined;
+            const checked = core.validateImageDimensions(width, height, limits);
+            if (!checked.ok) throw makeError('canvas-size', 'Canvas size rejected');
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = checked.width;
+                canvas.height = checked.height;
+                const ctx = canvas.getContext('2d', contextOptions);
+                if (!ctx) throw makeError('canvas-memory', 'Canvas context unavailable');
+                return { canvas, ctx };
+            } catch (error) {
+                if (error && error.code) throw error;
+                throw makeError('canvas-memory', 'Canvas allocation failed');
+            }
+        }
+
+        async function decodeWithImageElement(file) {
+            const url = trackedObjectUrl(file);
+            try {
+                const image = new Image();
+                image.src = url;
+                await image.decode();
+                return image;
+            } finally {
+                revokeTrackedUrl(url);
+            }
+        }
+
+        function bakeOrientation(source, orientation) {
+            const sourceWidth = source.width;
+            const sourceHeight = source.height;
+            const size = core.orientedSize(sourceWidth, sourceHeight, orientation);
+            const { canvas, ctx } = createSafeCanvas(size.width, size.height);
+            const matrix = core.exifOrientationTransform(orientation, sourceWidth, sourceHeight);
+            ctx.setTransform(matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f);
+            ctx.drawImage(source, 0, 0);
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            closeBitmap(source);
+            return canvas;
+        }
+
         async function loadBitmap(file) {
+            const prefix = new Uint8Array(await file.slice(0, 512 * 1024).arrayBuffer());
+            const format = core.sniffImageFormat(prefix);
+            const rejected = core.rejectedFormatReason(format);
+            if (rejected) {
+                throw makeError(rejected, core.rejectedFileMessage(rejected));
+            }
+            const layout = format === 'jpeg'
+                ? core.readJpegLayout(prefix)
+                : { orientation: 1, encodedWidth: 0, encodedHeight: 0 };
+
+            let decoded = null;
+            let requestedNone = false;
             if (typeof createImageBitmap === 'function') {
                 try {
-                    return await createImageBitmap(file, { imageOrientation: 'from-image' });
-                } catch (error) { /* fall through */ }
+                    decoded = await createImageBitmap(file, { imageOrientation: 'none' });
+                    requestedNone = true;
+                } catch (error) {
+                    try {
+                        decoded = await createImageBitmap(file, { imageOrientation: 'from-image' });
+                    } catch (orientedError) {
+                        try {
+                            decoded = await createImageBitmap(file);
+                        } catch (plainError) { /* fall through to Image() */ }
+                    }
+                }
             }
-            const url = URL.createObjectURL(file);
-            const image = new Image();
-            image.src = url;
-            await image.decode();
-            URL.revokeObjectURL(url);
-            return image;
+            if (!decoded) {
+                try {
+                    decoded = await decodeWithImageElement(file);
+                } catch (error) {
+                    throw makeError('decode', 'Image decode failed');
+                }
+            }
+
+            const decision = core.decideOrientationAction({
+                orientation: layout.orientation,
+                encodedWidth: layout.encodedWidth,
+                encodedHeight: layout.encodedHeight,
+                decodedWidth: decoded.width,
+                decodedHeight: decoded.height,
+                requestedNone
+            });
+            if (decision.action === 'fail') {
+                closeBitmap(decoded);
+                throw makeError('orientation', '无法校正照片方向。请用系统相册「导出兼容照片」或另存为 JPEG 后重试');
+            }
+            if (decision.action === 'apply') {
+                try {
+                    return bakeOrientation(decoded, decision.orientation);
+                } catch (error) {
+                    closeBitmap(decoded);
+                    if (error && error.code) throw error;
+                    throw makeError('orientation', '无法校正照片方向。请用系统相册「导出兼容照片」或另存为 JPEG 后重试');
+                }
+            }
+            return decoded;
+        }
+
+        function releaseItemPreview(item) {
+            if (!item) return;
+            if (item.previewSource) releaseCanvas(item.previewSource);
+            item.previewSource = null;
+            item.previewSize = null;
         }
 
         function revokeItem(item) {
-            if (item.url) URL.revokeObjectURL(item.url);
-            if (item.bitmap && typeof item.bitmap.close === 'function') item.bitmap.close();
+            if (!item) return;
+            releaseItemPreview(item);
+            if (item.thumbUrl) revokeTrackedUrl(item.thumbUrl);
+            item.thumbUrl = null;
+            item.file = null;
+        }
+
+        function dimensionErrorText(name, checked) {
+            const actual = checked.width > 0 && checked.height > 0 ? `（${checked.width}×${checked.height}）` : '';
+            if (checked.reason === 'edge') {
+                return `${name}：最长边不能超过 ${core.MAX_IMAGE_EDGE} 像素${actual}，请先缩小图片后重试`;
+            }
+            if (checked.reason === 'pixels') {
+                return `${name}：总像素不能超过 1678 万${actual}，请先缩小图片后重试`;
+            }
+            return `${name}：无法读取有效图片尺寸，请另存为 JPEG / PNG / WebP 后重试`;
+        }
+
+        function errorRecoveryText(error, fallback = '处理失败') {
+            const code = error && error.code;
+            if (code === 'edge' || code === 'pixels' || code === 'dimensions') {
+                return error.message || '图片尺寸超过安全限制，请先缩小后重试';
+            }
+            if (code === 'heic' || code === 'gif' || code === 'type') {
+                return error.message || core.rejectedFileMessage(code);
+            }
+            if (code === 'orientation') {
+                return error.message || '无法校正照片方向。请用系统相册「导出兼容照片」或另存为 JPEG 后重试';
+            }
+            if (code === 'decode') return '图片无法解码；请确认文件未损坏，或另存为 JPEG / PNG / WebP 后重试';
+            if (code === 'canvas-size') return '当前尺寸超过安全画布范围；请缩小图片或裁切范围后重试';
+            if (code === 'canvas-memory') return '浏览器内存不足，无法创建画布；请关闭其他标签页、减少批量数量或缩小图片后重试';
+            if (code === 'blob-null') return '图片编码失败；请改用 JPEG 或降低图片尺寸后重试';
+            if (code === 'zip') return 'ZIP 生成失败；已改为逐张下载，请允许浏览器下载多个文件，或减少图片数量后重试';
+            return fallback;
+        }
+
+        async function createThumbnailUrl(bitmap) {
+            const size = core.computePreviewSize({
+                sourceWidth: bitmap.width,
+                sourceHeight: bitmap.height,
+                containerWidth: 160,
+                containerHeight: 120,
+                dpr: 1,
+                maxEdge: 160,
+                maxPixels: 160 * 120
+            });
+            const { canvas, ctx } = createSafeCanvas(size.width, size.height, true);
+            try {
+                ctx.drawImage(bitmap, 0, 0, size.width, size.height);
+                const blob = await canvasToBlob(canvas, 'image/jpeg', 0.78);
+                return trackedObjectUrl(blob);
+            } finally {
+                releaseCanvas(canvas);
+            }
+        }
+
+        function previewContainerSize(dropId) {
+            const drop = document.getElementById(dropId);
+            return {
+                width: Math.max(320, drop && drop.clientWidth ? drop.clientWidth : 960),
+                height: Math.max(240, drop && drop.clientHeight ? drop.clientHeight : 720)
+            };
+        }
+
+        async function ensurePreviewSource(tab, item, dropId) {
+            if (!item) return null;
+            const container = previewContainerSize(dropId);
+            const size = core.computePreviewSize({
+                sourceWidth: item.width,
+                sourceHeight: item.height,
+                containerWidth: container.width,
+                containerHeight: container.height,
+                dpr: window.devicePixelRatio || 1
+            });
+            if (item.previewSource && item.previewSize
+                && item.previewSize.width === size.width && item.previewSize.height === size.height) {
+                return item.previewSource;
+            }
+            state[tab].items.forEach((other) => {
+                if (other !== item) releaseItemPreview(other);
+            });
+            releaseItemPreview(item);
+            let bitmap = null;
+            try {
+                bitmap = await loadBitmap(item.file);
+                const checked = core.validateImageDimensions(bitmap.width, bitmap.height);
+                if (!checked.ok) throw makeError(checked.reason, dimensionErrorText(item.name, checked));
+                const { canvas, ctx } = createSafeCanvas(size.width, size.height, true);
+                ctx.drawImage(bitmap, 0, 0, size.width, size.height);
+                item.previewSource = canvas;
+                item.previewSize = size;
+                return canvas;
+            } finally {
+                closeBitmap(bitmap);
+            }
+        }
+
+        function cancelBatch(tab, discardResults = false) {
+            const batch = state.batch[tab];
+            if (!batch) return;
+            batch.cancelRequested = true;
+            batch.discardResults = batch.discardResults || discardResults;
+            const prefix = tab === 'watermark' ? 'wm' : 'cp';
+            const cancel = document.getElementById(prefix + 'Cancel');
+            if (cancel) cancel.disabled = true;
+        }
+
+        function releaseTabTransient(tab) {
+            if (!state[tab]) return;
+            const cleanup = core.resourceCleanupDecision('tab-switch');
+            if (cleanup.cancelQueued) cancelBatch(tab, cleanup.discardResults);
+            state[tab].items.forEach(releaseItemPreview);
+            if (typeof state[tab].previewRunId === 'number') state[tab].previewRunId += 1;
+            if (tab === 'watermark') {
+                endWatermarkDrag();
+                releaseCanvas(document.getElementById('wmCanvas'));
+            } else if (tab === 'crop') {
+                if (state.crop.cropper) {
+                    state.crop.cropper.destroy();
+                    state.crop.cropper = null;
+                }
+                revokeCropImageUrl();
+                releaseCanvas(document.getElementById('cropCanvas'));
+            } else if (tab === 'compress') {
+                state.compress.runId += 1;
+                if (state.compress.previewUrl) revokeTrackedUrl(state.compress.previewUrl);
+                state.compress.previewUrl = null;
+                state.compress.lastBlob = null;
+                state.compress.lastPlan = null;
+                document.getElementById('cpPreview').removeAttribute('src');
+            } else if (tab === 'redact') {
+                releaseCanvas(document.getElementById('rdCanvas'));
+            }
+        }
+
+        function renderActiveTab(tab) {
+            if (tab === 'watermark') renderWatermark();
+            if (tab === 'crop') renderCrop();
+            if (tab === 'compress') renderCompress();
+            if (tab === 'redact') renderRedact();
         }
 
         function isBatch(tab) {
@@ -364,6 +816,39 @@
             if (line) line.textContent = batch ? '点击或拖拽上传，可一次选择多张' : '点击或拖拽上传一张图片';
         }
 
+        function downloadChoicePrefix(tab) {
+            return tab === 'watermark' ? 'wm' : 'cp';
+        }
+
+        function readDownloadMode(tab) {
+            const prefix = downloadChoicePrefix(tab);
+            const value = document.querySelector(`input[name="${prefix}DownloadMode"]:checked`)?.value;
+            return normalizeDownloadMode(value);
+        }
+
+        function syncDownloadChoice(tab) {
+            const prefix = downloadChoicePrefix(tab);
+            const batch = isBatch(tab);
+            document.getElementById(prefix + 'DownloadChoice').hidden = !batch;
+            document.getElementById(prefix + 'DownloadNote').textContent = readDownloadMode(tab) === 'separate'
+                ? '逐张保存，浏览器可能询问是否允许多个文件下载'
+                : '合并为一个 ZIP 文件';
+            document.getElementById(prefix + 'Export').textContent = batch ? '批量导出' : '导出';
+        }
+
+        function initDownloadChoice(tab, savedMode) {
+            const prefix = downloadChoicePrefix(tab);
+            const mode = normalizeDownloadMode(savedMode);
+            document.querySelectorAll(`input[name="${prefix}DownloadMode"]`).forEach((radio) => {
+                radio.checked = radio.value === mode;
+                radio.addEventListener('change', () => {
+                    syncDownloadChoice(tab);
+                    saveSettings();
+                });
+            });
+            syncDownloadChoice(tab);
+        }
+
         function syncBatchInput(tab) {
             const input = document.getElementById(tab === 'watermark' ? 'wmFile' : 'cpFile');
             const batch = isBatch(tab);
@@ -375,11 +860,14 @@
                 state[tab].selectedId = state[tab].items[0].id;
             }
             updateUploadHint(tab);
+            syncDownloadChoice(tab);
             if (tab === 'watermark') renderWatermark();
             if (tab === 'compress') renderCompress();
         }
 
         function clearImages(tab) {
+            const cleanup = core.resourceCleanupDecision('reset');
+            if (cleanup.cancelQueued) cancelBatch(tab, cleanup.discardResults);
             state[tab].items.forEach(revokeItem);
             state[tab].items = [];
             state[tab].selectedId = null;
@@ -389,9 +877,14 @@
                     state.crop.cropper = null;
                 }
                 revokeCropImageUrl();
+                state.crop.rotation = 0;
+                state.crop.scaleX = 1;
+                state.crop.scaleY = 1;
+                state.crop.previewWidth = 0;
+                state.crop.previewHeight = 0;
             }
             if (tab === 'compress') {
-                if (state.compress.previewUrl) URL.revokeObjectURL(state.compress.previewUrl);
+                if (state.compress.previewUrl) revokeTrackedUrl(state.compress.previewUrl);
                 state.compress.previewUrl = null;
                 state.compress.lastBlob = null;
                 state.compress.lastPlan = null;
@@ -406,8 +899,17 @@
                 setErrors('rdErrors', []);
             }
             if (tab === 'watermark') {
+                endWatermarkDrag();
                 state.watermark.zoomItemId = null;
                 resetPreviewZoom('watermark');
+            }
+            const canvasId = tab === 'watermark' ? 'wmCanvas' : tab === 'crop' ? 'cropCanvas' : tab === 'redact' ? 'rdCanvas' : null;
+            if (canvasId) releaseCanvas(document.getElementById(canvasId));
+            if (state.batch[tab]) {
+                state.batch[tab].runId += 1;
+                state.batch[tab].records = [];
+                state.batch[tab].running = false;
+                updateBatchUi(tab, [], null);
             }
             const input = document.getElementById(
                 tab === 'watermark' ? 'wmFile' : tab === 'crop' ? 'cropFile' : tab === 'redact' ? 'rdFile' : 'cpFile'
@@ -436,34 +938,57 @@
                 }
                 incoming = files.slice(0, Math.max(0, remaining));
             }
-            const nextItems = single ? [] : bucket.items.slice();
-            if (single) bucket.items.forEach(revokeItem);
+            const created = [];
             for (const file of incoming) {
                 const checked = core.validateFile(file);
                 if (!checked.ok) {
-                    errors.push(file.name + '：' + (checked.reason === 'size' ? '单张不能超过 20 MB' : '仅支持 JPEG / PNG / WebP'));
+                    errors.push(file.name + '：' + core.rejectedFileMessage(checked.reason));
                     continue;
                 }
+                let bitmap = null;
                 try {
-                    const bitmap = await loadBitmap(file);
+                    bitmap = await loadBitmap(file);
+                    const dimensions = core.validateImageDimensions(bitmap.width, bitmap.height);
+                    if (!dimensions.ok) {
+                        errors.push(dimensionErrorText(file.name, dimensions));
+                        continue;
+                    }
                     const item = {
                         id: `${file.name}-${file.size}-${Math.random()}`,
                         file,
                         name: file.name,
                         mime: core.resolveMime(file.name, file.type),
                         size: file.size,
-                        url: URL.createObjectURL(file),
-                        bitmap,
-                        width: bitmap.width,
-                        height: bitmap.height
+                        thumbUrl: await createThumbnailUrl(bitmap),
+                        previewSource: null,
+                        previewSize: null,
+                        width: dimensions.width,
+                        height: dimensions.height
                     };
-                    nextItems.push(item);
+                    if (tab === 'watermark') {
+                        item.watermarkSeed = newWatermarkSeed();
+                        item.watermarkAnchor = { x: 0.5, y: 0.5 };
+                    }
+                    created.push(item);
                 } catch (error) {
-                    errors.push(file.name + '：无法读取');
+                    errors.push(file.name + '：' + errorRecoveryText(error, '无法读取；请确认文件未损坏后重试'));
+                } finally {
+                    closeBitmap(bitmap);
                 }
             }
-            bucket.items = nextItems;
-            bucket.selectedId = bucket.items[0] ? bucket.items[0].id : null;
+            if (single) {
+                if (created.length) {
+                    const cleanup = core.resourceCleanupDecision('replace');
+                    if (cleanup.cancelQueued) cancelBatch(tab, cleanup.discardResults);
+                    bucket.items.forEach(revokeItem);
+                    bucket.items = created.slice(0, 1);
+                }
+            } else {
+                bucket.items = bucket.items.concat(created);
+            }
+            if (!bucket.items.some((item) => item.id === bucket.selectedId)) {
+                bucket.selectedId = bucket.items[0] ? bucket.items[0].id : null;
+            }
             setErrors(tab === 'watermark' ? 'wmErrors' : tab === 'crop' ? 'cropErrors' : tab === 'redact' ? 'rdErrors' : 'cpErrors', errors);
             if (tab === 'watermark') renderWatermark();
             if (tab === 'crop') renderCrop();
@@ -475,6 +1000,25 @@
                 state.redact.drag = null;
                 renderRedact();
             }
+        }
+
+        function removeItem(tab, id) {
+            if (state.batch[tab] && state.batch[tab].running) {
+                showToast('处理中不能删除图片，请先取消未开始任务');
+                return;
+            }
+            const index = state[tab].items.findIndex((item) => item.id === id);
+            if (index < 0) return;
+            const cleanup = core.resourceCleanupDecision('delete');
+            if (cleanup.cancelQueued) cancelBatch(tab, cleanup.discardResults);
+            const [item] = state[tab].items.splice(index, 1);
+            revokeItem(item);
+            if (state[tab].selectedId === id) {
+                const next = state[tab].items[index] || state[tab].items[index - 1] || null;
+                state[tab].selectedId = next ? next.id : null;
+            }
+            if (tab === 'watermark') renderWatermark();
+            if (tab === 'compress') renderCompress();
         }
 
         function selected(tab) {
@@ -505,6 +1049,7 @@
                 return;
             }
             if (state[tab].zoomItemId !== item.id) {
+                if (tab === 'watermark') endWatermarkDrag();
                 state[tab].zoomItemId = item.id;
                 resetPreviewZoom(tab);
             }
@@ -525,6 +1070,7 @@
                     oy: rect.height / 2
                 });
                 applyPreviewZoom(tab);
+                if (tab === 'watermark') updateWatermarkHandle();
             }, { passive: false });
         }
 
@@ -544,7 +1090,15 @@
             };
         }
 
+        function privacyRedactEnabled() { return document.getElementById('rdPurpose').value === 'privacy'; }
         function showRedactParams(effect, tool) {
+            const privacy = privacyRedactEnabled();
+            document.getElementById('rdEffectChoice').hidden = privacy;
+            if (privacy) effect = 'solid';
+            document.getElementById('rdRiskNote').textContent = privacy
+                ? '隐私遮挡会用不透明纯色覆盖所有区域，并向外多盖原图至少 1 像素。下载后请打开原尺寸检查边缘；原文件仍在电脑里。'
+                : '模糊与马赛克仍可能留下可猜测信息，表情可能有透明空隙。它们是装饰效果，不保证隐私；密码、证件请使用隐私遮挡。';
+            document.getElementById('rdExport').textContent = privacy ? '导出隐私 PNG' : '导出效果图片';
             document.getElementById('rdMosaicGroup').hidden = effect !== 'mosaic';
             document.getElementById('rdBlurGroup').hidden = effect !== 'blur';
             document.getElementById('rdColorGroup').hidden = effect !== 'solid';
@@ -569,13 +1123,13 @@
             showRedactParams(effect, state.redact.tool);
         }
 
-        function canvasImagePoint(canvas, event) {
+        function canvasImagePoint(canvas, event, item) {
             const rect = canvas.getBoundingClientRect();
             const cssW = rect.width || 1;
             const cssH = rect.height || 1;
             return {
-                x: (event.clientX - rect.left) * (canvas.width / cssW),
-                y: (event.clientY - rect.top) * (canvas.height / cssH)
+                x: (event.clientX - rect.left) * ((item ? item.width : canvas.width) / cssW),
+                y: (event.clientY - rect.top) * ((item ? item.height : canvas.height) / cssH)
             };
         }
 
@@ -650,11 +1204,10 @@
             };
         }
 
-        function regionMask(region) {
-            const canvas = document.createElement('canvas');
-            canvas.width = Math.max(1, region.w);
-            canvas.height = Math.max(1, region.h);
-            const ctx = canvas.getContext('2d');
+        function regionMask(region, preview) {
+            const safe = createSafeCanvas(Math.max(1, Math.ceil(region.w)), Math.max(1, Math.ceil(region.h)), preview);
+            const canvas = safe.canvas;
+            const ctx = safe.ctx;
             ctx.fillStyle = '#000';
             ctx.strokeStyle = '#000';
             if (region.kind === 'rect') {
@@ -683,7 +1236,7 @@
             return canvas;
         }
 
-        function paintEffect(ectx, region) {
+        function paintEffect(ectx, region, preview) {
             const box = { x: 0, y: 0, w: region.w, h: region.h };
             if (region.effect === 'mosaic') {
                 core.computeMosaicCells(box, region.mosaicSize).forEach((cell) => {
@@ -705,15 +1258,18 @@
             if (region.effect === 'blur') {
                 const sw = Math.max(1, Math.round(region.w / region.blurStrength));
                 const sh = Math.max(1, Math.round(region.h / region.blurStrength));
-                const small = document.createElement('canvas');
-                small.width = sw;
-                small.height = sh;
-                const sctx = small.getContext('2d');
-                sctx.imageSmoothingEnabled = true;
-                sctx.drawImage(ectx.canvas, 0, 0, sw, sh);
-                ectx.clearRect(0, 0, region.w, region.h);
-                ectx.imageSmoothingEnabled = true;
-                ectx.drawImage(small, 0, 0, region.w, region.h);
+                const safe = createSafeCanvas(sw, sh, preview);
+                const small = safe.canvas;
+                const sctx = safe.ctx;
+                try {
+                    sctx.imageSmoothingEnabled = true;
+                    sctx.drawImage(ectx.canvas, 0, 0, sw, sh);
+                    ectx.clearRect(0, 0, region.w, region.h);
+                    ectx.imageSmoothingEnabled = true;
+                    ectx.drawImage(small, 0, 0, region.w, region.h);
+                } finally {
+                    releaseCanvas(small);
+                }
                 return;
             }
             if (region.effect === 'solid') {
@@ -729,17 +1285,39 @@
             });
         }
 
-        function applyRedactRegion(destCtx, region) {
+        function applyRedactRegion(destCtx, region, preview) {
+            if (region.privacy) {
+                destCtx.save();
+                destCtx.globalAlpha = 1;
+                destCtx.globalCompositeOperation = 'source-over';
+                destCtx.fillStyle = destCtx.strokeStyle = region.solidColor;
+                if (region.kind === 'rect') destCtx.fillRect(region.x, region.y, region.w, region.h);
+                else {
+                    const points = region.points || [];
+                    destCtx.lineCap = destCtx.lineJoin = 'round';
+                    destCtx.lineWidth = region.brushRadius * 2;
+                    if (points.length === 1) { destCtx.beginPath(); destCtx.arc(points[0].x, points[0].y, region.brushRadius, 0, Math.PI * 2); destCtx.fill(); }
+                    else { destCtx.beginPath(); points.forEach((pt, index) => index ? destCtx.lineTo(pt.x, pt.y) : destCtx.moveTo(pt.x, pt.y)); destCtx.stroke(); }
+                }
+                destCtx.restore();
+                return;
+            }
             if (region.w < 1 || region.h < 1) return;
-            const effectCanvas = document.createElement('canvas');
-            effectCanvas.width = Math.max(1, region.w);
-            effectCanvas.height = Math.max(1, region.h);
-            const ectx = effectCanvas.getContext('2d', { willReadFrequently: true });
-            ectx.drawImage(destCtx.canvas, region.x, region.y, region.w, region.h, 0, 0, region.w, region.h);
-            paintEffect(ectx, region);
-            ectx.globalCompositeOperation = 'destination-in';
-            ectx.drawImage(regionMask(region), 0, 0);
-            destCtx.drawImage(effectCanvas, region.x, region.y);
+            const safe = createSafeCanvas(Math.max(1, Math.ceil(region.w)), Math.max(1, Math.ceil(region.h)), preview, { willReadFrequently: true });
+            const effectCanvas = safe.canvas;
+            const ectx = safe.ctx;
+            let mask = null;
+            try {
+                ectx.drawImage(destCtx.canvas, region.x, region.y, region.w, region.h, 0, 0, region.w, region.h);
+                paintEffect(ectx, region, preview);
+                ectx.globalCompositeOperation = 'destination-in';
+                mask = regionMask(region, preview);
+                ectx.drawImage(mask, 0, 0);
+                destCtx.drawImage(effectCanvas, region.x, region.y);
+            } finally {
+                releaseCanvas(mask);
+                releaseCanvas(effectCanvas);
+            }
         }
 
         function drawRedactSelection(ctx, region, scale) {
@@ -770,19 +1348,26 @@
             ctx.restore();
         }
 
-        function compositeRedact(ctx, item, { highlight, draft } = {}) {
-            ctx.clearRect(0, 0, item.width, item.height);
-            ctx.drawImage(item.bitmap, 0, 0, item.width, item.height);
-            state.redact.regions.forEach((region) => applyRedactRegion(ctx, region));
-            if (draft) applyRedactRegion(ctx, draft);
+        function compositeRedact(ctx, item, { highlight, draft, source } = {}) {
+            const width = ctx.canvas.width;
+            const height = ctx.canvas.height;
+            const scaleX = width / item.width;
+            const scaleY = height / item.height;
+            const preview = width !== item.width || height !== item.height;
+            ctx.clearRect(0, 0, width, height);
+            ctx.drawImage(source || item.bitmap, 0, 0, width, height);
+            const regionForOutput = region => core.scaleRedactRegion(privacyRedactEnabled() ? core.privacyRegion(region) : region, scaleX, scaleY);
+            state.redact.regions.forEach(region => applyRedactRegion(ctx, regionForOutput(region), preview));
+            if (draft) applyRedactRegion(ctx, regionForOutput(draft), preview);
             if (highlight) {
                 const css = document.getElementById('rdCanvas').getBoundingClientRect();
-                const scale = item.width / (css.width || item.width);
-                drawRedactSelection(ctx, highlight, scale);
+                const scale = width / (css.width || width);
+                drawRedactSelection(ctx, core.scaleRedactRegion(highlight, scaleX, scaleY), scale);
             }
         }
 
-        function renderRedact() {
+        async function renderRedact() {
+            const runId = ++state.redact.previewRunId;
             const item = selected('redact');
             const canvas = document.getElementById('rdCanvas');
             const hint = document.getElementById('rdHint');
@@ -792,11 +1377,14 @@
             document.getElementById('rdDelete').disabled = !selectedRegion;
             showRedactParams(readRedactSettings().effect, state.redact.tool);
             if (!item) {
+                releaseCanvas(canvas);
                 canvas.hidden = true;
                 hint.hidden = false;
                 document.getElementById('rdDrop').classList.remove('has-image');
                 document.getElementById('rdZoom').hidden = true;
+                document.getElementById('rdPreviewMetrics').textContent = '';
                 syncPreviewZoomItem('redact', null);
+                document.getElementById('rdMetadataStatus').textContent = '';
                 return;
             }
             hint.hidden = true;
@@ -804,10 +1392,24 @@
             document.getElementById('rdZoom').hidden = false;
             document.getElementById('rdDrop').classList.add('has-image');
             syncPreviewZoomItem('redact', item);
-            canvas.width = item.width;
-            canvas.height = item.height;
-            const draft = state.redact.drag && state.redact.drag.preview ? state.redact.drag.preview : null;
-            compositeRedact(canvas.getContext('2d'), item, { highlight: selectedRegion, draft });
+            try {
+                if (!item.metadataCheck) item.metadataCheck = core.inspectMetadata(new Uint8Array(await item.file.arrayBuffer()));
+                if (runId !== state.redact.previewRunId || item !== selected('redact')) return;
+                document.getElementById('rdMetadataStatus').textContent = item.metadataCheck.fields.length
+                    ? `原文件检测到 ${item.metadataCheck.fields.join('、')}。隐私 PNG 会重新编码并检查输出的这些标签。`
+                    : '本机检测未发现 EXIF / XMP / IPTC / 图片文字块；隐私 PNG 将重新编码。此检查不涵盖所有可能的元数据。';
+                const source = await ensurePreviewSource('redact', item, 'rdDrop');
+                if (runId !== state.redact.previewRunId || item !== selected('redact')) return;
+                canvas.width = source.width;
+                canvas.height = source.height;
+                const draft = state.redact.drag && state.redact.drag.preview ? state.redact.drag.preview : null;
+                compositeRedact(canvas.getContext('2d'), item, { highlight: selectedRegion, draft, source });
+                document.getElementById('rdPreviewMetrics').textContent = `预览画布 ${source.width}×${source.height} · 导出 ${item.width}×${item.height}`;
+            } catch (error) {
+                if (runId !== state.redact.previewRunId) return;
+                setErrors('rdErrors', [item.name + '：' + errorRecoveryText(error)]);
+                document.getElementById('rdExport').disabled = true;
+            }
         }
 
         function commitNewRegion(region) {
@@ -836,6 +1438,7 @@
 
         function initRedactUi() {
             const stored = { ...DEFAULTS.redact, ...(loadSettings().redact || {}) };
+            document.getElementById('rdPurpose').addEventListener('change', () => renderRedact());
             document.getElementById('rdMosaic').value = String(stored.mosaicSize || 16);
             document.getElementById('rdBlur').value = String(stored.blurStrength || 8);
             document.getElementById('rdColor').value = stored.solidColor || '#000000';
@@ -956,7 +1559,7 @@
                 if (!item) return;
                 event.preventDefault();
                 canvas.setPointerCapture(event.pointerId);
-                const pt = canvasImagePoint(canvas, event);
+                const pt = canvasImagePoint(canvas, event, item);
                 const css = canvas.getBoundingClientRect();
                 const scale = item.width / (css.width || item.width);
                 const selectedRegion = state.redact.regions.find((r) => r.id === state.redact.selectedRegionId) || null;
@@ -1012,7 +1615,7 @@
                     renderRedact();
                     return;
                 }
-                const pt = canvasImagePoint(canvas, event);
+                const pt = canvasImagePoint(canvas, event, item);
                 const dist = Math.hypot(pt.x - drag.start.x, pt.y - drag.start.y);
                 if (drag.mode === 'rect') {
                     if (dist < REDACT_MIN_DRAG) {
@@ -1093,7 +1696,7 @@
                 const drag = state.redact.drag;
                 const item = selected('redact');
                 if (!drag || !item) return;
-                const pt = canvasImagePoint(canvas, event);
+                const pt = canvasImagePoint(canvas, event, item);
                 if (Math.hypot(pt.x - drag.start.x, pt.y - drag.start.y) >= REDACT_MIN_DRAG) drag.moved = true;
                 if (drag.mode === 'rect' && drag.moved) {
                     const box = applyRectFromPoints(drag.start.x, drag.start.y, pt.x, pt.y, item);
@@ -1168,16 +1771,30 @@
         async function exportRedact() {
             const item = selected('redact');
             if (!item || !state.redact.regions.length) return;
+            let bitmap = null;
+            let canvas = null;
             try {
-                const canvas = document.createElement('canvas');
-                canvas.width = item.width;
-                canvas.height = item.height;
-                compositeRedact(canvas.getContext('2d'), item, { highlight: null, draft: null });
-                const blob = await canvasToBlob(canvas, item.mime, item.mime === 'image/png' ? undefined : 0.92);
-                downloadBlob(blob, core.buildExportName(item.name, 'redacted', item.mime));
+                document.getElementById('rdExport').disabled = true;
+                bitmap = await loadBitmap(item.file);
+                const checked = core.validateImageDimensions(bitmap.width, bitmap.height);
+                if (!checked.ok) throw makeError(checked.reason, dimensionErrorText(item.name, checked));
+                const safe = createSafeCanvas(item.width, item.height);
+                canvas = safe.canvas;
+                compositeRedact(safe.ctx, { ...item, bitmap }, { highlight: null, draft: null });
+                const privacy = privacyRedactEnabled();
+                const mime = privacy ? 'image/png' : item.mime;
+                const blob = await canvasToBlob(canvas, mime, mime === 'image/png' ? undefined : 0.92);
+                const metadata = core.inspectMetadata(new Uint8Array(await blob.arrayBuffer()));
+                if (privacy && (!metadata.ok || metadata.fields.length)) throw makeError('metadata', '导出检查未通过，请重试');
+                downloadBlob(blob, core.buildExportName(item.name, privacy ? 'privacy-redacted' : 'redacted', mime));
                 setErrors('rdErrors', []);
+                document.getElementById('rdMetadataStatus').textContent = `已导出原尺寸 ${item.width}×${item.height} 的合成图片；${metadata.fields.length ? '输出检测到 ' + metadata.fields.join('、') : '输出未检出 EXIF / XMP / IPTC / 图片文字块'}。请打开下载文件放大检查每处遮挡边缘。`;
             } catch (error) {
-                setErrors('rdErrors', ['无法导出']);
+                setErrors('rdErrors', [item.name + '：' + errorRecoveryText(error, '无法导出，请缩小图片后重试')]);
+            } finally {
+                closeBitmap(bitmap);
+                releaseCanvas(canvas);
+                renderRedact();
             }
         }
 
@@ -1207,17 +1824,28 @@
             const box = document.getElementById(containerId);
             box.replaceChildren();
             state[tab].items.forEach((item) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'thumb-item';
                 const btn = document.createElement('button');
                 btn.type = 'button';
+                btn.className = 'thumb-select';
                 if (item.id === state[tab].selectedId) btn.classList.add('active');
                 const img = document.createElement('img');
-                img.src = item.url;
+                img.src = item.thumbUrl;
                 img.alt = item.name;
                 const span = document.createElement('span');
                 span.textContent = item.name;
                 btn.append(img, span);
                 btn.addEventListener('click', () => onSelect(item.id));
-                box.appendChild(btn);
+                const remove = document.createElement('button');
+                remove.type = 'button';
+                remove.className = 'thumb-delete';
+                remove.setAttribute('aria-label', `删除 ${item.name}`);
+                remove.title = `删除 ${item.name}`;
+                remove.textContent = '×';
+                remove.addEventListener('click', () => removeItem(tab, item.id));
+                wrapper.append(btn, remove);
+                box.appendChild(wrapper);
             });
         }
 
@@ -1228,12 +1856,20 @@
                 color: document.getElementById('wmColor').value,
                 opacity: Number(document.getElementById('wmOpacity').value),
                 rotation: Number(document.getElementById('wmRotation').value),
-                position: document.querySelector('#wmPosition button.active')?.dataset.pos || 'br',
+                position: document.getElementById('wmStyle').value === 'banner'
+                    ? document.getElementById('wmBannerPosition').value
+                    : document.querySelector('#wmPosition button.active')?.dataset.pos || 'br',
                 tiled: document.getElementById('wmTiled').checked,
                 tileGapPercent: Number(document.getElementById('wmGap').value),
                 style: document.getElementById('wmStyle').value,
                 font: document.getElementById('wmFontFamily').value,
-                bold: document.getElementById('wmBold').checked
+                bold: document.getElementById('wmBold').checked,
+                preset: document.getElementById('wmPreset').value,
+                randomized: document.getElementById('wmRandomized').checked,
+                mainEnabled: document.getElementById('wmMainEnabled').checked,
+                mainOpaque: document.getElementById('wmMainOpaque').checked,
+                maxSide: Number(document.getElementById('wmMaxSide').value),
+                downloadMode: readDownloadMode('watermark')
             };
         }
 
@@ -1250,10 +1886,13 @@
             ctx.lineWidth = Math.max(2, fontPx * 0.1);
             const style = wm.style || 'fill';
             if (style === 'shadow') {
+                const transform = ctx.getTransform();
+                const scaleX = Math.hypot(transform.a, transform.b);
+                const scaleY = Math.hypot(transform.c, transform.d);
                 ctx.shadowColor = 'rgba(0,0,0,0.7)';
-                ctx.shadowBlur = fontPx * 0.28;
-                ctx.shadowOffsetX = fontPx * 0.08;
-                ctx.shadowOffsetY = fontPx * 0.08;
+                ctx.shadowBlur = fontPx * 0.28 * Math.min(scaleX, scaleY);
+                ctx.shadowOffsetX = fontPx * 0.08 * scaleX;
+                ctx.shadowOffsetY = fontPx * 0.08 * scaleY;
                 ctx.fillText(text, 0, 0);
                 ctx.shadowColor = 'transparent';
                 return;
@@ -1292,10 +1931,12 @@
 
         function drawWatermark(ctx, item, wm) {
             const { width, height } = item;
-            ctx.clearRect(0, 0, width, height);
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            ctx.save();
+            ctx.scale(ctx.canvas.width / width, ctx.canvas.height / height);
             ctx.drawImage(item.bitmap, 0, 0, width, height);
             const text = wm.text.trim();
-            if (!text) return;
+            if (!core.watermarkIsVisible(wm)) { ctx.restore(); return; }
             const minSide = Math.min(width, height);
             const fontPx = core.computeFontPx(minSide, wm.fontPercent);
             const margin = core.computeMargin(minSide);
@@ -1307,12 +1948,13 @@
                 ctx.globalAlpha = (wm.opacity / 100) * 0.62;
                 ctx.fillStyle = wm.color;
                 ctx.fillRect(0, y, width, barH);
-                ctx.globalAlpha = 1;
+                ctx.globalAlpha = wm.opacity / 100;
                 ctx.fillStyle = contrastingText(wm.color);
                 applyWatermarkFont(ctx, wm, fontPx);
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(text, width / 2, y + barH / 2);
+                ctx.restore();
                 ctx.restore();
                 return;
             }
@@ -1320,13 +1962,18 @@
             ctx.globalAlpha = wm.opacity / 100;
             if (wm.tiled) {
                 const spacing = minSide * (wm.tileGapPercent / 100);
-                core.computeTileOrigins({ width, height, spacing }).forEach((origin) => {
+                applyWatermarkFont(ctx, wm, fontPx);
+                core.computeWatermarkTiles({ width, height, spacing, fontPx,
+                    textWidth: ctx.measureText(text).width, rotation: wm.rotation,
+                    randomized: wm.randomized, seed: item.watermarkSeed
+                }).forEach((origin) => {
                     ctx.save();
                     ctx.translate(origin.x, origin.y);
-                    ctx.rotate(wm.rotation * Math.PI / 180);
+                    ctx.rotate(origin.rotation * Math.PI / 180);
+                    ctx.globalAlpha = Math.min(1, wm.opacity / 100 * origin.opacityScale);
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    paintWatermarkText(ctx, text, wm, fontPx);
+                    paintWatermarkText(ctx, text, wm, fontPx * origin.fontScale);
                     ctx.restore();
                 });
             } else {
@@ -1338,22 +1985,139 @@
                 paintWatermarkText(ctx, text, wm, fontPx);
             }
             ctx.restore();
+            if (wm.mainEnabled) {
+                const anchor = item.watermarkAnchor || { x: 0.5, y: 0.5 };
+                let mainFont = fontPx * 1.8;
+                applyWatermarkFont(ctx, wm, mainFont);
+                const textWidth = ctx.measureText(text).width;
+                const radians = wm.rotation * Math.PI / 180;
+                const boxWidth = Math.abs(Math.cos(radians)) * textWidth + Math.abs(Math.sin(radians)) * mainFont * 1.4;
+                const boxHeight = Math.abs(Math.sin(radians)) * textWidth + Math.abs(Math.cos(radians)) * mainFont * 1.4;
+                mainFont *= Math.min(1, width * 0.85 / Math.max(1, boxWidth), height * 0.85 / Math.max(1, boxHeight));
+                ctx.save();
+                ctx.translate(width * anchor.x, height * anchor.y);
+                ctx.rotate(radians);
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.globalAlpha = wm.mainOpaque ? 1 : wm.opacity / 100;
+                paintWatermarkText(ctx, text, wm, mainFont);
+                ctx.restore();
+            }
+            ctx.restore();
         }
 
-        function renderWatermark() {
+        function newWatermarkSeed() {
+            return window.crypto.getRandomValues(new Uint32Array(1))[0];
+        }
+
+        function syncWatermarkControls(wm, item) {
+            const banner = wm.style === 'banner';
+            const main = !banner && wm.mainEnabled;
+            document.getElementById('wmPositionGroup').hidden = banner;
+            document.getElementById('wmBannerPositionGroup').hidden = !banner;
+            document.querySelectorAll('#wmPosition button').forEach((button) => { button.disabled = wm.tiled; });
+            ['wmRotation', 'wmTiled', 'wmMainEnabled'].forEach((id) => { document.getElementById(id).disabled = banner; });
+            document.getElementById('wmGap').disabled = banner || !wm.tiled;
+            document.getElementById('wmRandomized').disabled = banner || !wm.tiled;
+            document.getElementById('wmShuffle').disabled = !item || banner || !wm.tiled || !wm.randomized || state.batch.watermark.running;
+            document.getElementById('wmMainControls').hidden = !main;
+            document.getElementById('wmOpacityValue').textContent = `${wm.opacity}%`;
+            const anchor = item?.watermarkAnchor || { x: 0.5, y: 0.5 };
+            ['X', 'Y'].forEach((axis) => {
+                const value = Math.round(anchor[axis.toLowerCase()] * 100);
+                document.getElementById('wmMain' + axis).value = String(value);
+                document.getElementById('wmMain' + axis).disabled = !item;
+                document.getElementById('wmMain' + axis + 'Value').textContent = `${value}%`;
+            });
+            let note = '';
+            if (!wm.text.trim()) note = '填写水印文字后可导出。';
+            else if (!core.watermarkIsVisible(wm)) note = '当前水印不可见，请提高不透明度，或启用不透明主水印。';
+            else if (banner) note = '底栏容易被裁掉；平铺、随机变化、旋转和主体大水印在此样式下不生效。';
+            else if (wm.opacity < 30 && !(main && wm.mainOpaque)) note = '不透明度较低，水印可能不明显，也更容易被修复。';
+            else if (!wm.tiled && !main && wm.position !== 'c') note = '边缘水印容易被裁掉，建议平铺或让主水印覆盖主体。';
+            else note = '请检查水印是否覆盖重要细节；增强预设也不能保证水印无法去除。';
+            document.getElementById('wmRiskNote').textContent = note;
+            document.getElementById('wmMainHandle').hidden = !item || !main || !wm.text.trim();
+        }
+
+        function updateWatermarkHandle() {
+            const item = selected('watermark');
+            const handle = document.getElementById('wmMainHandle');
+            if (!item || handle.hidden) return;
+            const canvas = document.getElementById('wmCanvas').getBoundingClientRect();
+            const drop = document.getElementById('wmDrop').getBoundingClientRect();
+            const anchor = item.watermarkAnchor;
+            handle.style.left = `${canvas.left - drop.left - document.getElementById('wmDrop').clientLeft + canvas.width * anchor.x}px`;
+            handle.style.top = `${canvas.top - drop.top - document.getElementById('wmDrop').clientTop + canvas.height * anchor.y}px`;
+        }
+
+        function endWatermarkDrag() {
+            const drag = state.watermark.mainDrag;
+            state.watermark.mainDrag = null;
+            const handle = document.getElementById('wmMainHandle');
+            if (drag && handle.hasPointerCapture(drag.pointerId)) handle.releasePointerCapture(drag.pointerId);
+        }
+
+        function setWatermarkAnchor(x, y) {
+            const item = selected('watermark');
+            if (!item) return;
+            item.watermarkAnchor = { x: Math.min(0.95, Math.max(0.05, x)), y: Math.min(0.95, Math.max(0.05, y)) };
+            renderWatermark();
+        }
+
+        function bindWatermarkPosition() {
+            const handle = document.getElementById('wmMainHandle');
+            handle.addEventListener('click', (event) => event.stopPropagation());
+            handle.addEventListener('pointerdown', (event) => {
+                if (event.button !== 0 || !selected('watermark')) return;
+                event.preventDefault();
+                const item = selected('watermark');
+                const box = document.getElementById('wmCanvas').getBoundingClientRect();
+                state.watermark.mainDrag = { pointerId: event.pointerId, itemId: item.id,
+                    offsetX: event.clientX - box.left - item.watermarkAnchor.x * box.width,
+                    offsetY: event.clientY - box.top - item.watermarkAnchor.y * box.height };
+                handle.setPointerCapture(event.pointerId);
+            });
+            handle.addEventListener('pointermove', (event) => {
+                const drag = state.watermark.mainDrag;
+                if (!drag || drag.pointerId !== event.pointerId || selected('watermark')?.id !== drag.itemId) return;
+                const box = document.getElementById('wmCanvas').getBoundingClientRect();
+                if (box.width && box.height) setWatermarkAnchor((event.clientX - box.left - drag.offsetX) / box.width, (event.clientY - box.top - drag.offsetY) / box.height);
+            });
+            ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((type) => handle.addEventListener(type, endWatermarkDrag));
+            handle.addEventListener('keydown', (event) => {
+                const item = selected('watermark');
+                const deltas = { ArrowLeft: [-0.01, 0], ArrowRight: [0.01, 0], ArrowUp: [0, -0.01], ArrowDown: [0, 0.01] };
+                const delta = deltas[event.key];
+                if (!delta || !item) return;
+                event.preventDefault();
+                setWatermarkAnchor(item.watermarkAnchor.x + delta[0], item.watermarkAnchor.y + delta[1]);
+            });
+            ['X', 'Y'].forEach((axis) => document.getElementById('wmMain' + axis).addEventListener('input', () => {
+                setWatermarkAnchor(Number(document.getElementById('wmMainX').value) / 100, Number(document.getElementById('wmMainY').value) / 100);
+            }));
+            if (typeof ResizeObserver !== 'undefined') new ResizeObserver(updateWatermarkHandle).observe(document.getElementById('wmDrop'));
+            else window.addEventListener('resize', updateWatermarkHandle);
+        }
+
+        async function renderWatermark() {
+            const runId = ++state.watermark.previewRunId;
             const item = selected('watermark');
             const canvas = document.getElementById('wmCanvas');
             const hint = document.getElementById('wmHint');
             const wm = readWatermarkSettings();
-            document.getElementById('wmExport').disabled = !item || !wm.text.trim();
+            syncWatermarkControls(wm, item);
+            document.getElementById('wmExport').disabled = !item || !core.watermarkIsVisible(wm) || state.batch.watermark.running;
             const thumbs = document.getElementById('wmThumbs');
             thumbs.hidden = !(isBatch('watermark') && state.watermark.items.length > 0);
             renderThumbs('wmThumbs', 'watermark', (id) => { state.watermark.selectedId = id; renderWatermark(); });
             if (!item) {
+                releaseCanvas(canvas);
                 canvas.hidden = true;
                 hint.hidden = false;
                 document.getElementById('wmDrop').classList.remove('has-image');
                 document.getElementById('wmZoom').hidden = true;
+                document.getElementById('wmPreviewMetrics').textContent = '';
                 syncPreviewZoomItem('watermark', null);
                 return;
             }
@@ -1362,29 +2126,91 @@
             document.getElementById('wmZoom').hidden = false;
             document.getElementById('wmDrop').classList.add('has-image');
             syncPreviewZoomItem('watermark', item);
-            canvas.width = item.width;
-            canvas.height = item.height;
-            drawWatermark(canvas.getContext('2d'), item, wm);
+            try {
+                const source = await ensurePreviewSource('watermark', item, 'wmDrop');
+                if (runId !== state.watermark.previewRunId || item !== selected('watermark')) return;
+                canvas.width = source.width;
+                canvas.height = source.height;
+                drawWatermark(canvas.getContext('2d'), {
+                    ...item,
+                    bitmap: source
+                }, wm);
+                const output = core.watermarkOutputSize(item.width, item.height, wm.maxSide);
+                document.getElementById('wmPreviewMetrics').textContent = `预览画布 ${source.width}×${source.height} · 导出 ${output.width}×${output.height}`;
+                updateWatermarkHandle();
+            } catch (error) {
+                if (runId !== state.watermark.previewRunId) return;
+                setErrors('wmErrors', [item.name + '：' + errorRecoveryText(error)]);
+                document.getElementById('wmExport').disabled = true;
+            }
         }
 
         function canvasToBlob(canvas, mime, quality) {
             return new Promise((resolve, reject) => {
-                canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('toBlob failed')), mime, quality);
+                canvas.toBlob((blob) => blob ? resolve(blob) : reject(makeError('blob-null', 'toBlob returned null')), mime, quality);
             });
         }
 
         function downloadBlob(blob, filename) {
             const a = document.createElement('a');
-            const url = URL.createObjectURL(blob);
+            const url = trackedObjectUrl(blob);
             a.href = url;
             a.download = filename;
             a.click();
-            URL.revokeObjectURL(url);
+            setTimeout(() => revokeTrackedUrl(url), 1000);
         }
 
-        async function exportBlobs(files, zipName) {
+        const BATCH_STATUS_LABELS = {
+            queued: '等待', running: '处理中', success: '已完成', error: '失败', cancelled: '已取消'
+        };
+
+        function updateBatchUi(tab, records, current) {
+            const prefix = tab === 'watermark' ? 'wm' : 'cp';
+            const box = document.getElementById(prefix + 'BatchStatus');
+            const currentEl = document.getElementById(prefix + 'BatchCurrent');
+            const progress = document.getElementById(prefix + 'BatchProgress');
+            const list = document.getElementById(prefix + 'BatchList');
+            const cancel = document.getElementById(prefix + 'Cancel');
+            const summary = core.summarizeBatch(records);
+            box.hidden = records.length === 0;
+            progress.max = Math.max(1, summary.total);
+            progress.value = summary.completed;
+            if (current) {
+                currentEl.textContent = `当前第 ${current}/${summary.total} · 已完成 ${summary.completed}`;
+            } else if (summary.total && summary.completed === summary.total) {
+                currentEl.textContent = `已完成 ${summary.completed}/${summary.total}`;
+            } else {
+                currentEl.textContent = `准备处理 0/${summary.total}`;
+            }
+            list.replaceChildren();
+            records.forEach((record) => {
+                const row = document.createElement('li');
+                const name = document.createElement('span');
+                name.className = 'batch-name';
+                name.textContent = record.item.name;
+                const status = document.createElement('span');
+                status.className = 'batch-state';
+                status.textContent = BATCH_STATUS_LABELS[record.status] || record.status;
+                row.append(name, status);
+                list.appendChild(row);
+            });
+            cancel.disabled = !state.batch[tab].running || summary.queued === 0 || state.batch[tab].cancelRequested;
+        }
+
+        async function exportBlobs(files, zipName, downloadMode) {
             if (files.length === 1) {
                 downloadBlob(files[0].blob, files[0].name);
+                return;
+            }
+            if (downloadMode === 'separate') {
+                files.forEach((file) => downloadBlob(file.blob, file.name));
+                showToast(`已开始单独下载 ${files.length} 张图片`);
+                return;
+            }
+            const totalBytes = files.reduce((sum, file) => sum + file.blob.size, 0);
+            if (totalBytes > core.MAX_ZIP_INPUT_BYTES) {
+                showToast('结果超过 100 MB 的安全打包预算，已改为逐张下载');
+                files.forEach((file) => downloadBlob(file.blob, file.name));
                 return;
             }
             try {
@@ -1392,53 +2218,120 @@
                 files.forEach((file) => zip.file(file.name, file.blob));
                 downloadBlob(await zip.generateAsync({ type: 'blob' }), zipName);
             } catch (error) {
-                showToast('ZIP 生成失败，改为逐张下载');
+                showToast(errorRecoveryText(makeError('zip')));
                 files.forEach((file) => downloadBlob(file.blob, file.name));
             }
         }
 
+        async function runBatchExport(tab, worker, options) {
+            const batch = state.batch[tab];
+            if (batch.running) return;
+            const runId = ++batch.runId;
+            const items = state[tab].items.slice();
+            if (!items.length) return;
+            batch.running = true;
+            batch.cancelRequested = false;
+            batch.discardResults = false;
+            batch.records = items.map((item, index) => ({ item, index, status: 'queued', result: null, error: null }));
+            updateBatchUi(tab, batch.records, null);
+            const prefix = tab === 'watermark' ? 'wm' : 'cp';
+            document.getElementById(prefix + 'Export').disabled = true;
+            if (tab === 'watermark') syncWatermarkControls(readWatermarkSettings(), selected('watermark'));
+            document.getElementById(prefix + 'Cancel').disabled = false;
+            const records = await core.runControlledBatch(items, worker, {
+                concurrency: core.BATCH_CONCURRENCY,
+                shouldCancel: () => batch.cancelRequested,
+                onUpdate(update) {
+                    if (runId !== batch.runId) return;
+                    batch.records = update.records;
+                    updateBatchUi(tab, update.records, update.current);
+                }
+            });
+            if (runId !== batch.runId) {
+                records.forEach((record) => { record.result = null; });
+                return;
+            }
+            batch.records = records;
+            batch.running = false;
+            updateBatchUi(tab, records, null);
+            const errors = records
+                .filter((record) => record.status === 'error')
+                .map((record) => `${record.item.name}：${errorRecoveryText(record.error)}`);
+            records
+                .filter((record) => record.status === 'success' && record.result && record.result.warning)
+                .forEach((record) => errors.push(`${record.item.name}：${record.result.warning}`));
+            const cancelledCount = records.filter((record) => record.status === 'cancelled').length;
+            if (cancelledCount) errors.push(`已取消 ${cancelledCount} 个尚未开始的任务`);
+            const files = records
+                .filter((record) => record.status === 'success' && record.result)
+                .map((record) => record.result);
+            if (!batch.discardResults && files.length) {
+                await exportBlobs(files, options.zipName, options.downloadMode);
+            }
+            records.forEach((record) => { record.result = null; });
+            if (state.activeTab === tab) {
+                if (tab === 'watermark') await renderWatermark();
+                else await renderCompress();
+            }
+            setErrors(prefix + 'Errors', errors);
+        }
+
         async function exportWatermark() {
             const wm = readWatermarkSettings();
-            const lines = [];
-            const out = [];
-            for (const item of state.watermark.items) {
+            if (!core.watermarkIsVisible(wm)) return;
+            endWatermarkDrag();
+            const anchors = new Map(state.watermark.items.map((item) => [item.id, { ...item.watermarkAnchor }]));
+            const seeds = new Map(state.watermark.items.map((item) => [item.id, item.watermarkSeed]));
+            await runBatchExport('watermark', async (item) => {
+                let bitmap = null;
+                let canvas = null;
                 try {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = item.width;
-                    canvas.height = item.height;
-                    drawWatermark(canvas.getContext('2d'), item, wm);
+                    bitmap = await loadBitmap(item.file);
+                    const checked = core.validateImageDimensions(bitmap.width, bitmap.height);
+                    if (!checked.ok) throw makeError(checked.reason, dimensionErrorText(item.name, checked));
+                    const output = core.watermarkOutputSize(item.width, item.height, wm.maxSide);
+                    const safe = createSafeCanvas(output.width, output.height);
+                    canvas = safe.canvas;
+                    drawWatermark(safe.ctx, { ...item, bitmap, watermarkAnchor: anchors.get(item.id), watermarkSeed: seeds.get(item.id) }, wm);
                     const quality = item.mime === 'image/png' ? undefined : 0.92;
                     const blob = await canvasToBlob(canvas, item.mime, quality);
-                    out.push({ blob, name: core.buildExportName(item.name, 'watermarked', item.mime) });
-                } catch (error) {
-                    lines.push(item.name + '：无法导出');
+                    return { blob, name: core.buildExportName(item.name, wm.maxSide ? 'watermarked_share' : 'watermarked', item.mime) };
+                } finally {
+                    closeBitmap(bitmap);
+                    releaseCanvas(canvas);
                 }
-            }
-            setErrors('wmErrors', lines);
-            if (out.length) await exportBlobs(out, 'watermarked.zip');
+            }, {
+                zipName: 'watermarked.zip',
+                downloadMode: readDownloadMode('watermark')
+            });
         }
 
         function revokeCropImageUrl() {
             if (state.crop.cropImageUrl) {
-                URL.revokeObjectURL(state.crop.cropImageUrl);
+                revokeTrackedUrl(state.crop.cropImageUrl);
                 state.crop.cropImageUrl = null;
             }
         }
 
-        async function bitmapToPngUrl(bitmap) {
-            const canvas = document.createElement('canvas');
-            canvas.width = bitmap.width;
-            canvas.height = bitmap.height;
-            canvas.getContext('2d').drawImage(bitmap, 0, 0, bitmap.width, bitmap.height);
-            const blob = await canvasToBlob(canvas, 'image/png', undefined);
-            return URL.createObjectURL(blob);
+        function normalizedQuarterTurn(value) {
+            return ((Math.round(Number(value) / 90) * 90) % 360 + 360) % 360;
+        }
+
+        function drawOrientedSource(ctx, source, sourceWidth, sourceHeight, rotation, scaleX, scaleY, targetWidth, targetHeight) {
+            ctx.save();
+            ctx.translate(targetWidth / 2, targetHeight / 2);
+            ctx.rotate(normalizedQuarterTurn(rotation) * Math.PI / 180);
+            ctx.scale(scaleX, scaleY);
+            ctx.drawImage(source, -sourceWidth / 2, -sourceHeight / 2, sourceWidth, sourceHeight);
+            ctx.restore();
         }
 
         async function renderCrop() {
+            const runId = ++state.crop.previewRunId;
             const item = selected('crop');
             const wrap = document.getElementById('cropWrap');
             const hint = document.getElementById('cropHint');
-            const image = document.getElementById('cropImage');
+            const canvas = document.getElementById('cropCanvas');
             document.getElementById('cropExport').disabled = true;
             if (state.crop.cropper) {
                 state.crop.cropper.destroy();
@@ -1446,45 +2339,59 @@
             }
             revokeCropImageUrl();
             if (!item) {
+                releaseCanvas(canvas);
                 wrap.hidden = true;
                 hint.hidden = false;
                 document.getElementById('cropDrop').classList.remove('has-image');
+                document.getElementById('cropPreviewMetrics').textContent = '';
                 return;
             }
             hint.hidden = true;
             wrap.hidden = false;
             document.getElementById('cropDrop').classList.add('has-image');
             try {
-                const orientedUrl = await bitmapToPngUrl(item.bitmap);
-                state.crop.cropImageUrl = orientedUrl;
-                image.onload = () => {
-                    if (state.crop.cropper) {
-                        state.crop.cropper.destroy();
-                        state.crop.cropper = null;
+                const source = await ensurePreviewSource('crop', item, 'cropDrop');
+                if (runId !== state.crop.previewRunId || item !== selected('crop')) return;
+                const rotation = normalizedQuarterTurn(state.crop.rotation);
+                const swap = rotation === 90 || rotation === 270;
+                const width = swap ? source.height : source.width;
+                const height = swap ? source.width : source.height;
+                const checked = core.validateImageDimensions(width, height, {
+                    maxEdge: core.MAX_PREVIEW_EDGE,
+                    maxPixels: core.MAX_PREVIEW_PIXELS
+                });
+                if (!checked.ok) throw makeError('canvas-size');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) throw makeError('canvas-memory');
+                drawOrientedSource(
+                    ctx, source, source.width, source.height,
+                    rotation, state.crop.scaleX, state.crop.scaleY, width, height
+                );
+                state.crop.previewWidth = width;
+                state.crop.previewHeight = height;
+                if (typeof Cropper === 'undefined') throw makeError('cropper', 'Cropper missing');
+                state.crop.cropper = new Cropper(canvas, {
+                    viewMode: 2,
+                    autoCropArea: 0.8,
+                    background: false,
+                    responsive: true,
+                    scalable: false,
+                    rotatable: false,
+                    ready() {
+                        fitCropperCanvas();
                     }
-                    try {
-                        if (typeof Cropper === 'undefined') throw new ReferenceError('Cropper missing');
-                        state.crop.cropper = new Cropper(image, {
-                            viewMode: 2,
-                            autoCropArea: 0.8,
-                            background: false,
-                            responsive: true,
-                            scalable: true,
-                            ready() {
-                                fitCropperCanvas();
-                            }
-                        });
-                        applyCropRatio();
-                        document.getElementById('cropExport').disabled = false;
-                        setErrors('cropErrors', []);
-                    } catch (error) {
-                        setErrors('cropErrors', ['裁切组件加载失败']);
-                        document.getElementById('cropExport').disabled = true;
-                    }
-                };
-                image.src = orientedUrl;
+                });
+                applyCropRatio();
+                document.getElementById('cropExport').disabled = false;
+                document.getElementById('cropPreviewMetrics').textContent = `预览画布 ${width}×${height} · 原图 ${item.width}×${item.height}`;
+                setErrors('cropErrors', []);
             } catch (error) {
-                setErrors('cropErrors', [item.name + '：无法读取']);
+                if (runId !== state.crop.previewRunId) return;
+                setErrors('cropErrors', [item.name + '：' + (error.code === 'cropper'
+                    ? '裁切组件加载失败，请刷新页面后重试'
+                    : errorRecoveryText(error, '无法生成裁切预览，请缩小图片后重试'))]);
                 document.getElementById('cropExport').disabled = true;
             }
         }
@@ -1508,7 +2415,7 @@
             const cropper = state.crop.cropper;
             const panel = document.querySelector('[data-panel="crop"]');
             const drop = document.getElementById('cropDrop');
-            if (!cropper || !panel || !panel.classList.contains('active')) return;
+            if (!cropper || !cropper.ready || !cropper.container || !panel || !panel.classList.contains('active')) return;
             if (!drop || drop.clientWidth < 2 || drop.clientHeight < 2) return;
             cropper.resize();
             fitCropperCanvas();
@@ -1520,10 +2427,12 @@
             new ResizeObserver(() => refreshCropperLayout()).observe(drop);
         }
 
-        function transformCrop(fn, refit = true) {
-            if (!state.crop.cropper) return;
-            fn(state.crop.cropper);
-            if (refit) requestAnimationFrame(fitCropperCanvas);
+        function transformCrop(rotationDelta, flipAxis) {
+            if (!selected('crop')) return;
+            if (rotationDelta) state.crop.rotation = normalizedQuarterTurn(state.crop.rotation + rotationDelta);
+            if (flipAxis === 'x') state.crop.scaleX = core.nextFlipScale(state.crop.scaleX);
+            if (flipAxis === 'y') state.crop.scaleY = core.nextFlipScale(state.crop.scaleY);
+            renderCrop();
         }
 
         function applyCropRatio() {
@@ -1536,16 +2445,48 @@
         async function exportCrop() {
             const item = selected('crop');
             if (!item || !state.crop.cropper) return;
+            let bitmap = null;
+            let canvas = null;
             try {
-                const canvas = state.crop.cropper.getCroppedCanvas({
-                    fillColor: item.mime === 'image/jpeg' ? '#ffffff' : undefined
-                });
-                if (!canvas) throw new Error('empty');
+                document.getElementById('cropExport').disabled = true;
+                const data = state.crop.cropper.getData(false);
+                const rotation = normalizedQuarterTurn(state.crop.rotation);
+                const swap = rotation === 90 || rotation === 270;
+                const orientedWidth = swap ? item.height : item.width;
+                const orientedHeight = swap ? item.width : item.height;
+                const ratioX = orientedWidth / state.crop.previewWidth;
+                const ratioY = orientedHeight / state.crop.previewHeight;
+                const crop = core.clampRect({
+                    x: data.x * ratioX,
+                    y: data.y * ratioY,
+                    w: data.width * ratioX,
+                    h: data.height * ratioY
+                }, orientedWidth, orientedHeight);
+                if (!crop) throw makeError('canvas-size');
+                bitmap = await loadBitmap(item.file);
+                const checked = core.validateImageDimensions(bitmap.width, bitmap.height);
+                if (!checked.ok) throw makeError(checked.reason, dimensionErrorText(item.name, checked));
+                const safe = createSafeCanvas(crop.w, crop.h);
+                canvas = safe.canvas;
+                const ctx = safe.ctx;
+                if (item.mime === 'image/jpeg') {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, crop.w, crop.h);
+                }
+                ctx.translate(-crop.x, -crop.y);
+                drawOrientedSource(
+                    ctx, bitmap, item.width, item.height,
+                    rotation, state.crop.scaleX, state.crop.scaleY, orientedWidth, orientedHeight
+                );
                 const blob = await canvasToBlob(canvas, item.mime, item.mime === 'image/png' ? undefined : 0.92);
                 downloadBlob(blob, core.buildExportName(item.name, 'cropped', item.mime));
                 setErrors('cropErrors', []);
             } catch (error) {
-                setErrors('cropErrors', ['裁切失败，请重新选择区域']);
+                setErrors('cropErrors', [errorRecoveryText(error, '裁切失败；请重新选择较小区域后重试')]);
+            } finally {
+                closeBitmap(bitmap);
+                releaseCanvas(canvas);
+                document.getElementById('cropExport').disabled = !state.crop.cropper;
             }
         }
 
@@ -1558,22 +2499,32 @@
         }
 
         async function encodeBitmap(bitmap, width, height, mime, quality) {
-            const canvas = document.createElement('canvas');
-            canvas.width = width;
-            canvas.height = height;
-            canvas.getContext('2d').drawImage(bitmap, 0, 0, width, height);
-            return canvasToBlob(canvas, mime, quality);
+            const safe = createSafeCanvas(width, height, width <= core.MAX_PREVIEW_EDGE && height <= core.MAX_PREVIEW_EDGE
+                && width * height <= core.MAX_PREVIEW_PIXELS);
+            try {
+                safe.ctx.drawImage(bitmap, 0, 0, width, height);
+                return await canvasToBlob(safe.canvas, mime, quality);
+            } finally {
+                releaseCanvas(safe.canvas);
+            }
         }
 
-        async function planCompress(item) {
-            const mime = document.getElementById('cpFormat').value;
-            const quality = core.qualityToCanvas(document.getElementById('cpQuality').value);
-            const targetBytes = core.parseTargetSize(document.getElementById('cpSize').value, document.getElementById('cpUnit').value);
+        function readCompressOptions() {
+            return {
+                mime: document.getElementById('cpFormat').value,
+                quality: core.qualityToCanvas(document.getElementById('cpQuality').value),
+                targetBytes: core.parseTargetSize(document.getElementById('cpSize').value, document.getElementById('cpUnit').value),
+                controlMode: state.compress.controlMode
+            };
+        }
+
+        async function planCompress(item, options = readCompressOptions(), bitmap) {
+            const { mime, quality, targetBytes, controlMode } = options;
             const encode = async ({ width, height, quality: q }) => {
-                const blob = await encodeBitmap(item.bitmap, width, height, mime, q);
+                const blob = await encodeBitmap(bitmap, width, height, mime, q);
                 return blob.size;
             };
-            if (state.compress.controlMode === 'quality' || targetBytes == null) {
+            if (controlMode === 'quality' || targetBytes == null) {
                 return core.compressToTarget({
                     sourceWidth: item.width, sourceHeight: item.height, sourceBytes: item.size,
                     targetBytes: targetBytes || 0, controlMode: 'quality', quality, encode
@@ -1595,77 +2546,70 @@
                 if (runId !== state.compress.runId) return;
                 const preview = document.getElementById('cpPreview');
                 const hint = document.getElementById('cpHint');
-                document.getElementById('cpExport').disabled = !item;
+                document.getElementById('cpExport').disabled = !item || state.batch.compress.running;
                 if (!item) {
+                    if (state.compress.previewUrl) revokeTrackedUrl(state.compress.previewUrl);
+                    state.compress.previewUrl = null;
                     preview.hidden = true;
                     hint.hidden = false;
                     document.getElementById('cpDrop').classList.remove('has-image');
                     document.getElementById('cpStats').textContent = '';
+                    document.getElementById('cpPreviewMetrics').textContent = '';
                     setErrors('cpErrors', []);
                     return;
                 }
                 hint.hidden = true;
                 preview.hidden = false;
                 document.getElementById('cpDrop').classList.add('has-image');
-                const plan = await planCompress(item);
+                const source = await ensurePreviewSource('compress', item, 'cpDrop');
                 if (runId !== state.compress.runId) return;
-                state.compress.lastPlan = plan;
-                const mime = document.getElementById('cpFormat').value;
-                let blob;
-                if (plan.passthrough) {
-                    blob = item.file;
-                } else {
-                    blob = await encodeBitmap(item.bitmap, plan.width, plan.height, mime, plan.quality);
-                }
+                const options = readCompressOptions();
+                const blob = await encodeBitmap(source, source.width, source.height, options.mime, options.quality);
                 if (runId !== state.compress.runId) return;
                 state.compress.lastBlob = blob;
-                if (state.compress.previewUrl) URL.revokeObjectURL(state.compress.previewUrl);
-                state.compress.previewUrl = URL.createObjectURL(blob);
+                if (state.compress.previewUrl) revokeTrackedUrl(state.compress.previewUrl);
+                state.compress.previewUrl = trackedObjectUrl(blob);
                 if (runId !== state.compress.runId) return;
                 preview.src = state.compress.previewUrl;
-                if (state.compress.controlMode === 'size') {
-                    document.getElementById('cpQuality').value = String(core.canvasToQuality(plan.quality));
-                } else {
-                    const formatted = core.formatByteSize(blob.size);
-                    document.getElementById('cpSize').value = String(formatted.value);
-                    document.getElementById('cpUnit').value = formatted.unit;
-                }
-                if (runId !== state.compress.runId) return;
-                const saved = item.size > 0 ? Math.max(0, Math.round((1 - blob.size / item.size) * 100)) : 0;
-                const note = plan.passthrough ? ' · 已小于或等于目标，未再压缩' : '';
-                document.getElementById('cpStats').textContent = `原体积 ${core.formatByteSize(item.size).text} · 结果 ${core.formatByteSize(blob.size).text} · 节省 ${saved}% · ${plan.width}×${plan.height}${note}`;
-                setErrors('cpErrors', []);
+                const targetNote = options.controlMode === 'size' && options.targetBytes
+                    ? ` · 目标 ${core.formatByteSize(options.targetBytes).text}`
+                    : ` · 质量 ${core.canvasToQuality(options.quality)}%`;
+                document.getElementById('cpStats').textContent = `原体积 ${core.formatByteSize(item.size).text}${targetNote} · 导出时按原图重新计算`;
+                document.getElementById('cpPreviewMetrics').textContent = `预览画布 ${source.width}×${source.height}（预览编码 ${core.formatByteSize(blob.size).text}） · 原图 ${item.width}×${item.height}`;
             } catch (error) {
                 if (runId !== state.compress.runId) return;
                 const name = item ? item.name + '：' : '';
-                const reason = error && error.message ? error.message : '处理失败';
-                document.getElementById('cpErrors').textContent = name + reason;
+                document.getElementById('cpErrors').textContent = name + errorRecoveryText(error);
             }
         }
 
         const renderCompressDebounced = debounce(renderCompress, 150);
 
         async function exportCompress() {
-            const mime = document.getElementById('cpFormat').value;
-            const lines = [];
-            const out = [];
-            for (const item of state.compress.items) {
+            const options = readCompressOptions();
+            await runBatchExport('compress', async (item) => {
+                let bitmap = null;
                 try {
-                    const plan = await planCompress(item);
+                    bitmap = await loadBitmap(item.file);
+                    const checked = core.validateImageDimensions(bitmap.width, bitmap.height);
+                    if (!checked.ok) throw makeError(checked.reason, dimensionErrorText(item.name, checked));
+                    const plan = await planCompress(item, options, bitmap);
                     const blob = plan.passthrough
                         ? item.file
-                        : await encodeBitmap(item.bitmap, plan.width, plan.height, mime, plan.quality);
-                    if (!plan.hitTarget) {
-                        lines.push(item.name + '：未达到目标体积，实际 ' + core.formatByteSize(blob.size).text);
-                    }
-                    const exportMime = plan.passthrough ? item.mime : mime;
-                    out.push({ blob, name: core.buildExportName(item.name, 'compressed', exportMime) });
-                } catch (error) {
-                    lines.push(item.name + '：无法读取');
+                        : await encodeBitmap(bitmap, plan.width, plan.height, options.mime, plan.quality);
+                    const exportMime = plan.passthrough ? item.mime : options.mime;
+                    return {
+                        blob,
+                        name: core.buildExportName(item.name, 'compressed', exportMime),
+                        warning: plan.hitTarget ? '' : `未达到目标体积，实际 ${core.formatByteSize(blob.size).text}`
+                    };
+                } finally {
+                    closeBitmap(bitmap);
                 }
-            }
-            setErrors('cpErrors', lines);
-            if (out.length) await exportBlobs(out, 'compressed.zip');
+            }, {
+                zipName: 'compressed.zip',
+                downloadMode: readDownloadMode('compress')
+            });
         }
 
         function initWatermarkUi() {
@@ -1679,6 +2623,7 @@
                 btn.addEventListener('click', () => {
                     grid.querySelectorAll('button').forEach((el) => el.classList.remove('active'));
                     btn.classList.add('active');
+                    document.getElementById('wmPreset').value = 'custom';
                     renderWatermark();
                     saveSettings();
                 });
@@ -1693,22 +2638,58 @@
             document.getElementById('wmTiled').checked = wm.tiled;
             document.getElementById('wmGap').value = String(wm.tileGapPercent);
             document.getElementById('wmStyle').value = wm.style || 'fill';
+            document.getElementById('wmBannerPosition').value = ['t', 'tl', 'tr'].includes(wm.position) ? 't' : 'b';
             document.getElementById('wmFontFamily').value = wm.font || 'sans';
             document.getElementById('wmBold').checked = !!wm.bold;
+            document.getElementById('wmPreset').value = ['display', 'enhanced'].includes(wm.preset) ? wm.preset : 'custom';
+            document.getElementById('wmRandomized').checked = !!wm.randomized;
+            document.getElementById('wmMainEnabled').checked = !!wm.mainEnabled;
+            document.getElementById('wmMainOpaque').checked = !!wm.mainOpaque;
+            document.getElementById('wmMaxSide').value = String([960, 1280, 1920].includes(wm.maxSide) ? wm.maxSide : 0);
+            initDownloadChoice('watermark', wm.downloadMode);
+            const customize = () => { document.getElementById('wmPreset').value = 'custom'; renderWatermark(); saveSettings(); };
             ['wmText', 'wmFont', 'wmColor', 'wmOpacity', 'wmRotation', 'wmGap'].forEach((id) => {
-                document.getElementById(id).addEventListener('input', () => { renderWatermark(); saveSettings(); });
+                document.getElementById(id).addEventListener('input', id === 'wmText' ? () => { renderWatermark(); saveSettings(); } : customize);
             });
-            ['wmStyle', 'wmFontFamily', 'wmBold'].forEach((id) => {
-                document.getElementById(id).addEventListener('change', () => { renderWatermark(); saveSettings(); });
+            ['wmFontFamily', 'wmBold', 'wmRandomized', 'wmMainEnabled', 'wmMainOpaque', 'wmBannerPosition'].forEach((id) => {
+                document.getElementById(id).addEventListener('change', customize);
+            });
+            document.getElementById('wmStyle').addEventListener('change', () => {
+                if (document.getElementById('wmStyle').value === 'banner') {
+                    const position = document.querySelector('#wmPosition button.active')?.dataset.pos;
+                    document.getElementById('wmBannerPosition').value = ['t', 'tl', 'tr'].includes(position) ? 't' : 'b';
+                    endWatermarkDrag();
+                }
+                customize();
             });
             document.getElementById('wmTiled').addEventListener('change', () => {
                 if (document.getElementById('wmTiled').checked && Number(document.getElementById('wmRotation').value) === 0) {
                     document.getElementById('wmRotation').value = '-22';
                 }
+                customize();
+            });
+            document.getElementById('wmPreset').addEventListener('change', () => {
+                const preset = core.WATERMARK_PRESETS[document.getElementById('wmPreset').value];
+                if (preset) {
+                    const fields = { fontPercent: 'wmFont', opacity: 'wmOpacity', rotation: 'wmRotation', tileGapPercent: 'wmGap', style: 'wmStyle' };
+                    Object.entries(fields).forEach(([key, id]) => { document.getElementById(id).value = String(preset[key]); });
+                    const checks = { tiled: 'wmTiled', randomized: 'wmRandomized', mainEnabled: 'wmMainEnabled', mainOpaque: 'wmMainOpaque', bold: 'wmBold' };
+                    Object.entries(checks).forEach(([key, id]) => { document.getElementById(id).checked = preset[key]; });
+                }
                 renderWatermark();
                 saveSettings();
             });
+            document.getElementById('wmMaxSide').addEventListener('change', () => { renderWatermark(); saveSettings(); });
+            document.getElementById('wmShuffle').addEventListener('click', () => {
+                const item = selected('watermark');
+                if (!item || state.batch.watermark.running) return;
+                item.watermarkSeed = newWatermarkSeed();
+                renderWatermark();
+            });
+            bindWatermarkPosition();
+            syncWatermarkControls(readWatermarkSettings(), null);
             document.getElementById('wmExport').addEventListener('click', exportWatermark);
+            document.getElementById('wmCancel').addEventListener('click', () => cancelBatch('watermark'));
             document.getElementById('wmClear').addEventListener('click', () => clearImages('watermark'));
             document.getElementById('wmBatch').addEventListener('change', () => syncBatchInput('watermark'));
         }
@@ -1729,29 +2710,23 @@
                 });
                 row.appendChild(btn);
             });
-            document.getElementById('cropRotateCw').addEventListener('click', () => transformCrop((cropper) => cropper.rotate(90)));
-            document.getElementById('cropRotateCcw').addEventListener('click', () => transformCrop((cropper) => cropper.rotate(-90)));
-            document.getElementById('cropFlipH').addEventListener('click', () => {
-                transformCrop((cropper) => {
-                    const data = cropper.getData();
-                    const scaleY = Number(data.scaleY);
-                    cropper.scale(core.nextFlipScale(data.scaleX), Number.isFinite(scaleY) && scaleY !== 0 ? scaleY : 1);
-                }, false);
+            document.getElementById('cropRotateCw').addEventListener('click', () => transformCrop(90));
+            document.getElementById('cropRotateCcw').addEventListener('click', () => transformCrop(-90));
+            document.getElementById('cropFlipH').addEventListener('click', () => transformCrop(0, 'x'));
+            document.getElementById('cropFlipV').addEventListener('click', () => transformCrop(0, 'y'));
+            document.getElementById('cropReset').addEventListener('click', () => {
+                state.crop.rotation = 0;
+                state.crop.scaleX = 1;
+                state.crop.scaleY = 1;
+                renderCrop();
             });
-            document.getElementById('cropFlipV').addEventListener('click', () => {
-                transformCrop((cropper) => {
-                    const data = cropper.getData();
-                    const scaleX = Number(data.scaleX);
-                    cropper.scale(Number.isFinite(scaleX) && scaleX !== 0 ? scaleX : 1, core.nextFlipScale(data.scaleY));
-                }, false);
-            });
-            document.getElementById('cropReset').addEventListener('click', () => transformCrop((cropper) => cropper.reset()));
             document.getElementById('cropExport').addEventListener('click', exportCrop);
             document.getElementById('cropClear').addEventListener('click', () => clearImages('crop'));
         }
 
         function initCompressUi() {
             document.getElementById('cpFormat').value = settings.compress.outputMime;
+            initDownloadChoice('compress', settings.compress.downloadMode);
             document.getElementById('cpQuality').addEventListener('input', () => {
                 state.compress.controlMode = 'quality';
                 renderCompressDebounced();
@@ -1777,6 +2752,7 @@
             });
             document.getElementById('cpFormat').addEventListener('change', () => { saveSettings(); renderCompress(); });
             document.getElementById('cpExport').addEventListener('click', exportCompress);
+            document.getElementById('cpCancel').addEventListener('click', () => cancelBatch('compress'));
             document.getElementById('cpClear').addEventListener('click', () => clearImages('compress'));
             document.getElementById('cpBatch').addEventListener('change', () => syncBatchInput('compress'));
             const probe = document.createElement('canvas');
@@ -1787,16 +2763,21 @@
                     option.textContent = 'WebP（当前浏览器不支持）';
                     document.getElementById('cpFormat').value = 'image/jpeg';
                 }
+                releaseCanvas(probe);
             }, 'image/webp');
         }
 
         document.querySelectorAll('.tab-btn').forEach((btn) => {
             btn.addEventListener('click', () => {
+                const previous = state.activeTab;
+                if (previous === btn.dataset.tab) return;
+                releaseTabTransient(previous);
                 document.querySelectorAll('.tab-btn').forEach((el) => el.classList.remove('active'));
                 document.querySelectorAll('.tab-panel').forEach((el) => el.classList.remove('active'));
                 btn.classList.add('active');
                 document.querySelector(`[data-panel="${btn.dataset.tab}"]`).classList.add('active');
-                if (btn.dataset.tab === 'crop') requestAnimationFrame(refreshCropperLayout);
+                state.activeTab = btn.dataset.tab;
+                requestAnimationFrame(() => renderActiveTab(state.activeTab));
             });
         });
 
@@ -1811,11 +2792,20 @@
         observeCropDropResize();
         initCompressUi();
         initRedactUi();
-        window.addEventListener('beforeunload', () => {
-            ['watermark', 'crop', 'compress', 'redact'].forEach((tab) => state[tab].items.forEach(revokeItem));
-            if (state.compress.previewUrl) URL.revokeObjectURL(state.compress.previewUrl);
+        function releaseAllResources() {
+            const cleanup = core.resourceCleanupDecision('page-leave');
+            ['watermark', 'crop', 'compress', 'redact'].forEach((tab) => {
+                if (cleanup.cancelQueued) cancelBatch(tab, cleanup.discardResults);
+                state[tab].items.forEach(revokeItem);
+            });
+            if (state.compress.previewUrl) revokeTrackedUrl(state.compress.previewUrl);
             revokeCropImageUrl();
-        });
+            ['wmCanvas', 'cropCanvas', 'rdCanvas'].forEach((id) => releaseCanvas(document.getElementById(id)));
+            [...state.objectUrls].forEach(revokeTrackedUrl);
+            state.compress.lastBlob = null;
+        }
+        window.addEventListener('pagehide', releaseAllResources, { once: true });
+        window.addEventListener('beforeunload', releaseAllResources, { once: true });
     </script>
     <script src="../js/unsaved-guard.js"></script>
     <script src="../js/theme.js"></script>

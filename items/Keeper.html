@@ -3,9 +3,26 @@
 
 <head>
     <meta charset="UTF-8">
+    <script>
+        (function applyThemeEarly() {
+            try {
+                var pref = localStorage.getItem('17tools-theme');
+                if (pref == null) {
+                    pref = localStorage.getItem('theme');
+                    if (pref != null) {
+                        localStorage.setItem('17tools-theme', pref);
+                    }
+                }
+                var theme = (pref === 'light' || pref === 'dark')
+                    ? pref
+                    : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) { /* 存储不可用时由 theme.js 降级 */ }
+        })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>防息屏工具 - 17Tools</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="../vendor/fontawesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
             --primary-color: #6366f1;
@@ -955,6 +972,7 @@
             </div>
 
             <script src="../js/unsaved-guard.js"></script>
+            <script src="../js/theme.js"></script>
             <script>
                 class AntiIdleTool {
                     constructor() {
@@ -1877,41 +1895,6 @@
                 document.addEventListener('DOMContentLoaded', () => {
                     new AntiIdleTool();
                 });
-
-                // 应用主题（与主页面保持一致）
-                function getSafeParentDocumentElement() {
-                    try {
-                        if (window.parent === window) return null;
-                        const parentDoc = window.parent && window.parent.document;
-                        const parentRoot = parentDoc && parentDoc.documentElement;
-                        return parentRoot instanceof Node ? parentRoot : null;
-                    } catch (e) {
-                        return null;
-                    }
-                }
-
-                function applyTheme() {
-                    const parentRoot = getSafeParentDocumentElement();
-                    const parentTheme = parentRoot?.getAttribute('data-theme');
-                    if (parentTheme) {
-                        document.documentElement.setAttribute('data-theme', parentTheme);
-                    }
-                }
-
-                // 监听主题变化
-                const observer = new MutationObserver(() => {
-                    applyTheme();
-                });
-
-                const parentRoot = getSafeParentDocumentElement();
-                if (parentRoot) {
-                    observer.observe(parentRoot, {
-                        attributes: true,
-                        attributeFilter: ['data-theme']
-                    });
-                }
-
-                applyTheme();
             </script>
 </body>
 

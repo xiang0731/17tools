@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">17Tools</title>
+  <rect width="64" height="64" rx="15" fill="#6366f1"/>
+  <path d="M17 18h8v30h-7V25h-5v-5l4-2Zm13 0h22v5L39 48h-8l13-23H30v-7Z" fill="#fff"/>
+</svg>

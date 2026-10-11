@@ -1,12 +1,31 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="light">
+<html lang="zh-CN">
 
 <head>
     <meta charset="UTF-8">
+    <script>
+        (function applyThemeEarly() {
+            try {
+                var pref = localStorage.getItem('17tools-theme');
+                if (pref == null) {
+                    pref = localStorage.getItem('theme');
+                    if (pref != null) {
+                        localStorage.setItem('17tools-theme', pref);
+                    }
+                }
+                var theme = (pref === 'light' || pref === 'dark')
+                    ? pref
+                    : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) { /* 存储不可用时由 theme.js 降级 */ }
+        })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>智能白板 - 17Tools</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../css/theme.css">
+    <link href="../vendor/fontawesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
+        :root { --board-export-light: #ffffff; --board-export-dark: #111827; }
         :root {
             /* 浅色模式变量 */
             --primary-color: #6366f1;
@@ -71,23 +90,23 @@
             border-bottom: 1px solid var(--border-color);
             padding: 12px 16px;
             display: flex;
-            align-items: center;
-            gap: 16px;
+            align-items: flex-start;
+            gap: 12px;
             flex-wrap: wrap;
-            /* 默认允许换行 */
             box-shadow: var(--shadow-light);
             z-index: 100;
             position: relative;
             overflow: visible;
-            /* 确保 tooltip 不被裁剪 */
+            min-width: 0;
         }
 
         .toolbar-primary {
             display: flex;
             align-items: center;
-            gap: 16px;
-            flex-wrap: nowrap;
-            flex-shrink: 0;
+            gap: 8px;
+            flex-wrap: wrap;
+            flex: 1 1 auto;
+            min-width: 0;
         }
 
         .toolbar-group {
@@ -97,11 +116,61 @@
             padding: 0 8px;
             border-right: 1px solid var(--border-color);
             position: relative;
-            /* 为了让子元素的 absolute 定位正确 */
             overflow: visible;
-            /* 确保 tooltip 不被裁剪 */
             z-index: 1;
-            /* 保证内部元素层级正常 */
+            flex-wrap: wrap;
+            min-width: 0;
+        }
+
+        .tool-params {
+            flex: 1 1 100%;
+            min-width: 0;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--background-primary);
+            padding: 4px 10px 8px;
+        }
+
+        .tool-params-summary {
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 32px;
+            user-select: none;
+        }
+
+        .tool-params-summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .tool-params-summary::before {
+            content: '\25B6';
+            font-size: 10px;
+            color: var(--text-secondary);
+        }
+
+        .tool-params[open] .tool-params-summary::before {
+            content: '\25BC';
+        }
+
+        .tool-params-summary:focus-visible {
+            outline: 2px solid var(--primary-color);
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+
+        .tool-params-body {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            padding-top: 6px;
+            min-width: 0;
         }
 
         .toolbar-group:last-child {
@@ -188,6 +257,14 @@
             transition: all 0.2s ease;
             box-shadow: var(--shadow-light);
             position: relative;
+            appearance: none;
+            padding: 0;
+            display: inline-block;
+        }
+
+        .preset-color:focus-visible {
+            outline: 2px solid var(--primary-color);
+            outline-offset: 2px;
         }
 
         .preset-color:hover {
@@ -338,6 +415,7 @@
             left: 0;
             background: transparent;
             cursor: inherit;
+            touch-action: none;
         }
 
         .canvas-background {
@@ -366,12 +444,28 @@
             font-size: 12px;
             color: var(--text-secondary);
             z-index: 100;
+            flex-wrap: wrap;
+            gap: 8px;
+            min-width: 0;
         }
 
         .status-info {
             display: flex;
             align-items: center;
             gap: 16px;
+            flex-wrap: wrap;
+            min-width: 0;
+        }
+
+        .status-gesture-hint {
+            color: var(--text-secondary);
+            line-height: 1.4;
+            flex: 1 1 12em;
+            min-width: 0;
+        }
+
+        #pan-tool {
+            white-space: nowrap;
         }
 
         .status-action {
@@ -398,13 +492,12 @@
             }
 
             .toolbar-primary {
-                flex-wrap: nowrap;
+                flex-wrap: wrap;
             }
 
             .toolbar-group {
                 gap: 6px;
                 padding: 0 6px;
-                flex-shrink: 0;
             }
 
             .tool-btn {
@@ -443,13 +536,14 @@
         }
 
         .tooltip::before {
+            display: none;
             content: attr(data-tooltip);
             position: absolute;
             top: calc(100% + 12px);
             left: 50%;
             transform: translateX(-50%);
-            background-color: rgba(0, 0, 0, 0.9);
-            color: white;
+            background-color: var(--background-tertiary);
+            color: var(--text-primary);
             padding: 6px 12px;
             border-radius: 6px;
             font-size: 12px;
@@ -461,11 +555,12 @@
             transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
             z-index: 999999;
             /* 提高层级 */
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            box-shadow: var(--shadow-md);
             line-height: 1.4;
         }
 
         .tooltip::after {
+            display: none;
             content: '';
             position: absolute;
             top: calc(100% + 4px);
@@ -475,7 +570,7 @@
             height: 0;
             border-left: 6px solid transparent;
             border-right: 6px solid transparent;
-            border-bottom: 6px solid rgba(0, 0, 0, 0.9);
+            border-bottom: 6px solid var(--background-tertiary);
             opacity: 0;
             visibility: hidden;
             pointer-events: none;
@@ -488,8 +583,33 @@
 
         .tooltip:hover::before,
         .tooltip:hover::after {
+            display: block;
             opacity: 1;
             visibility: visible;
+        }
+
+        /* 覆盖共享 tooltip 的文字气泡，白板使用自己的气泡和箭头。 */
+        .toolbar .tooltip:hover::after {
+            content: '';
+            bottom: auto;
+            padding: 0;
+            background: transparent;
+            border-top: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-bottom: 6px solid var(--background-tertiary);
+            border-radius: 0;
+        }
+
+        .toolbar .tooltip:first-child::before {
+            left: 0;
+            transform: translateY(4px);
+        }
+
+        .toolbar .tooltip:last-child::before {
+            left: auto;
+            right: 0;
+            transform: translateY(4px);
         }
 
         .tooltip:hover::before {
@@ -580,6 +700,8 @@
             flex-direction: column;
             gap: 4px;
             min-width: 148px;
+            width: min(280px, calc(100vw - 24px));
+            box-sizing: border-box;
             padding: 8px;
             background: var(--background-secondary);
             border: 1px solid var(--border-color);
@@ -601,6 +723,7 @@
             cursor: pointer;
             font-size: 12px;
             text-align: left;
+            min-height: 44px;
         }
 
         .export-option:hover,
@@ -608,6 +731,72 @@
             background-color: var(--primary-color);
             color: white;
             border-color: var(--primary-color);
+        }
+
+        .draft-banner {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--spacing-sm);
+            flex-wrap: wrap;
+            padding: var(--spacing-sm) var(--spacing-md);
+            background: var(--background-secondary);
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 13px;
+            flex-shrink: 0;
+            z-index: 101;
+        }
+
+        .draft-banner.is-visible {
+            display: flex;
+        }
+
+        .draft-banner-copy {
+            min-width: 0;
+            flex: 1 1 220px;
+        }
+
+        .draft-banner-hint {
+            display: block;
+            margin-top: 2px;
+            font-size: 12px;
+            color: var(--text-tertiary);
+        }
+
+        .draft-banner-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+            flex-wrap: wrap;
+        }
+
+        .draft-banner-btn {
+            appearance: none;
+            display: inline-flex;
+            align-items: center;
+            padding: var(--spacing-xs) var(--spacing-md);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--background-primary);
+            color: var(--text-primary);
+            font-size: 13px;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .draft-banner-btn:hover {
+            background: var(--background-hover);
+        }
+
+        .draft-banner-btn.primary {
+            background: var(--primary-color);
+            color: var(--text-inverse);
+            border-color: var(--primary-color);
+        }
+
+        .draft-banner-btn.primary:hover {
+            background: var(--primary-hover);
+            border-color: var(--primary-hover);
         }
     </style>
 </head>
@@ -618,69 +807,28 @@
         <div class="toolbar">
             <div class="toolbar-primary">
             <div class="toolbar-group">
-                <button class="tool-btn active tooltip" id="pen-tool" data-tooltip="画笔">
+                <button class="tool-btn active tooltip" id="pen-tool" data-tooltip="画笔" type="button">
                     <i class="fas fa-pen"></i>
                 </button>
-                <button class="tool-btn tooltip" id="eraser-tool" data-tooltip="橡皮擦">
+                <button class="tool-btn tooltip" id="eraser-tool" data-tooltip="橡皮擦" type="button">
                     <i class="fas fa-eraser"></i>
                 </button>
-                <button class="tool-btn tooltip" id="line-tool" data-tooltip="线条">
+                <button class="tool-btn tooltip" id="line-tool" data-tooltip="线条" type="button">
                     <i class="fas fa-minus"></i>
                 </button>
-                <button class="tool-btn tooltip" id="rectangle-tool" data-tooltip="矩形">
+                <button class="tool-btn tooltip" id="rectangle-tool" data-tooltip="矩形" type="button">
                     <i class="fas fa-square"></i>
                 </button>
-                <button class="tool-btn tooltip" id="circle-tool" data-tooltip="圆形">
+                <button class="tool-btn tooltip" id="circle-tool" data-tooltip="圆形" type="button">
                     <i class="fas fa-circle"></i>
                 </button>
-                <button class="tool-btn tooltip" id="text-tool" data-tooltip="文字">
+                <button class="tool-btn tooltip" id="text-tool" data-tooltip="文字" type="button">
                     <i class="fas fa-font"></i>
                 </button>
-            </div>
-
-            <div class="toolbar-group" id="tool-options">
-                <div class="toolbar-group" id="brush-size-group" style="border-right: none; padding: 0;">
-                    <label for="brush-size"
-                        style="font-size: 12px; color: var(--text-secondary); white-space: nowrap;">粗细:</label>
-                    <input type="range" class="size-slider" id="brush-size" min="1" max="50" value="2">
-                    <span id="size-display"
-                        style="font-size: 12px; color: var(--text-secondary); min-width: 20px; text-align: right;">2px</span>
-                </div>
-                <button class="tool-btn tooltip" id="line-arrow-toggle" data-tooltip="箭头" hidden>
-                    <i class="fas fa-long-arrow-alt-right"></i>
+                <button class="tool-btn tooltip" id="pan-tool" data-tooltip="单指拖动平移，再按一次回到绘制" type="button" aria-pressed="false">
+                    <i class="fas fa-arrows-alt"></i>
+                    移动画布
                 </button>
-                <div class="toolbar-group" id="text-size-group" hidden style="border-right: none; padding: 0;">
-                    <label for="text-font-size"
-                        style="font-size: 12px; color: var(--text-secondary); white-space: nowrap;">字号:</label>
-                    <input type="range" class="size-slider" id="text-font-size" min="12" max="72" value="24">
-                    <span id="text-font-size-display"
-                        style="font-size: 12px; color: var(--text-secondary); min-width: 28px; text-align: right;">24px</span>
-                </div>
-                <div class="toolbar-group" id="eraser-options-group" hidden style="border-right: none; padding: 0;">
-                    <div class="toolbar-group" id="eraser-geometry-group" style="border-right: none; padding: 0;">
-                        <button class="tool-btn tooltip" id="eraser-shape-round" data-tooltip="圆形橡皮">
-                            <i class="fas fa-circle"></i>
-                        </button>
-                        <button class="tool-btn tooltip" id="eraser-shape-square" data-tooltip="方形橡皮">
-                            <i class="fas fa-square"></i>
-                        </button>
-                        <label for="eraser-size"
-                            style="font-size: 12px; color: var(--text-secondary); white-space: nowrap;">大小:</label>
-                        <input type="range" class="size-slider" id="eraser-size" min="8" max="64" value="24">
-                        <span id="eraser-size-display"
-                            style="font-size: 12px; color: var(--text-secondary); min-width: 28px; text-align: right;">24px</span>
-                    </div>
-                    <button class="tool-btn tooltip" id="eraser-mode-point" data-tooltip="擦过的范围">点擦</button>
-                    <button class="tool-btn tooltip" id="eraser-mode-clear" data-tooltip="单击去掉整块同色">消除</button>
-                </div>
-            </div>
-
-            <div class="toolbar-group" id="color-group">
-                <input type="color" class="color-picker tooltip" id="stroke-color" data-tooltip="当前颜色">
-                <div class="preset-color tooltip" id="preset-color-1" data-color="#ff0000" data-tooltip="备用颜色 1"></div>
-                <div class="preset-color tooltip" id="preset-color-2" data-color="#00ff00" data-tooltip="备用颜色 2"></div>
-                <div class="preset-color tooltip" id="preset-color-3" data-color="#0000ff" data-tooltip="备用颜色 3"></div>
-            </div>
             </div>
 
             <div class="toolbar-group">
@@ -728,10 +876,86 @@
                         <i class="fas fa-download"></i>
                     </button>
                     <div class="export-popover" id="export-popover" hidden>
+                        <label for="export-range">导出范围</label>
+                        <select id="export-range" class="form-input"><option value="all">全部内容</option><option value="view">当前视野</option></select>
+                        <label for="export-scale">输出尺寸</label>
+                        <select id="export-scale" class="form-input"><option value="0.25">25%</option><option value="0.5">50%</option><option value="1" selected>100%</option><option value="2">200%</option></select>
+                        <p id="export-estimate" role="status" style="font-size:12px;line-height:1.5;margin:8px 0"></p>
                         <button type="button" class="export-option" id="export-light" data-export-theme="light">导出浅色图片</button>
                         <button type="button" class="export-option" id="export-dark" data-export-theme="dark">导出深色图片</button>
                     </div>
                 </div>
+            </div>
+
+            </div>
+
+            <details class="tool-params" id="tool-params">
+                <summary class="tool-params-summary">当前工具参数</summary>
+                <div class="tool-params-body">
+                    <div class="toolbar-group" id="tool-options">
+                        <div class="toolbar-group" id="brush-size-group" style="border-right: none; padding: 0;">
+                            <label for="brush-size"
+                                style="font-size: 12px; color: var(--text-secondary); white-space: nowrap;">粗细:</label>
+                            <input type="range" class="size-slider" id="brush-size" min="1" max="50" value="2">
+                            <span id="size-display"
+                                style="font-size: 12px; color: var(--text-secondary); min-width: 20px; text-align: right;">2px</span>
+                        </div>
+                        <button class="tool-btn tooltip" id="line-arrow-toggle" data-tooltip="箭头" hidden type="button">
+                            <i class="fas fa-long-arrow-alt-right"></i>
+                        </button>
+                        <div class="toolbar-group" id="text-size-group" hidden style="border-right: none; padding: 0;">
+                            <label for="text-font-size"
+                                style="font-size: 12px; color: var(--text-secondary); white-space: nowrap;">字号:</label>
+                            <input type="range" class="size-slider" id="text-font-size" min="12" max="72" value="24">
+                            <span id="text-font-size-display"
+                                style="font-size: 12px; color: var(--text-secondary); min-width: 28px; text-align: right;">24px</span>
+                        </div>
+                        <div class="toolbar-group" id="eraser-options-group" hidden style="border-right: none; padding: 0;">
+                            <div class="toolbar-group" id="eraser-geometry-group" style="border-right: none; padding: 0;">
+                                <button class="tool-btn tooltip" id="eraser-shape-round" data-tooltip="圆形橡皮" type="button">
+                                    <i class="fas fa-circle"></i>
+                                </button>
+                                <button class="tool-btn tooltip" id="eraser-shape-square" data-tooltip="方形橡皮" type="button">
+                                    <i class="fas fa-square"></i>
+                                </button>
+                                <label for="eraser-size"
+                                    style="font-size: 12px; color: var(--text-secondary); white-space: nowrap;">大小:</label>
+                                <input type="range" class="size-slider" id="eraser-size" min="8" max="64" value="24">
+                                <span id="eraser-size-display"
+                                    style="font-size: 12px; color: var(--text-secondary); min-width: 28px; text-align: right;">24px</span>
+                            </div>
+                            <button class="tool-btn tooltip" id="eraser-mode-point" data-tooltip="擦过的范围" type="button">点擦</button>
+                            <button class="tool-btn tooltip" id="eraser-mode-clear" data-tooltip="单击去掉整块同色" type="button">消除</button>
+                        </div>
+                    </div>
+
+                    <div class="toolbar-group" id="color-group">
+                        <input type="color" class="color-picker tooltip" id="stroke-color" data-tooltip="当前颜色">
+                        <button type="button" class="preset-color tooltip" id="preset-color-1" data-color="#ff0000" data-tooltip="备用颜色 1"></button>
+                        <button type="button" class="preset-color tooltip" id="preset-color-2" data-color="#00ff00" data-tooltip="备用颜色 2"></button>
+                        <button type="button" class="preset-color tooltip" id="preset-color-3" data-color="#0000ff" data-tooltip="备用颜色 3"></button>
+                    </div>
+                </div>
+            </details>
+        </div>
+
+        <div class="draft-banner" id="draft-restore-banner">
+            <div class="draft-banner-copy">
+                <span id="draft-restore-text">本机留有上次画到一半的草稿</span>
+                <span class="draft-banner-hint" id="draft-restore-hint">临时槽 1/2/3 会一起回来；撤销只记这次打开，不进草稿。</span>
+            </div>
+            <div class="draft-banner-actions">
+                <button type="button" class="draft-banner-btn primary" id="btn-restore-draft">恢复</button>
+                <button type="button" class="draft-banner-btn" id="btn-discard-draft">丢弃</button>
+            </div>
+        </div>
+        <div class="draft-banner" id="draft-quota-banner">
+            <div class="draft-banner-copy">
+                <span id="draft-quota-text">本机空间不够，草稿没写进去。请下载 JSON 再继续。</span>
+            </div>
+            <div class="draft-banner-actions">
+                <button type="button" class="draft-banner-btn primary" id="btn-download-draft">下载 JSON</button>
+                <button type="button" class="draft-banner-btn" id="btn-dismiss-quota">知道了</button>
             </div>
         </div>
 
@@ -739,7 +963,7 @@
         <div class="canvas-container" id="canvas-container">
             <div class="canvas-background"></div>
             <div class="canvas-wrapper">
-                <canvas id="drawingCanvas"></canvas>
+                <canvas id="drawingCanvas" data-unsaved-ignore></canvas>
             </div>
             <div id="eraser-cursor" hidden></div>
             <div class="loading" id="loading" style="display: none;">
@@ -755,7 +979,8 @@
                 <span>缩放: <span id="zoom-level">100%</span></span>
             </div>
             <div class="status-info">
-                <span style="font-size: 10px; opacity: 0.7;">Ctrl+滚轮缩放 · 右键拖动平移</span>
+                <span id="draft-status">草稿仅本次会话</span>
+                <span id="gesture-hint" class="status-gesture-hint">手机点「移动画布」后单指拖动，双指缩放；桌面仍是 Ctrl+滚轮、右键拖动平移，按住 Ctrl+滚轮缩放。</span>
             </div>
         </div>
     </div>
@@ -766,6 +991,10 @@
     <script src="../js/unsaved-guard.js"></script>
     <script src="../js/board-world.js"></script>
     <script src="../js/board-flood.js"></script>
+    <script src="../js/local-raster-core.js"></script>
+    <script src="../js/board-load-core.js"></script>
+    <script src="../js/board-draft-core.js"></script>
+    <script src="../js/theme.js"></script>
     <script>
         class WhiteBoard {
             constructor() {
@@ -773,6 +1002,7 @@
                 this.ctx = this.canvas.getContext('2d', { willReadFrequently: true }); // 优化Canvas读取性能
                 this.container = document.getElementById('canvas-container');
                 this.isDrawing = false;
+                this.drawPointerId = null;
                 this.currentTool = 'pen';
 
                 // 相机与分块世界
@@ -782,6 +1012,15 @@
                 this.tiles = new Map();
                 this.isPanning = false;
                 this.panLast = null;
+                this.panToolActive = false;
+                this.drawTool = 'pen';
+                this.activePointers = new Map();
+                this.gesture = 'none';
+                this.pointerPanId = null;
+                this.pointerPanLast = null;
+                this.pinchPrev = null;
+                this.strokeBackup = null;
+                this.strokeBaseKeys = null;
                 this.minScale = BoardWorld.MIN_SCALE;
                 this.maxScale = BoardWorld.MAX_SCALE;
 
@@ -835,6 +1074,7 @@
                 // 块恢复期间禁止切槽：此时块还是空的，快照会把空内容写回槽位
                 this.restorePending = false;
                 this.restoreToken = 0;
+                this.unsavedReady = false;
 
                 // 窗口调整防抖定时器
                 this.resizeTimeout = null;
@@ -844,7 +1084,9 @@
                 this.initializeColorPicker();
                 this.updatePresetColors();
                 this.updateToolOptionsUI();
-                this.saveState();
+                this.saveState({ reportDirty: false });
+                this.unsavedReady = true;
+                this.bootDraft();
             }
 
             init() {
@@ -904,7 +1146,7 @@
             }
 
             getDpr() {
-                return window.devicePixelRatio || 1;
+                return Math.min(BoardLoadCore.BUDGET.dpr, Math.max(1, window.devicePixelRatio || 1));
             }
 
             ensureTile(tx, ty) {
@@ -942,6 +1184,7 @@
 
             // 把块的坐标系平移到世界坐标，回调里可以直接用世界坐标作画
             withWorldCtx(tile, fn) {
+                this.backupTileForStroke(tile);
                 const origin = BoardWorld.tileOrigin(tile.tx, tile.ty);
                 tile.ctx.save();
                 tile.ctx.translate(-origin.x, -origin.y);
@@ -1113,6 +1356,9 @@
             }
 
             bindEvents() {
+                document.querySelectorAll('button[data-tooltip], input[data-tooltip]').forEach(control => {
+                    if (!control.getAttribute('aria-label')) control.setAttribute('aria-label', control.dataset.tooltip);
+                });
                 // 工具选择
                 document.querySelectorAll('.tool-btn[id$="-tool"]').forEach(btn => {
                     btn.addEventListener('click', (e) => {
@@ -1196,46 +1442,16 @@
                     this.setEraserMode('clear');
                 });
 
-                // 画布事件
-                this.canvas.addEventListener('mousedown', (e) => this.startDrawing(e));
-                this.canvas.addEventListener('mousemove', (e) => this.draw(e));
-                this.canvas.addEventListener('mouseup', () => this.stopDrawing());
-                this.canvas.addEventListener('mouseout', () => this.stopDrawing());
-
-                // 触摸事件支持
-                this.canvas.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    if (e.touches.length > 1) return; // 忽略多点触控
-                    const touch = e.touches[0];
-                    const mouseEvent = new MouseEvent('mousedown', {
-                        clientX: touch.clientX,
-                        clientY: touch.clientY
-                    });
-                    this.canvas.dispatchEvent(mouseEvent);
-                }, { passive: false });
-
-                this.canvas.addEventListener('touchmove', (e) => {
-                    e.preventDefault();
-                    if (e.touches.length > 1) return;
-                    const touch = e.touches[0];
-                    const mouseEvent = new MouseEvent('mousemove', {
-                        clientX: touch.clientX,
-                        clientY: touch.clientY
-                    });
-                    this.canvas.dispatchEvent(mouseEvent);
-                }, { passive: false });
-
-                this.canvas.addEventListener('touchend', (e) => {
-                    e.preventDefault();
-                    const mouseEvent = new MouseEvent('mouseup', {});
-                    this.canvas.dispatchEvent(mouseEvent);
-                }, { passive: false });
-
-                this.canvas.addEventListener('mousemove', (e) => {
-                    this.updateEraserCursor(e);
-                });
-                this.container.addEventListener('mouseleave', () => {
-                    this.hideEraserCursor();
+                // 画布：Pointer Events 同时覆盖鼠标、触控笔和手指
+                this.canvas.addEventListener('pointerdown', (e) => this.onCanvasPointerDown(e), { passive: false });
+                this.canvas.addEventListener('pointermove', (e) => this.onCanvasPointerMove(e), { passive: false });
+                this.canvas.addEventListener('pointerup', (e) => this.onCanvasPointerUp(e));
+                this.canvas.addEventListener('pointercancel', (e) => this.onCanvasPointerCancel(e));
+                this.canvas.addEventListener('lostpointercapture', (e) => this.onCanvasLostPointerCapture(e));
+                this.container.addEventListener('pointerleave', () => {
+                    if (this.drawPointerId === null) {
+                        this.hideEraserCursor();
+                    }
                 });
 
                 // 缩放支持 (Ctrl + 滚轮)
@@ -1312,6 +1528,7 @@
                     this.toggleExportPopover();
                 });
 
+                ['export-range', 'export-scale'].forEach(id => document.getElementById(id).addEventListener('change', () => this.updateExportEstimate()));
                 document.querySelectorAll('.export-option').forEach((btn) => {
                     btn.addEventListener('click', (e) => {
                         e.stopPropagation();
@@ -1401,6 +1618,42 @@
             }
 
             selectTool(tool) {
+                if (tool === 'pan') {
+                    if (this.panToolActive) {
+                        this.panToolActive = false;
+                        const panBtn = document.getElementById('pan-tool');
+                        if (panBtn) {
+                            panBtn.setAttribute('aria-pressed', 'false');
+                        }
+                        this.selectTool(this.drawTool || 'pen');
+                        return;
+                    }
+                    this.panToolActive = true;
+                    this.currentTool = 'pan';
+                    document.querySelectorAll('.tool-btn[id$="-tool"]').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    const panBtn = document.getElementById('pan-tool');
+                    if (panBtn) {
+                        panBtn.classList.add('active');
+                        panBtn.setAttribute('aria-pressed', 'true');
+                    }
+                    const panLabel = document.getElementById('current-tool');
+                    if (panLabel) {
+                        panLabel.textContent = '移动画布';
+                    }
+                    this.updateToolOptionsUI();
+                    this.updateCursor();
+                    this.hideEraserCursor();
+                    return;
+                }
+
+                this.panToolActive = false;
+                this.drawTool = tool;
+                const panBtnOff = document.getElementById('pan-tool');
+                if (panBtnOff) {
+                    panBtnOff.setAttribute('aria-pressed', 'false');
+                }
                 this.currentTool = tool;
 
                 // 更新UI
@@ -1467,13 +1720,30 @@
 
                 // 空槽位第一次进入时给它一个初始历史
                 if (this.history.length === 0) {
-                    this.saveState();
+                    this.saveState({ reportDirty: false });
                 }
+                this.scheduleDraftSave();
             }
 
             updateCursor() {
                 const wrapper = document.querySelector('.canvas-wrapper');
+                const panning = this.gesture === 'pan' || this.gesture === 'pinch' || this.isPanning;
+                if (panning) {
+                    this.container.style.cursor = 'grabbing';
+                    if (wrapper) {
+                        wrapper.style.cursor = 'grabbing';
+                    }
+                    this.hideEraserCursor();
+                    return;
+                }
                 this.container.style.cursor = '';
+                if (this.panToolActive) {
+                    if (wrapper) {
+                        wrapper.style.cursor = 'grab';
+                    }
+                    this.hideEraserCursor();
+                    return;
+                }
                 switch (this.currentTool) {
                     case 'pen':
                         wrapper.style.cursor = 'crosshair';
@@ -1683,6 +1953,7 @@
             handleThemeChange(newTheme, previousTheme) {
                 if (this.isDrawing) {
                     this.stopDrawing();
+                    this.drawPointerId = null;
                     if (this.history[this.historyIndex]) {
                         this.history[this.historyIndex].theme = previousTheme;
                     }
@@ -1710,9 +1981,282 @@
                 );
             }
 
-            startDrawing(e) {
-                if (e.which !== 1 && e.type !== 'touchstart') return; // 只允许左键或触摸
+            beginStrokeBackup() {
+                this.strokeBackup = new Map();
+                this.strokeBaseKeys = new Set(this.tiles.keys());
+            }
 
+            clearStrokeBackup() {
+                this.strokeBackup = null;
+                this.strokeBaseKeys = null;
+            }
+
+            backupTileForStroke(tile) {
+                if (!this.isDrawing || !this.strokeBackup) {
+                    return;
+                }
+                const key = BoardWorld.tileKey(tile.tx, tile.ty);
+                if (this.strokeBackup.has(key)) {
+                    return;
+                }
+                if (this.strokeBaseKeys && this.strokeBaseKeys.has(key)) {
+                    const copy = document.createElement('canvas');
+                    copy.width = tile.canvas.width;
+                    copy.height = tile.canvas.height;
+                    copy.getContext('2d').drawImage(tile.canvas, 0, 0);
+                    this.strokeBackup.set(key, copy);
+                    return;
+                }
+                this.strokeBackup.set(key, null);
+            }
+
+            discardInProgressStroke() {
+                const backup = this.strokeBackup;
+                const wasDrawing = this.isDrawing;
+                this.isDrawing = false;
+                this.clearStrokeBackup();
+                if (!wasDrawing) {
+                    return;
+                }
+                if (backup) {
+                    backup.forEach((copy, key) => {
+                        if (!copy) {
+                            this.tiles.delete(key);
+                            return;
+                        }
+                        const tile = this.tiles.get(key);
+                        if (!tile) {
+                            return;
+                        }
+                        const dpr = this.getDpr();
+                        tile.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                        tile.ctx.clearRect(0, 0, tile.canvas.width, tile.canvas.height);
+                        tile.ctx.drawImage(copy, 0, 0);
+                        tile.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                    });
+                }
+                this.redrawDisplay();
+            }
+
+            trackPointer(e) {
+                this.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+            }
+
+            releasePointer(id) {
+                if (id == null) {
+                    return;
+                }
+                try {
+                    if (this.canvas.hasPointerCapture(id)) {
+                        this.canvas.releasePointerCapture(id);
+                    }
+                } catch (err) {
+                    /* 已经释放 */
+                }
+            }
+
+            measurePinch() {
+                const pts = [];
+                this.activePointers.forEach((point) => {
+                    if (pts.length < 2) {
+                        pts.push(point);
+                    }
+                });
+                if (pts.length < 2) {
+                    return null;
+                }
+                const rect = this.container.getBoundingClientRect();
+                const ax = pts[0].x - rect.left;
+                const ay = pts[0].y - rect.top;
+                const bx = pts[1].x - rect.left;
+                const by = pts[1].y - rect.top;
+                return {
+                    x: (ax + bx) / 2,
+                    y: (ay + by) / 2,
+                    distance: Math.hypot(ax - bx, ay - by)
+                };
+            }
+
+            beginPinch() {
+                if (this.isDrawing) {
+                    this.discardInProgressStroke();
+                }
+                this.gesture = 'pinch';
+                this.pointerPanId = null;
+                this.pointerPanLast = null;
+                this.pinchPrev = this.measurePinch();
+                this.updateCursor();
+            }
+
+            applyPinchStep() {
+                const next = this.measurePinch();
+                const prev = this.pinchPrev;
+                if (!next) {
+                    return;
+                }
+                if (!prev) {
+                    this.pinchPrev = next;
+                    return;
+                }
+                const camera = BoardWorld.pinchCamera(this.getCamera(), prev, next);
+                this.offsetX = camera.offsetX;
+                this.offsetY = camera.offsetY;
+                this.pinchPrev = next;
+                this.setZoom(camera.scale);
+            }
+
+            panFromPointer(e) {
+                if (!this.pointerPanLast) {
+                    this.pointerPanLast = { x: e.clientX, y: e.clientY };
+                    return;
+                }
+                const next = BoardWorld.panByScreenDelta(
+                    this.getCamera(),
+                    e.clientX - this.pointerPanLast.x,
+                    e.clientY - this.pointerPanLast.y
+                );
+                this.offsetX = next.offsetX;
+                this.offsetY = next.offsetY;
+                this.pointerPanLast = { x: e.clientX, y: e.clientY };
+                this.redrawDisplay();
+            }
+
+            onCanvasPointerDown(e) {
+                if (e.pointerType === 'mouse' && e.button !== 0) {
+                    return;
+                }
+                if (this.isEditingText()) {
+                    return;
+                }
+                if (this.activePointers.has(e.pointerId)) {
+                    return;
+                }
+                e.preventDefault();
+                this.trackPointer(e);
+                try {
+                    this.canvas.setPointerCapture(e.pointerId);
+                } catch (err) {
+                    /* 合成事件或不支持捕获时仍按 pointerId 跟踪 */
+                }
+                if (this.activePointers.size >= 2) {
+                    this.beginPinch();
+                    return;
+                }
+                if (this.gesture === 'pinch' || this.gesture === 'pinch-tail') {
+                    return;
+                }
+                if (this.panToolActive) {
+                    this.gesture = 'pan';
+                    this.pointerPanId = e.pointerId;
+                    this.pointerPanLast = { x: e.clientX, y: e.clientY };
+                    this.updateCursor();
+                    return;
+                }
+                this.drawPointerId = e.pointerId;
+                this.gesture = 'draw';
+                this.startDrawing(e);
+            }
+
+            onCanvasPointerMove(e) {
+                if (this.activePointers.has(e.pointerId)) {
+                    this.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                }
+                if (this.gesture === 'pinch' && this.activePointers.size >= 2 && this.activePointers.has(e.pointerId)) {
+                    if (e.cancelable) {
+                        e.preventDefault();
+                    }
+                    this.applyPinchStep();
+                    return;
+                }
+                if (this.gesture === 'pan' && e.pointerId === this.pointerPanId) {
+                    if (e.cancelable) {
+                        e.preventDefault();
+                    }
+                    this.panFromPointer(e);
+                    return;
+                }
+                if (this.gesture === 'draw' && this.isDrawing && e.pointerId === this.drawPointerId) {
+                    if (e.cancelable) {
+                        e.preventDefault();
+                    }
+                    this.draw(e);
+                }
+                if (this.gesture !== 'pinch' && this.gesture !== 'pan') {
+                    this.updateEraserCursor(e);
+                }
+            }
+
+            onCanvasPointerUp(e) {
+                this.finishPointer(e, false);
+            }
+
+            onCanvasPointerCancel(e) {
+                this.finishPointer(e, true);
+            }
+
+            onCanvasLostPointerCapture(e) {
+                if (!this.activePointers.has(e.pointerId)) {
+                    return;
+                }
+                this.finishPointer(e, true);
+            }
+
+            finishPointer(e, cancel) {
+                if (!this.activePointers.has(e.pointerId)) {
+                    return;
+                }
+                const gesture = this.gesture;
+                this.activePointers.delete(e.pointerId);
+
+                if (gesture === 'pinch' || gesture === 'pinch-tail') {
+                    if (this.activePointers.size >= 2) {
+                        this.pinchPrev = this.measurePinch();
+                    } else if (this.activePointers.size === 1) {
+                        this.gesture = 'pinch-tail';
+                        this.pinchPrev = null;
+                    } else {
+                        this.drawPointerId = null;
+                        this.gesture = 'none';
+                        this.pinchPrev = null;
+                        this.pointerPanId = null;
+                        this.pointerPanLast = null;
+                        this.updateCursor();
+                    }
+                    this.releasePointer(e.pointerId);
+                    if (e.pointerType !== 'mouse') {
+                        this.hideEraserCursor();
+                    }
+                    return;
+                }
+
+                if (gesture === 'pan' && e.pointerId === this.pointerPanId) {
+                    this.pointerPanId = null;
+                    this.pointerPanLast = null;
+                    this.gesture = 'none';
+                    this.updateCursor();
+                    this.releasePointer(e.pointerId);
+                    return;
+                }
+
+                if (gesture === 'draw' && e.pointerId === this.drawPointerId) {
+                    this.drawPointerId = null;
+                    this.gesture = 'none';
+                    this.releasePointer(e.pointerId);
+                    if (cancel) {
+                        this.discardInProgressStroke();
+                    } else {
+                        this.stopDrawing();
+                    }
+                    if (e.pointerType !== 'mouse') {
+                        this.hideEraserCursor();
+                    }
+                    return;
+                }
+
+                this.releasePointer(e.pointerId);
+            }
+
+            startDrawing(e) {
                 if (this.isEditingText()) {
                     return;
                 }
@@ -1728,6 +2272,7 @@
                     return;
                 }
 
+                this.beginStrokeBackup();
                 this.isDrawing = true;
                 this.startX = pos.x;
                 this.startY = pos.y;
@@ -1742,24 +2287,15 @@
                 }
             }
 
-            // 在世界坐标下把一段直线（或橡皮圆）写进碰到的每个块
+            // 在世界坐标下把一段直线（或橡皮轨迹）写进碰到的每个块
             paintSegment(x0, y0, x1, y1, eraser) {
-                const pad = eraser ? this.eraserHalf() : this.brushSize;
+                if (eraser) {
+                    this.eraseSegment(x0, y0, x1, y1);
+                    return;
+                }
+                const pad = this.brushSize;
                 this.forEachTilesInWorldRect(x0, y0, x1, y1, pad, (tile) => {
                     this.withWorldCtx(tile, (ctx) => {
-                        if (eraser) {
-                            ctx.globalCompositeOperation = 'destination-out';
-                            const half = this.eraserHalf();
-                            if (this.eraserShape === 'square') {
-                                ctx.fillRect(x1 - half, y1 - half, this.eraserSize, this.eraserSize);
-                            } else {
-                                ctx.beginPath();
-                                ctx.arc(x1, y1, half, 0, 2 * Math.PI);
-                                ctx.fill();
-                            }
-                            ctx.globalCompositeOperation = 'source-over';
-                            return;
-                        }
                         ctx.globalCompositeOperation = 'source-over';
                         ctx.strokeStyle = this.strokeColor;
                         ctx.lineWidth = this.brushSize;
@@ -1769,6 +2305,34 @@
                         ctx.moveTo(x0, y0);
                         ctx.lineTo(x1, y1);
                         ctx.stroke();
+                    });
+                });
+            }
+
+            // 按橡皮半径插值盖章，快滑时中间不会漏点
+            eraseSegment(x0, y0, x1, y1) {
+                const half = this.eraserHalf();
+                const dx = x1 - x0;
+                const dy = y1 - y0;
+                const dist = Math.hypot(dx, dy);
+                const spacing = Math.max(1, half);
+                const steps = dist === 0 ? 0 : Math.ceil(dist / spacing);
+                this.forEachTilesInWorldRect(x0, y0, x1, y1, half, (tile) => {
+                    this.withWorldCtx(tile, (ctx) => {
+                        ctx.globalCompositeOperation = 'destination-out';
+                        for (let i = 0; i <= steps; i++) {
+                            const t = steps === 0 ? 0 : i / steps;
+                            const x = x0 + dx * t;
+                            const y = y0 + dy * t;
+                            if (this.eraserShape === 'square') {
+                                ctx.fillRect(x - half, y - half, this.eraserSize, this.eraserSize);
+                            } else {
+                                ctx.beginPath();
+                                ctx.arc(x, y, half, 0, 2 * Math.PI);
+                                ctx.fill();
+                            }
+                        }
+                        ctx.globalCompositeOperation = 'source-over';
                     });
                 });
             }
@@ -1951,10 +2515,14 @@
             }
 
             stopDrawing() {
-                if (!this.isDrawing) return;
+                if (!this.isDrawing) {
+                    this.clearStrokeBackup();
+                    return;
+                }
                 this.isDrawing = false;
+                this.clearStrokeBackup();
 
-                // 终点用最后一次移动记录的世界坐标：touchend 合成的 mouseup 没有可用坐标
+                // 终点用最后一次移动记录的世界坐标：抬手点可能已离开画布
                 const endPos = { x: this.lastX, y: this.lastY };
 
                 switch (this.currentTool) {
@@ -2244,8 +2812,16 @@
                 return cleared;
             }
 
+            reportBoardDirty() {
+                try {
+                    if (window.__17toolsUnsaved && typeof window.__17toolsUnsaved.markExtraDirty === 'function') {
+                        window.__17toolsUnsaved.markExtraDirty();
+                    }
+                } catch (error) { /* ignore */ }
+            }
+
             // 历史记录管理
-            saveState() {
+            saveState(options) {
                 this.historyIndex++;
                 if (this.historyIndex < this.history.length) {
                     this.history.length = this.historyIndex;
@@ -2271,6 +2847,11 @@
                     this.history.shift();
                     this.historyIndex--;
                 }
+                const reportDirty = !options || options.reportDirty !== false;
+                if (reportDirty && this.unsavedReady) {
+                    this.reportBoardDirty();
+                    this.scheduleDraftSave();
+                }
             }
 
             undo() {
@@ -2280,6 +2861,8 @@
                 if (this.historyIndex > 0) {
                     this.historyIndex--;
                     this.restoreState(this.history[this.historyIndex]);
+                    this.reportBoardDirty();
+                    this.scheduleDraftSave();
                 }
             }
 
@@ -2290,6 +2873,8 @@
                 if (this.historyIndex < this.history.length - 1) {
                     this.historyIndex++;
                     this.restoreState(this.history[this.historyIndex]);
+                    this.reportBoardDirty();
+                    this.scheduleDraftSave();
                 }
             }
 
@@ -2316,12 +2901,19 @@
 
             // 保存和加载
             saveToLocal() {
-                const data = {
+                // 下载完整 JSON 不是浏览器草稿写入，离开时仍按画布是否编辑提醒
+                this.downloadBoardJson(this.buildBoardPayload());
+            }
+
+            buildBoardPayload() {
+                const latest = this.history[this.historyIndex];
+                return {
                     version: '1.2',
                     timestamp: new Date().toISOString(),
                     tileSize: BoardWorld.TILE_SIZE,
-                    tiles: this.snapshotTiles(),
+                    tiles: (latest && latest.tiles) ? latest.tiles : this.snapshotTiles(),
                     camera: this.getCamera(),
+                    theme: this.getBoardTheme(),
                     settings: {
                         strokeColor: this.strokeColor,
                         colorHistory: this.colorHistory,
@@ -2330,12 +2922,312 @@
                         eraserSize: this.eraserSize
                     }
                 };
+            }
 
+            downloadBoardJson(data) {
                 const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `whiteboard_${new Date().getTime()}.json`;
+                a.download = BoardDraftCore.downloadFilename(new Date());
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+
+            captureSlotSnapshots() {
+                const snapshots = {};
+                [1, 2, 3].forEach((id) => {
+                    if (id === this.currentSlot) {
+                        const latest = this.history[this.historyIndex];
+                        snapshots[id] = {
+                            tiles: (latest && latest.tiles) ? latest.tiles : this.snapshotTiles(),
+                            camera: this.getCamera(),
+                            theme: this.getBoardTheme()
+                        };
+                        return;
+                    }
+                    const slot = this.slots[id] || {};
+                    snapshots[id] = {
+                        tiles: slot.tiles || {},
+                        camera: slot.camera || BoardWorld.createCamera(),
+                        theme: slot.theme || ''
+                    };
+                });
+                return snapshots;
+            }
+
+            bootDraft() {
+                // 草稿只进 IndexedDB 键空间 17tools-board-draft，不写 localStorage
+                this.draftStore = BoardDraftCore.createIndexedDbStore();
+                this.draftDebouncer = BoardDraftCore.createDebouncer(() => {
+                    this.writeDraftNow();
+                }, BoardDraftCore.DEBOUNCE_MS);
+                this.draftPaused = true;
+                this.pendingDraft = null;
+                this.lastDraftRecord = null;
+                this.draftWritePromise = Promise.resolve();
+                this.bindDraftUi();
+                this.draftReady = this.loadDraftBanner();
+                return this.draftReady;
+            }
+
+            bindDraftUi() {
+                const restoreBtn = document.getElementById('btn-restore-draft');
+                const discardBtn = document.getElementById('btn-discard-draft');
+                const downloadBtn = document.getElementById('btn-download-draft');
+                const dismissQuotaBtn = document.getElementById('btn-dismiss-quota');
+                if (restoreBtn) {
+                    restoreBtn.addEventListener('click', () => {
+                        this.restorePendingDraft();
+                    });
+                }
+                if (discardBtn) {
+                    discardBtn.addEventListener('click', () => {
+                        this.discardPendingDraft();
+                    });
+                }
+                if (downloadBtn) {
+                    downloadBtn.addEventListener('click', () => {
+                        this.downloadQuotaJson();
+                    });
+                }
+                if (dismissQuotaBtn) {
+                    dismissQuotaBtn.addEventListener('click', () => {
+                        this.hideQuotaBanner();
+                    });
+                }
+                window.addEventListener('pagehide', () => {
+                    this.flushDraftSave();
+                });
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'hidden') {
+                        this.flushDraftSave();
+                    }
+                });
+            }
+
+            draftLifetimeText(status) {
+                if (status === BoardDraftCore.STATUS.SAVED) {
+                    return '此设备（自动草稿）';
+                }
+                if (status === BoardDraftCore.STATUS.SESSION) {
+                    return '草稿仅本次会话';
+                }
+                const detail = BoardDraftCore.statusMessage(status);
+                if (detail && detail.indexOf('仅本次会话') === -1) {
+                    return '仅本次会话。' + detail;
+                }
+                return detail || '仅本次会话';
+            }
+
+            setDraftStatus(status) {
+                const el = document.getElementById('draft-status');
+                if (el) {
+                    el.textContent = this.draftLifetimeText(status);
+                }
+            }
+
+            showDraftBanner(decision) {
+                const banner = document.getElementById('draft-restore-banner');
+                const text = document.getElementById('draft-restore-text');
+                const hint = document.getElementById('draft-restore-hint');
+                if (text) {
+                    text.textContent = decision.banner;
+                }
+                if (hint) {
+                    hint.textContent = decision.hint;
+                }
+                if (banner) {
+                    banner.classList.add('is-visible');
+                }
+            }
+
+            hideDraftBanner() {
+                const banner = document.getElementById('draft-restore-banner');
+                if (banner) {
+                    banner.classList.remove('is-visible');
+                }
+            }
+
+            showQuotaBanner() {
+                const banner = document.getElementById('draft-quota-banner');
+                const text = document.getElementById('draft-quota-text');
+                if (text) {
+                    text.textContent = BoardDraftCore.MESSAGES.quota;
+                }
+                if (banner) {
+                    banner.classList.add('is-visible');
+                }
+            }
+
+            hideQuotaBanner() {
+                const banner = document.getElementById('draft-quota-banner');
+                if (banner) {
+                    banner.classList.remove('is-visible');
+                }
+            }
+
+            loadDraftBanner() {
+                return this.draftStore.get().then((loaded) => {
+                    const decision = BoardDraftCore.decideRestore(loaded);
+                    if (decision.showBanner) {
+                        this.pendingDraft = decision.record;
+                        this.showDraftBanner(decision);
+                        this.setDraftStatus(BoardDraftCore.STATUS.PAUSED);
+                        return decision;
+                    }
+                    this.draftPaused = false;
+                    this.setDraftStatus(this.draftStore.available
+                        ? BoardDraftCore.STATUS.SESSION
+                        : BoardDraftCore.STATUS.UNAVAILABLE);
+                    this.scheduleDraftSave();
+                    return decision;
+                });
+            }
+
+            applyDraftSlots(record) {
+                const slots = (record && record.slots) || {};
+                [1, 2, 3].forEach((id) => {
+                    const src = slots[id] || {};
+                    this.slots[id] = {
+                        tiles: src.tiles || {},
+                        camera: src.camera || BoardWorld.createCamera(),
+                        theme: src.theme,
+                        history: [],
+                        index: -1
+                    };
+                });
+                const slotId = BoardDraftCore.normalizeSlot(record && record.currentSlot);
+                document.querySelectorAll('.slot-btn').forEach((btn) => {
+                    btn.classList.remove('active-slot');
+                });
+                const btn = document.getElementById('slot-' + slotId);
+                if (btn) {
+                    btn.classList.add('active-slot');
+                }
+                this.currentSlot = slotId;
+            }
+
+            async restorePendingDraft() {
+                const record = this.pendingDraft;
+                if (!record) {
+                    this.hideDraftBanner();
+                    this.draftPaused = false;
+                    return Promise.resolve({ ok: false, reason: 'empty' });
+                }
+                const candidates = [record.board, ...Object.values(record.slots || {}).map(slot => ({ tiles: slot.tiles || {}, camera: slot.camera, theme: slot.theme || undefined }))];
+                if (candidates.some(data => !BoardLoadCore.validatePayload(data).ok)) {
+                    this.showLoadError('bad-image');
+                    return Promise.resolve({ ok: false, reason: 'bad-image' });
+                }
+                this.draftPaused = true;
+                try {
+                    // 未激活的槽也先解码检查，避免成功恢复后切槽才发现损坏文件。
+                    for (const data of candidates.slice(1)) await this.decodeTileImages(data.tiles);
+                } catch (error) {
+                    this.showLoadError(error.reason || 'bad-image');
+                    this.draftPaused = true;
+                    return { ok: false, reason: error.reason || 'bad-image' };
+                }
+                return this.loadFromData(record.board).then((result) => {
+                    this.draftPaused = !(result && result.ok);
+                    if (result && result.ok) {
+                        this.pendingDraft = null;
+                        this.hideDraftBanner();
+                        this.applyDraftSlots(record);
+                        this.setDraftStatus(BoardDraftCore.STATUS.SAVED);
+                        this.scheduleDraftSave({ immediate: true });
+                    }
+                    return result;
+                });
+            }
+
+            discardPendingDraft() {
+                this.pendingDraft = null;
+                this.hideDraftBanner();
+                this.draftPaused = false;
+                this.draftDebouncer.cancel();
+                this.setDraftStatus(BoardDraftCore.STATUS.SESSION);
+                this.draftWritePromise = this.draftStore.remove();
+                return this.draftWritePromise;
+            }
+
+            scheduleDraftSave(options) {
+                if (!this.draftDebouncer || this.draftPaused || this.restorePending) {
+                    return;
+                }
+                if (options && options.immediate) {
+                    this.draftDebouncer.cancel();
+                    this.writeDraftNow();
+                    return;
+                }
+                this.draftDebouncer.schedule();
+            }
+
+            flushDraftSave() {
+                if (!this.draftDebouncer || this.draftPaused) {
+                    return this.draftWritePromise || Promise.resolve();
+                }
+                if (this.draftDebouncer.isPending()) {
+                    this.draftDebouncer.flush();
+                } else {
+                    this.writeDraftNow();
+                }
+                return this.draftWritePromise || Promise.resolve();
+            }
+
+            writeDraftNow() {
+                if (this.draftPaused || this.restorePending || !this.draftStore) {
+                    return Promise.resolve();
+                }
+                const serialized = BoardDraftCore.serializeDraft({
+                    board: this.buildBoardPayload(),
+                    currentSlot: this.currentSlot,
+                    slots: this.captureSlotSnapshots()
+                });
+                if (!serialized.ok) {
+                    return Promise.resolve(serialized);
+                }
+                this.lastDraftRecord = serialized.record;
+                if (!BoardDraftCore.recordHasContent(serialized.record)) {
+                    this.draftWritePromise = this.draftStore.remove().then((result) => {
+                        if (result && result.ok) {
+                            this.hideQuotaBanner();
+                            this.setDraftStatus(this.draftStore.available
+                                ? BoardDraftCore.STATUS.SESSION
+                                : BoardDraftCore.STATUS.UNAVAILABLE);
+                        }
+                        return result;
+                    });
+                    return this.draftWritePromise;
+                }
+                this.draftWritePromise = this.draftStore.set(serialized.record).then((result) => {
+                    if (result && result.ok) {
+                        this.hideQuotaBanner();
+                        this.setDraftStatus(BoardDraftCore.STATUS.SAVED);
+                        return result;
+                    }
+                    if (result && result.reason === 'quota') {
+                        this.showQuotaBanner();
+                        this.setDraftStatus(BoardDraftCore.STATUS.QUOTA);
+                        return result;
+                    }
+                    this.setDraftStatus(this.draftStore.available
+                        ? BoardDraftCore.STATUS.FAILED
+                        : BoardDraftCore.STATUS.UNAVAILABLE);
+                    return result;
+                });
+                return this.draftWritePromise;
+            }
+
+            downloadQuotaJson() {
+                const json = BoardDraftCore.toDownloadJson(this.lastDraftRecord)
+                    || JSON.stringify(this.buildBoardPayload());
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = BoardDraftCore.downloadFilename(new Date());
                 a.click();
                 URL.revokeObjectURL(url);
             }
@@ -2344,58 +3236,148 @@
                 document.getElementById('file-input').click();
             }
 
-            loadFile(file) {
-                if (!file) return;
-
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    try {
-                        if (file.type === 'application/json' || file.name.endsWith('.json')) {
-                            const data = JSON.parse(e.target.result);
-                            this.loadFromData(data);
-                        } else {
-                            // 图片文件：贴到当前视野左上角，用户能直接看见
-                            const img = new Image();
-                            img.onload = () => {
-                                this.stampImageAtWorld(img, this.offsetX, this.offsetY, img.width, img.height);
-                                this.saveState();
-                                this.redrawDisplay();
-                            };
-                            img.src = e.target.result;
-                        }
-                    } catch (error) {
-                        alert('文件格式不正确或已损坏');
-                        console.error('加载文件失败:', error);
-                    }
-                };
-                reader.readAsDataURL(file);
+            showLoadError(reason) {
+                alert(BoardLoadCore.loadErrorMessage(reason));
             }
 
-            loadFromData(data) {
-                // 历史记录要等块真正填好再拍，否则第一条会是空画布
-                const resetHistory = () => {
-                    this.history = [];
-                    this.historyIndex = -1;
-                    this.saveState();
-                };
-
-                if (data.tiles) {
-                    this.restoreTiles(data.tiles, false, resetHistory);
-                    this.applyCamera(data.camera);
-                } else if (data.canvas) {
-                    // 旧文件只有一张视口图：从世界原点铺开，视野回到原点
-                    const img = new Image();
-                    img.onload = () => {
-                        this.tiles = new Map();
-                        this.stampImageAtWorld(img, 0, 0, img.width, img.height);
-                        this.applyCamera(BoardWorld.createCamera());
-                        resetHistory();
-                        this.redrawDisplay();
-                    };
-                    img.src = data.canvas;
+            loadFile(file) {
+                if (!file) {
+                    return Promise.resolve({ ok: false, reason: 'empty' });
                 }
 
-                if (data.settings) {
+                const fileBudget = BoardLoadCore.validateFileSize(file);
+                if (!fileBudget.ok) {
+                    this.showLoadError(fileBudget.reason);
+                    return Promise.resolve(fileBudget);
+                }
+                const isJson = BoardLoadCore.isJsonBoardFile(file);
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        if (isJson) {
+                            const parsed = BoardLoadCore.parseBoardJson(reader.result);
+                            if (!parsed.ok) {
+                                this.showLoadError(parsed.reason);
+                                resolve(parsed);
+                                return;
+                            }
+                            this.loadFromData(parsed.data).then(resolve);
+                            return;
+                        }
+                        const info = LocalRasterCore.inspectDataUrl(reader.result, BoardLoadCore.BUDGET.fileBytes);
+                        const targetTiles = info.ok ? Math.ceil(info.width / 1024 + 1) * Math.ceil(info.height / 1024 + 1) : 0;
+                        const existingPixels = [...this.tiles.values()].reduce((sum, tile) => sum + tile.canvas.width * tile.canvas.height, 0);
+                        if (!info.ok || info.width > BoardLoadCore.BUDGET.edge || info.height > BoardLoadCore.BUDGET.edge || info.width * info.height > BoardLoadCore.BUDGET.imagePixels || !BoardLoadCore.stagingBudget(targetTiles, info.width * info.height, existingPixels, this.getDpr()).ok) {
+                            const reason = !info.ok ? info.reason : 'budget';
+                            this.showLoadError(reason);
+                            resolve({ ok: false, reason });
+                            return;
+                        }
+                        const img = new Image();
+                        img.onload = () => {
+                            // 图片文件：贴到当前视野左上角，用户能直接看见
+                            this.stampImageAtWorld(img, this.offsetX, this.offsetY, img.width, img.height);
+                            this.saveState();
+                            this.redrawDisplay();
+                            resolve({ ok: true, kind: 'image' });
+                        };
+                        img.onerror = () => {
+                            this.showLoadError('bad-image');
+                            resolve({ ok: false, reason: 'bad-image' });
+                        };
+                        img.src = reader.result;
+                    };
+                    reader.onerror = () => {
+                        const reason = isJson ? 'not-json' : 'bad-image';
+                        this.showLoadError(reason);
+                        resolve({ ok: false, reason: reason });
+                    };
+                    if (isJson) {
+                        reader.readAsText(file);
+                    } else {
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+
+            async decodeTileImages(tiles) {
+                const loaded = [];
+                for (const [key, src] of Object.entries(tiles || {})) {
+                    const info = LocalRasterCore.inspectDataUrl(src, BoardLoadCore.BUDGET.fileBytes);
+                    if (!info.ok) throw info;
+                    const img = await new Promise((resolve, reject) => {
+                        const image = new Image();
+                        const timer = setTimeout(() => { image.src = ''; reject({ reason: 'timeout' }); }, BoardLoadCore.BUDGET.decodeMs);
+                        image.onload = () => {
+                            clearTimeout(timer);
+                            if (image.naturalWidth !== info.width || image.naturalHeight !== info.height) reject({ reason: 'bad-image' });
+                            else resolve(image);
+                        };
+                        image.onerror = () => { clearTimeout(timer); reject({ reason: 'bad-image' }); };
+                        image.src = src;
+                    });
+                    loaded.push({ key, img });
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                }
+                return loaded;
+            }
+
+            paintDecodedTiles(loaded, needsInvert, legacy) {
+                const candidate = new Map();
+                const dpr = this.getDpr();
+                const makeTile = (tx, ty) => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = canvas.height = Math.round(BoardWorld.TILE_SIZE * dpr);
+                    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                    if (!ctx) throw { reason: 'budget' };
+                    ctx.lineCap = ctx.lineJoin = 'round';
+                    const tile = { tx, ty, canvas, ctx };
+                    candidate.set(BoardWorld.tileKey(tx, ty), tile);
+                    return tile;
+                };
+                try {
+                    loaded.forEach(entry => {
+                        if (legacy) {
+                            const image = entry.img;
+                            for (let ty = 0; ty < Math.ceil(image.height / 1024); ty++) {
+                                for (let tx = 0; tx < Math.ceil(image.width / 1024); tx++) {
+                                    const tile = makeTile(tx, ty);
+                                    tile.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                                    tile.ctx.drawImage(image, -tx * 1024, -ty * 1024);
+                                }
+                            }
+                        } else {
+                            const parsed = BoardWorld.parseTileKey(entry.key);
+                            const tile = makeTile(parsed.tx, parsed.ty);
+                            tile.ctx.drawImage(entry.img, 0, 0, tile.canvas.width, tile.canvas.height);
+                        }
+                    });
+                    candidate.forEach(tile => {
+                        if (needsInvert) this.invertPixels(tile.canvas);
+                        tile.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                    });
+                    return candidate;
+                } catch (error) {
+                    candidate.forEach(tile => { tile.canvas.width = tile.canvas.height = 0; });
+                    throw error;
+                }
+            }
+
+            async loadFromData(data) {
+                const checked = BoardLoadCore.validatePayload(data);
+                if (!checked.ok) { this.showLoadError(checked.reason); return checked; }
+                const token = this.importToken = (this.importToken || 0) + 1;
+                const legacy = !BoardLoadCore.hasTiles(data);
+                const targetTiles = legacy ? Math.ceil(checked.images[0].width / 1024) * Math.ceil(checked.images[0].height / 1024) : checked.images.length;
+                const existingPixels = [...this.tiles.values()].reduce((sum, tile) => sum + tile.canvas.width * tile.canvas.height, 0);
+                if (targetTiles > BoardLoadCore.BUDGET.tiles || !BoardLoadCore.stagingBudget(targetTiles, checked.pixels, existingPixels, this.getDpr()).ok) {
+                    this.showLoadError('budget'); return { ok: false, reason: 'budget' };
+                }
+                // 候选图片与撤销快照都准备成功后才更换当前画板。
+                const applySettings = () => {
+                    if (!data || !data.settings) {
+                        return;
+                    }
                     this.strokeColor = data.settings.strokeColor || this.strokeColor;
                     this.colorHistory = data.settings.colorHistory || this.colorHistory;
                     this.brushSize = data.settings.brushSize || this.brushSize;
@@ -2405,7 +3387,6 @@
                     this.eraserMode = 'point';
                     this.arrowEnabled = false;
 
-                    // 更新UI
                     document.getElementById('stroke-color').value = this.strokeColor;
                     document.getElementById('brush-size').value = this.brushSize;
                     document.getElementById('size-display').textContent = this.brushSize + 'px';
@@ -2416,7 +3397,50 @@
                     this.updatePresetColors();
                     this.updateToolOptionsUI();
                     this.updateCursor();
+                };
+                const needsInvert = BoardLoadCore.needsThemeInvert(data && data.theme, this.getBoardTheme());
+
+                let candidate;
+                try {
+                    const loaded = await this.decodeTileImages(legacy ? { legacy: data.canvas } : data.tiles);
+                    if (token !== this.importToken) return { ok: false, reason: 'superseded' };
+                    candidate = this.paintDecodedTiles(loaded, needsInvert, legacy);
+                    const snapshot = {};
+                    candidate.forEach((tile, key) => { snapshot[key] = tile.canvas.toDataURL('image/png'); });
+                    const oldTiles = this.tiles;
+                    this.tiles = candidate;
+                    this.applyCamera(legacy ? BoardWorld.createCamera() : data.camera);
+                    applySettings();
+                    this.history = [{ tiles: snapshot, theme: this.getBoardTheme() }];
+                    this.historyIndex = 0;
+                    this.reportBoardDirty();
+                    this.scheduleDraftSave();
+                    oldTiles.forEach(tile => { tile.canvas.width = tile.canvas.height = 0; });
+                    this.redrawDisplay();
+                    return { ok: true };
+                } catch (error) {
+                    if (candidate) candidate.forEach(tile => { tile.canvas.width = tile.canvas.height = 0; });
+                    const reason = error.reason || 'bad-image';
+                    this.showLoadError(reason);
+                    return { ok: false, reason };
                 }
+            }
+
+            getExportPlan() {
+                const view = document.getElementById('export-range').value === 'view';
+                const bounds = this.getContentBounds();
+                const rect = view || !bounds
+                    ? { x: this.offsetX, y: this.offsetY, width: this.canvas.clientWidth / this.scale, height: this.canvas.clientHeight / this.scale }
+                    : { x: bounds.minX, y: bounds.minY, width: Math.max(1, bounds.maxX - bounds.minX), height: Math.max(1, bounds.maxY - bounds.minY) };
+                return BoardLoadCore.exportPlan(rect, document.getElementById('export-scale').value, this.getDpr());
+            }
+
+            updateExportEstimate() {
+                const plan = this.getExportPlan();
+                document.getElementById('export-estimate').textContent = plan.ok
+                    ? `${plan.width} × ${plan.height} 像素；两张画布约 ${(plan.bytes / 1048576).toFixed(1)} MiB（编码另需空间）`
+                    : `范围过大（${plan.width} × ${plan.height}）；请选择当前视野、缩小尺寸或保存 JSON。完整白板会保留。`;
+                return plan;
             }
 
             toggleExportPopover() {
@@ -2429,6 +3453,7 @@
                 document.querySelectorAll('.export-option').forEach((btn) => {
                     btn.classList.toggle('active', btn.getAttribute('data-export-theme') === current);
                 });
+                this.updateExportEstimate();
                 popover.hidden = false;
             }
 
@@ -2436,139 +3461,89 @@
                 document.getElementById('export-popover').hidden = true;
             }
 
-            exportImageWithTheme(targetTheme) {
+            async exportImageWithTheme(targetTheme) {
                 const theme = targetTheme === 'dark' ? 'dark' : 'light';
-                const bounds = this.getContentBounds();
-                const dpr = this.getDpr();
-                let widthCss;
-                let heightCss;
-                let originX = 0;
-                let originY = 0;
-                if (!bounds) {
-                    if (!confirm('当前画布是空的，确定仍要导出？')) {
-                        return;
-                    }
-                    widthCss = this.canvas.clientWidth;
-                    heightCss = this.canvas.clientHeight;
-                } else {
-                    widthCss = Math.max(1, bounds.maxX - bounds.minX);
-                    heightCss = Math.max(1, bounds.maxY - bounds.minY);
-                    originX = bounds.minX;
-                    originY = bounds.minY;
+                const plan = this.updateExportEstimate();
+                if (!plan.ok) {
+                    document.getElementById('export-popover').hidden = false;
+                    return { ok: false, reason: 'budget' };
                 }
-
+                if (!this.tiles.size && !confirm('当前画布是空的，确定仍要导出？')) return { ok: false, reason: 'cancelled' };
                 const strokes = document.createElement('canvas');
-                strokes.width = Math.ceil(widthCss * dpr);
-                strokes.height = Math.ceil(heightCss * dpr);
-                const strokesCtx = strokes.getContext('2d');
-                strokesCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-                this.tiles.forEach((tile) => {
-                    const origin = BoardWorld.tileOrigin(tile.tx, tile.ty);
-                    strokesCtx.drawImage(
-                        tile.canvas,
-                        origin.x - originX,
-                        origin.y - originY,
-                        BoardWorld.TILE_SIZE,
-                        BoardWorld.TILE_SIZE
-                    );
-                });
-                if (theme !== this.getBoardTheme()) {
-                    this.invertPixels(strokes);
-                }
-
                 const output = document.createElement('canvas');
-                output.width = strokes.width;
-                output.height = strokes.height;
-                const outputCtx = output.getContext('2d');
-                outputCtx.fillStyle = theme === 'dark' ? '#111827' : '#ffffff';
-                outputCtx.fillRect(0, 0, output.width, output.height);
-                outputCtx.drawImage(strokes, 0, 0);
-
-                const link = document.createElement('a');
-                link.download = `whiteboard_${new Date().getTime()}.png`;
-                link.href = output.toDataURL();
-                link.click();
+                try {
+                    strokes.width = output.width = plan.width;
+                    strokes.height = output.height = plan.height;
+                    const strokesCtx = strokes.getContext('2d');
+                    const outputCtx = output.getContext('2d');
+                    if (!strokesCtx || !outputCtx) throw new Error('canvas');
+                    strokesCtx.setTransform(plan.factor, 0, 0, plan.factor, 0, 0);
+                    this.tiles.forEach(tile => {
+                        const origin = BoardWorld.tileOrigin(tile.tx, tile.ty);
+                        strokesCtx.drawImage(tile.canvas, origin.x - plan.rect.x, origin.y - plan.rect.y, 1024, 1024);
+                    });
+                    if (theme !== this.getBoardTheme()) this.invertPixels(strokes);
+                    const style = getComputedStyle(document.documentElement);
+                    outputCtx.fillStyle = style.getPropertyValue(theme === 'dark' ? '--board-export-dark' : '--board-export-light').trim();
+                    outputCtx.fillRect(0, 0, output.width, output.height);
+                    outputCtx.drawImage(strokes, 0, 0);
+                    const blob = await new Promise(resolve => output.toBlob(resolve, 'image/png'));
+                    if (!blob) throw new Error('encode');
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.download = `whiteboard_${Date.now()}.png`;
+                    link.href = url; link.click();
+                    setTimeout(() => URL.revokeObjectURL(url), 1000);
+                    return { ok: true, width: plan.width, height: plan.height, bytes: plan.bytes };
+                } catch (_) {
+                    document.getElementById('export-estimate').textContent = '导出失败，画板已保留。请选择较小尺寸或保存 JSON。';
+                    document.getElementById('export-popover').hidden = false;
+                    return { ok: false, reason: 'budget' };
+                } finally { strokes.width = strokes.height = output.width = output.height = 0; }
             }
+
         }
-
-        function getSafeParentDocumentElement() {
-            try {
-                if (window.parent === window) return null;
-                const parentDoc = window.parent && window.parent.document;
-                const parentRoot = parentDoc && parentDoc.documentElement;
-                return parentRoot instanceof Node ? parentRoot : null;
-            } catch (e) {
-                return null;
-            }
-        }
-
-        let currentAppliedTheme = null;
-
-        function detectTheme() {
-            try {
-                const parentRoot = getSafeParentDocumentElement();
-                const parentTheme = parentRoot ? parentRoot.getAttribute('data-theme') : null;
-                if (parentTheme === 'light' || parentTheme === 'dark') {
-                    return parentTheme;
-                }
-            } catch (e) { }
-            try {
-                const stored = localStorage.getItem('theme');
-                if (stored === 'light' || stored === 'dark') {
-                    return stored;
-                }
-            } catch (e) { }
-            return 'light';
-        }
-
-        function applyTheme(theme) {
-            if (theme !== 'light' && theme !== 'dark') {
-                theme = 'light';
-            }
-            if (theme === currentAppliedTheme) {
-                return;
-            }
-            const previous = currentAppliedTheme;
-            currentAppliedTheme = theme;
-            document.documentElement.setAttribute('data-theme', theme);
-            if (window.whiteboard && previous) {
-                window.whiteboard.handleThemeChange(theme, previous);
-            }
-        }
-
-        applyTheme(detectTheme());
 
         document.addEventListener('DOMContentLoaded', () => {
-            applyTheme(detectTheme());
             setTimeout(() => {
                 window.whiteboard = new WhiteBoard();
                 document.getElementById('loading').style.display = 'none';
             }, 100);
         });
 
-        window.addEventListener('message', (e) => {
-            if (e.data && e.data.type === '17tools-theme') {
-                applyTheme(e.data.theme);
-            }
-        });
+        (function bindBoardThemeCanvas() {
+            let lastTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+            window.addEventListener('themeChange', function (event) {
+                const theme = event.detail && event.detail.theme;
+                if (theme !== 'light' && theme !== 'dark') {
+                    return;
+                }
+                if (window.whiteboard && lastTheme && lastTheme !== theme) {
+                    window.whiteboard.handleThemeChange(theme, lastTheme);
+                }
+                lastTheme = theme;
+            });
+        })();
 
-        new MutationObserver(() => {
-            const theme = document.documentElement.getAttribute('data-theme');
-            if (theme) {
-                applyTheme(theme);
-            }
-        }).observe(document.documentElement, {
-            attributes: true,
-            attributeFilter: ['data-theme']
-        });
-
-        try {
-            const parentRoot = getSafeParentDocumentElement();
-            if (parentRoot) {
-                new MutationObserver(() => applyTheme(detectTheme()))
-                    .observe(parentRoot, { attributes: true, attributeFilter: ['data-theme'] });
-            }
-        } catch (e) { }
+        (function initToolParamsPanel() {
+            const panel = document.getElementById('tool-params');
+            if (!panel) return;
+            let userToggled = false;
+            let applyingDefault = false;
+            panel.addEventListener('toggle', () => {
+                if (!applyingDefault) userToggled = true;
+            });
+            const applyDefault = () => {
+                if (userToggled) return;
+                const shouldOpen = window.innerWidth >= 769;
+                if (panel.open === shouldOpen) return;
+                applyingDefault = true;
+                panel.open = shouldOpen;
+                applyingDefault = false;
+            };
+            applyDefault();
+            window.addEventListener('resize', applyDefault);
+        })();
     </script>
 </body>
 

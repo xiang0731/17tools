@@ -3,10 +3,180 @@
  * 用于在iframe中的子页面与主页面保持主题同步
  */
 
+var ThemeCore = (function () {
+    'use strict';
+
+    var KEYS = {
+        THEME: '17tools-theme',
+        HAS_VISITED: '17tools-has-visited',
+        PREFER_DESKTOP: '17tools-prefer-desktop',
+        LEGACY_THEME: 'theme',
+        LEGACY_HAS_VISITED: 'hasVisited',
+        LEGACY_PREFER_DESKTOP: 'preferDesktop'
+    };
+
+    function isValidTheme(theme) {
+        return theme === 'light' || theme === 'dark';
+    }
+
+    function isValidPreference(pref) {
+        return pref === 'light' || pref === 'dark' || pref === 'system';
+    }
+
+    function isFileNullOrigin(origin) {
+        return origin === 'null' || origin === 'file://';
+    }
+
+    function isTrustedThemeSource(event, win) {
+        if (!event || !win || event.source !== win.parent) {
+            return false;
+        }
+        const origin = event.origin == null ? '' : String(event.origin);
+        const loc = win.location || {};
+        if (isFileNullOrigin(origin)) {
+            return loc.protocol === 'file:' || isFileNullOrigin(loc.origin);
+        }
+        if (origin && origin === loc.origin) {
+            return true;
+        }
+        try {
+            const parentLoc = win.parent && win.parent.location;
+            if (parentLoc && origin && origin === parentLoc.origin) {
+                return true;
+            }
+        } catch (e) { /* 无法读取父 origin 时不放行 http 异源 */ }
+        return false;
+    }
+
+    function readThemeFromMessage(event, win) {
+        if (!isTrustedThemeSource(event, win)) {
+            return null;
+        }
+        const data = event.data;
+        if (!data || data.type !== '17tools-theme') {
+            return null;
+        }
+        return isValidTheme(data.theme) ? data.theme : null;
+    }
+
+    function readSystemTheme(matchMediaFn) {
+        try {
+            var fn = matchMediaFn;
+            if (typeof fn !== 'function' && typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+                fn = window.matchMedia.bind(window);
+            }
+            if (typeof fn === 'function') {
+                var mq = fn('(prefers-color-scheme: dark)');
+                if (mq && mq.matches) {
+                    return 'dark';
+                }
+            }
+        } catch (e) { /* matchMedia 不可用时回落浅色 */ }
+        return 'light';
+    }
+
+    function resolveAppliedTheme(preference, systemTheme) {
+        if (isValidTheme(preference)) {
+            return preference;
+        }
+        return systemTheme === 'dark' ? 'dark' : 'light';
+    }
+
+    function migrateLegacyPrefs(storage) {
+        if (!storage || typeof storage.getItem !== 'function' || typeof storage.setItem !== 'function') {
+            return storage;
+        }
+        function move(fromKey, toKey) {
+            if (storage.getItem(toKey) != null) {
+                return;
+            }
+            var value = storage.getItem(fromKey);
+            if (value != null) {
+                storage.setItem(toKey, value);
+            }
+        }
+        move(KEYS.LEGACY_THEME, KEYS.THEME);
+        move(KEYS.LEGACY_HAS_VISITED, KEYS.HAS_VISITED);
+        move(KEYS.LEGACY_PREFER_DESKTOP, KEYS.PREFER_DESKTOP);
+        return storage;
+    }
+
+    function readThemePreference(storage) {
+        migrateLegacyPrefs(storage);
+        if (!storage || typeof storage.getItem !== 'function') {
+            return 'system';
+        }
+        var pref = storage.getItem(KEYS.THEME);
+        return isValidPreference(pref) ? pref : 'system';
+    }
+
+    function readAppliedTheme(storage, systemTheme) {
+        return resolveAppliedTheme(readThemePreference(storage), systemTheme);
+    }
+
+    function markVisited(storage) {
+        if (!storage || typeof storage.getItem !== 'function' || typeof storage.setItem !== 'function') {
+            return;
+        }
+        migrateLegacyPrefs(storage);
+        if (storage.getItem(KEYS.HAS_VISITED) == null) {
+            storage.setItem(KEYS.HAS_VISITED, 'true');
+        }
+    }
+
+    return {
+        KEYS: KEYS,
+        isValidTheme: isValidTheme,
+        isValidPreference: isValidPreference,
+        isFileNullOrigin: isFileNullOrigin,
+        isTrustedThemeSource: isTrustedThemeSource,
+        readThemeFromMessage: readThemeFromMessage,
+        readSystemTheme: readSystemTheme,
+        resolveAppliedTheme: resolveAppliedTheme,
+        migrateLegacyPrefs: migrateLegacyPrefs,
+        readThemePreference: readThemePreference,
+        readAppliedTheme: readAppliedTheme,
+        markVisited: markVisited
+    };
+})();
+
+function themePrefs() {
+    if (window.SafeStorage) {
+        if (!window.SafeStorage.shared) {
+            window.SafeStorage.shared = window.SafeStorage.createShared(window);
+        }
+        return window.SafeStorage.shared;
+    }
+    const memory = {};
+    try {
+        return {
+            getItem: function (key) { return localStorage.getItem(key); },
+            setItem: function (key, value) {
+                localStorage.setItem(key, value);
+                return { persisted: true, verified: true };
+            }
+        };
+    } catch (error) {
+        return {
+            getItem: function (key) {
+                return Object.prototype.hasOwnProperty.call(memory, key) ? memory[key] : null;
+            },
+            setItem: function (key, value) {
+                memory[key] = String(value);
+                return { persisted: false, verified: false };
+            }
+        };
+    }
+}
+
 class ThemeManager {
     constructor() {
+        this.preference = 'system';
         this.currentTheme = 'light';
         this.observers = [];
+        if (typeof window !== 'undefined' && !window.themeManager) {
+            window.themeManager = this;
+        }
         this.init();
     }
 
@@ -14,9 +184,20 @@ class ThemeManager {
      * 初始化主题管理器
      */
     init() {
+        if (this._inited) {
+            return;
+        }
+        this._inited = true;
+        const prefs = themePrefs();
+        ThemeCore.migrateLegacyPrefs(prefs);
+        ThemeCore.markVisited(prefs);
+        this.preference = ThemeCore.readThemePreference(prefs);
         this.detectParentTheme();
         this.watchParentThemeChanges();
+        this.setupOwnAttributeSync();
         this.setupLocalThemeSync();
+        this.setupParentMessageSync();
+        this.watchSystemTheme();
     }
 
     /**
@@ -28,7 +209,7 @@ class ThemeManager {
             const parentRoot = this.getSafeParentDocumentElement();
             if (parentRoot) {
                 const parentTheme = parentRoot.getAttribute('data-theme');
-                if (parentTheme) {
+                if (ThemeCore.isValidTheme(parentTheme)) {
                     this.applyTheme(parentTheme);
                     return;
                 }
@@ -43,39 +224,23 @@ class ThemeManager {
     }
 
     /**
-     * 获取初始主题设置
-     * 首次访问：根据时间自动选择主题（6am-5:59pm为浅色，其他时间为深色）
-     * 后续访问：使用之前保存的设置
+     * 无已存偏好时跟随系统；显式浅色/深色则用保存值。
      */
     getInitialTheme() {
-        const savedTheme = localStorage.getItem('theme');
-        const hasVisited = localStorage.getItem('hasVisited');
-
-        // 如果是首次访问，根据当前时间设置默认主题
-        if (!hasVisited) {
-            const now = new Date();
-            const currentHour = now.getHours();
-
-            // 6am-5:59pm (6-17) 为浅色模式，其他时间为深色模式
-            const defaultTheme = (currentHour >= 6 && currentHour < 18) ? 'light' : 'dark';
-
-            // 标记已访问并保存首次访问时的主题设置
-            localStorage.setItem('hasVisited', 'true');
-            localStorage.setItem('theme', defaultTheme);
-
-            console.log(`首次访问 - 当前时间: ${now.toLocaleTimeString()}, 默认主题: ${defaultTheme === 'light' ? '浅色' : '深色'}模式`);
-
-            return defaultTheme;
-        }
-
-        // 如果不是首次访问，使用保存的主题设置
-        return savedTheme || 'light';
+        const prefs = themePrefs();
+        ThemeCore.migrateLegacyPrefs(prefs);
+        this.preference = ThemeCore.readThemePreference(prefs);
+        return ThemeCore.resolveAppliedTheme(this.preference, this.getSystemTheme());
     }
 
     /**
      * 监听父窗口主题变化
      */
     watchParentThemeChanges() {
+        if (this._parentWatchBound) {
+            return;
+        }
+        this._parentWatchBound = true;
         try {
             const parentRoot = this.getSafeParentDocumentElement();
             if (parentRoot) {
@@ -83,7 +248,7 @@ class ThemeManager {
                     mutations.forEach((mutation) => {
                         if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
                             const parentTheme = parentRoot.getAttribute('data-theme');
-                            if (parentTheme !== this.currentTheme) {
+                            if (ThemeCore.isValidTheme(parentTheme) && parentTheme !== this.currentTheme) {
                                 this.applyTheme(parentTheme);
                             }
                         }
@@ -114,20 +279,78 @@ class ThemeManager {
     }
 
     /**
+     * 壳页可能直接改 iframe 的 data-theme，不经过 applyTheme。
+     * 监听自身根节点，补发 themeChange，让画布笔色、代码高亮等跟随。
+     */
+    setupOwnAttributeSync() {
+        if (typeof document === 'undefined' || this._ownAttrBound) {
+            return;
+        }
+        this._ownAttrBound = true;
+        const root = document.documentElement;
+        const observer = new MutationObserver(() => {
+            const theme = root.getAttribute('data-theme');
+            if (ThemeCore.isValidTheme(theme) && theme !== this.currentTheme) {
+                this.applyTheme(theme);
+            }
+        });
+        observer.observe(root, {
+            attributes: true,
+            attributeFilter: ['data-theme']
+        });
+        this.observers.push(observer);
+    }
+
+    /**
      * 设置本地主题同步
      */
     setupLocalThemeSync() {
-        // 监听本地存储变化
-        window.addEventListener('storage', (e) => {
-            if (e.key === 'theme' && e.newValue !== this.currentTheme) {
-                this.applyTheme(e.newValue);
-            }
-        });
+        if (typeof window === 'undefined') {
+            return;
+        }
+        if (!window.__17toolsThemeStorageBound) {
+            window.__17toolsThemeStorageBound = true;
+            window.addEventListener('storage', (e) => {
+                const manager = window.themeManager;
+                const keys = ThemeCore.KEYS;
+                if (!manager || (e.key !== keys.THEME && e.key !== keys.LEGACY_THEME)) {
+                    return;
+                }
+                const prefs = themePrefs();
+                ThemeCore.migrateLegacyPrefs(prefs);
+                manager.preference = ThemeCore.readThemePreference(prefs);
+                const next = ThemeCore.resolveAppliedTheme(manager.preference, manager.getSystemTheme());
+                if (next !== manager.currentTheme) {
+                    manager.applyTheme(next);
+                }
+            });
+        }
+        if (!window.__17toolsThemeChangeBound) {
+            window.__17toolsThemeChangeBound = true;
+            window.addEventListener('themeChange', (e) => {
+                const manager = window.themeManager;
+                const next = e && e.detail && e.detail.theme;
+                if (!manager || !ThemeCore.isValidTheme(next) || next === manager.currentTheme) {
+                    return;
+                }
+                manager.applyTheme(next);
+            });
+        }
+    }
 
-        // 监听自定义主题变化事件
-        window.addEventListener('themeChange', (e) => {
-            if (e.detail.theme !== this.currentTheme) {
-                this.applyTheme(e.detail.theme);
+    /**
+     * 接收壳页 17tools-theme 消息（校验 source / origin / light|dark）
+     */
+    setupParentMessageSync() {
+        if (typeof window === 'undefined' || window.__17toolsThemeMessageBound) {
+            return;
+        }
+        window.__17toolsThemeMessageBound = true;
+        window.addEventListener('message', (event) => {
+            const theme = ThemeCore.readThemeFromMessage(event, window);
+            const manager = window.themeManager;
+            if (theme && manager) {
+                manager.applyTheme(theme);
             }
         });
     }
@@ -137,15 +360,16 @@ class ThemeManager {
      * @param {string} theme - 主题名称 ('light' 或 'dark')
      */
     applyTheme(theme) {
-        if (!theme || (theme !== 'light' && theme !== 'dark')) {
+        if (!ThemeCore.isValidTheme(theme)) {
             theme = 'light';
+        }
+
+        if (theme === this.currentTheme && document.documentElement.getAttribute('data-theme') === theme) {
+            return;
         }
 
         this.currentTheme = theme;
         document.documentElement.setAttribute('data-theme', theme);
-
-        // 保存到本地存储
-        localStorage.setItem('theme', theme);
 
         // 触发自定义事件
         this.dispatchThemeChange(theme);
@@ -155,11 +379,24 @@ class ThemeManager {
     }
 
     /**
-     * 切换主题
+     * 写入主题偏好：system | light | dark
+     */
+    setPreference(pref) {
+        if (!ThemeCore.isValidPreference(pref)) {
+            pref = 'system';
+        }
+        this.preference = pref;
+        themePrefs().setItem(ThemeCore.KEYS.THEME, pref);
+        this.applyTheme(ThemeCore.resolveAppliedTheme(pref, this.getSystemTheme()));
+        return this.currentTheme;
+    }
+
+    /**
+     * 切换主题（独立页按钮：在浅色/深色间锁定，不再跟随系统）
      */
     toggleTheme() {
         const newTheme = this.currentTheme === 'light' ? 'dark' : 'light';
-        this.applyTheme(newTheme);
+        this.setPreference(newTheme);
         return newTheme;
     }
 
@@ -220,9 +457,11 @@ class ThemeManager {
      * @param {string} theme - 当前主题
      */
     updateCodeHighlightTheme(theme) {
-        // 查找highlight.js的样式链接
         const highlightLinks = document.querySelectorAll('link[href*="highlight"]');
         highlightLinks.forEach(link => {
+            if (link.id === 'hljs-light' || link.id === 'hljs-dark' || link.getAttribute('data-hljs-managed') === 'pair') {
+                return;
+            }
             if (theme === 'dark') {
                 link.href = link.href.replace(/github\.min\.css/, 'github-dark.min.css');
             } else {
@@ -230,7 +469,6 @@ class ThemeManager {
             }
         });
 
-        // 重新高亮代码块
         if (window.hljs) {
             document.querySelectorAll('pre code').forEach((block) => {
                 window.hljs.highlightElement(block);
@@ -298,25 +536,29 @@ class ThemeManager {
      * @returns {string} 系统偏好的主题
      */
     getSystemTheme() {
-        if (window.matchMedia) {
-            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        }
-        return 'light';
+        return ThemeCore.readSystemTheme();
     }
 
     /**
-     * 监听系统主题变化
+     * 监听系统主题变化（仅 preference 为 system 时应用）
      */
     watchSystemTheme() {
-        if (window.matchMedia) {
-            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-            mediaQuery.addListener((e) => {
-                // 只有在没有用户手动设置主题时才跟随系统
-                const userTheme = localStorage.getItem('theme');
-                if (!userTheme) {
-                    this.applyTheme(e.matches ? 'dark' : 'light');
-                }
-            });
+        if (this._systemWatchBound || typeof window === 'undefined' || !window.matchMedia) {
+            return;
+        }
+        this._systemWatchBound = true;
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        const onChange = (e) => {
+            const manager = window.themeManager || this;
+            if (manager.preference !== 'system') {
+                return;
+            }
+            manager.applyTheme(e.matches ? 'dark' : 'light');
+        };
+        if (typeof mediaQuery.addEventListener === 'function') {
+            mediaQuery.addEventListener('change', onChange);
+        } else if (typeof mediaQuery.addListener === 'function') {
+            mediaQuery.addListener(onChange);
         }
     }
 }
@@ -349,62 +591,116 @@ function addThemeTransition() {
     });
 }
 
+function onDomReady(fn) {
+    if (typeof document === 'undefined') {
+        return;
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', fn);
+    } else {
+        fn();
+    }
+}
+
+function applyStoredThemeEarly() {
+    if (typeof document === 'undefined' || typeof window === 'undefined') {
+        return;
+    }
+    try {
+        const parentRoot = (function () {
+            try {
+                if (window.parent === window) return null;
+                const parentDoc = window.parent && window.parent.document;
+                const parentEl = parentDoc && parentDoc.documentElement;
+                return parentEl || null;
+            } catch (e) {
+                return null;
+            }
+        })();
+        const parentTheme = parentRoot && parentRoot.getAttribute('data-theme');
+        if (ThemeCore.isValidTheme(parentTheme)) {
+            document.documentElement.setAttribute('data-theme', parentTheme);
+            return;
+        }
+        const prefs = themePrefs();
+        ThemeCore.migrateLegacyPrefs(prefs);
+        const applied = ThemeCore.readAppliedTheme(prefs, ThemeCore.readSystemTheme());
+        document.documentElement.setAttribute('data-theme', applied);
+    } catch (e) { /* 存储不可用时保持未设置，避免抛错 */ }
+}
+
 /**
  * 工具函数：初始化页面主题支持
  * @param {Object} options - 配置选项
  * @returns {ThemeManager} 主题管理器实例
  */
 function initializeTheme(options = {}) {
+    if (typeof window !== 'undefined' && window.themeManager) {
+        return window.themeManager;
+    }
+
     const {
         enableTransitions = true,
-        followSystemTheme = false,
+        followSystemTheme = true,
         themeToggleSelector = '.theme-toggle, [data-theme-toggle]'
     } = options;
 
-    // 创建主题管理器
     const themeManager = new ThemeManager();
 
-    // 添加过渡效果
     if (enableTransitions) {
         addThemeTransition();
     }
 
-    // 监听系统主题
     if (followSystemTheme) {
         themeManager.watchSystemTheme();
     }
 
-    // 自动绑定主题切换按钮
-    document.addEventListener('DOMContentLoaded', () => {
+    onDomReady(() => {
+        if (window.__17toolsThemeTogglesBound) {
+            return;
+        }
+        window.__17toolsThemeTogglesBound = true;
         const toggleButtons = document.querySelectorAll(themeToggleSelector);
         toggleButtons.forEach(button => {
             addThemeToggle(button, themeManager);
         });
     });
 
-    // 页面卸载时清理
-    window.addEventListener('beforeunload', () => {
-        themeManager.cleanup();
-    });
+    if (typeof window !== 'undefined' && !window.__17toolsThemeUnloadBound) {
+        window.__17toolsThemeUnloadBound = true;
+        window.addEventListener('beforeunload', () => {
+            if (window.themeManager) {
+                window.themeManager.cleanup();
+            }
+        });
+    }
 
     return themeManager;
 }
 
-// 导出到全局作用域
-window.ThemeManager = ThemeManager;
-window.addThemeToggle = addThemeToggle;
-window.addThemeTransition = addThemeTransition;
-window.initializeTheme = initializeTheme;
+if (typeof window !== 'undefined') {
+    window.ThemeCore = ThemeCore;
+    window.ThemeManager = ThemeManager;
+    window.addThemeToggle = addThemeToggle;
+    window.addThemeTransition = addThemeTransition;
+    window.initializeTheme = initializeTheme;
 
-// 如果是在iframe中，自动初始化
-if (window.parent !== window) {
-    document.addEventListener('DOMContentLoaded', () => {
+    applyStoredThemeEarly();
+    if (!window.themeManager) {
+        window.themeManager = initializeTheme();
+    }
+    onDomReady(function () {
         if (!window.themeManager) {
             window.themeManager = initializeTheme();
         }
     });
 }
 
+if (typeof module === 'object' && module.exports) {
+    module.exports = ThemeCore;
+}
+
+if (typeof window !== 'undefined' && typeof document !== 'undefined') {
 (function loadUnsavedGuard() {
     if (document.documentElement.getAttribute('data-unsaved-guard') === 'off') {
         return;
@@ -428,4 +724,5 @@ if (window.parent !== window) {
     script.src = '../js/unsaved-guard.js';
     script.onload = install;
     document.head.appendChild(script);
-})(); 
+})();
+} 

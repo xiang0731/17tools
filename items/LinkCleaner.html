@@ -3,10 +3,28 @@
 
 <head>
     <meta charset="UTF-8">
+    <script>
+        (function applyThemeEarly() {
+            try {
+                var pref = localStorage.getItem('17tools-theme');
+                if (pref == null) {
+                    pref = localStorage.getItem('theme');
+                    if (pref != null) {
+                        localStorage.setItem('17tools-theme', pref);
+                    }
+                }
+                var theme = (pref === 'light' || pref === 'dark')
+                    ? pref
+                    : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) { /* 存储不可用时由 theme.js 降级 */ }
+        })();
+    </script>
+
     <title>链接清理工具</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../css/theme.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="../vendor/fontawesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         html,
         body {
@@ -88,8 +106,8 @@
             flex: 1;
             min-width: 120px;
             padding: var(--spacing-md) var(--spacing-lg);
-            background: #8b5cf6;
-            color: white;
+            background: var(--primary-gradient);
+            color: var(--text-inverse);
             border: none;
             border-radius: var(--radius-md);
             cursor: pointer;
@@ -103,7 +121,7 @@
         }
 
         .paste-button:hover {
-            background: #7c3aed;
+            background: var(--primary-hover);
             transform: translateY(-2px);
             box-shadow: var(--shadow-md);
         }
@@ -137,7 +155,7 @@
             min-width: 120px;
             padding: var(--spacing-md) var(--spacing-lg);
             background: var(--success-color);
-            color: white;
+            color: var(--text-inverse);
             border: none;
             border-radius: var(--radius-md);
             cursor: pointer;
@@ -151,7 +169,7 @@
         }
 
         .copy-new-button:hover {
-            background: #059669;
+            background: var(--accent-hover);
             transform: translateY(-2px);
             box-shadow: var(--shadow-md);
         }
@@ -217,7 +235,7 @@
         .copy-button {
             padding: var(--spacing-sm) var(--spacing-md);
             background: var(--accent-color);
-            color: white;
+            color: var(--text-inverse);
             border: none;
             border-radius: var(--radius-md);
             cursor: pointer;
@@ -245,8 +263,80 @@
             background: var(--background-primary);
             border: 1px solid var(--border-color);
             border-radius: var(--radius-md);
-            max-height: 200px;
+            max-height: 280px;
             overflow-y: auto;
+        }
+
+        .result-summary,
+        .copy-summary {
+            margin: 0 0 var(--spacing-md) 0;
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--text-secondary);
+        }
+
+        .copy-panel {
+            margin-top: var(--spacing-md);
+            padding-top: var(--spacing-md);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .copy-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+        }
+
+        .copy-choice {
+            flex: 1 1 220px;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-xs);
+        }
+
+        .copy-panel .copy-new-button,
+        .copy-panel .copy-keep-button {
+            flex: none;
+            width: 100%;
+            min-height: 44px;
+        }
+
+        .copy-keep-button {
+            padding: var(--spacing-md) var(--spacing-lg);
+            background: var(--background-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all var(--transition-fast);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+        }
+
+        .copy-keep-button:hover {
+            background: var(--background-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .copy-keep-button:disabled {
+            background: var(--background-tertiary);
+            color: var(--text-tertiary);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .copy-note {
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--text-tertiary);
         }
 
         .bottom-section {
@@ -324,7 +414,7 @@
         .param-tag {
             display: inline-block;
             background: var(--warning-light);
-            color: var(--warning-color);
+            color: var(--text-warning);
             padding: 2px var(--spacing-sm);
             border-radius: var(--radius-sm);
             font-size: 12px;
@@ -359,6 +449,16 @@
             display: flex;
             align-items: center;
             gap: var(--spacing-sm);
+        }
+
+        .history-lifetime {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-full);
+            padding: 2px var(--spacing-sm);
+            line-height: 1.4;
         }
 
         .history-content {
@@ -405,12 +505,12 @@
         }
 
         .history-url.original {
-            background: rgba(239, 68, 68, 0.1);
+            background: color-mix(in srgb, var(--error-color) 12%, transparent);
             color: var(--text-secondary);
         }
 
         .history-url.cleaned {
-            background: rgba(34, 197, 94, 0.1);
+            background: color-mix(in srgb, var(--success-color) 12%, transparent);
             color: var(--text-primary);
         }
 
@@ -435,7 +535,7 @@
 
         .history-btn.restore {
             background: var(--warning-light);
-            color: var(--warning-color);
+            color: var(--text-warning);
         }
 
         .history-btn.copy {
@@ -475,6 +575,82 @@
             font-style: italic;
         }
 
+        .input-hint {
+            margin: var(--spacing-sm) 0 0 0;
+            font-size: 13px;
+            color: var(--text-tertiary);
+            line-height: 1.5;
+        }
+
+        .page-message {
+            margin-bottom: var(--spacing-md);
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .page-message[hidden] {
+            display: none !important;
+        }
+
+        .page-message.is-error {
+            background: color-mix(in srgb, var(--error-color) 12%, transparent);
+            color: var(--text-error);
+        }
+
+        .page-message.is-success {
+            background: color-mix(in srgb, var(--success-color) 12%, transparent);
+            color: var(--success-color);
+        }
+
+        .result-line {
+            display: grid;
+            grid-template-columns: max-content minmax(0, 1fr);
+            gap: var(--spacing-sm);
+            align-items: flex-start;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .result-line-warning { grid-column: 1 / -1; word-break: normal; overflow-wrap: anywhere; }
+        .result-original-button { grid-column: 1 / -1; justify-self: start; min-height: 44px; }
+        #linkResultPager { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-sm); margin-block: var(--spacing-md); }
+        #linkResultPager[hidden], #manualCopyPanel[hidden] { display: none; }
+        #linkPageStatus { flex: 1 1 150px; font-size: 13px; color: var(--text-secondary); }
+        #manualCopyResult { display: block; width: 100%; min-height: 120px; padding: var(--spacing-sm); margin-block: var(--spacing-sm); border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--background-primary); color: var(--text-primary); font: 14px/1.5 var(--font-mono); resize: vertical; }
+
+        .result-line:last-child {
+            margin-bottom: 0;
+        }
+
+        .result-line-status {
+            flex-shrink: 0;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 2px var(--spacing-sm);
+            border-radius: var(--radius-sm);
+        }
+
+        .result-line-url {
+            min-width: 0;
+            word-break: break-all;
+        }
+
+        .result-line.is-cleaned .result-line-status {
+            background: color-mix(in srgb, var(--success-color) 16%, transparent);
+            color: var(--success-color);
+        }
+
+        .result-line.is-invalid .result-line-status {
+            background: color-mix(in srgb, var(--error-color) 16%, transparent);
+            color: var(--text-error);
+        }
+
+        .result-line.is-already-clean .result-line-status {
+            background: var(--background-tertiary);
+            color: var(--text-secondary);
+        }
+
         /* 响应式设计 */
         @media (max-width: 768px) {
             .link-cleaner {
@@ -498,6 +674,12 @@
                 align-items: flex-start;
                 gap: var(--spacing-sm);
             }
+
+            .copy-actions {
+                flex-direction: column;
+            }
+
+            .copy-choice { flex: 0 1 auto; }
 
             .copy-button {
                 align-self: flex-end;
@@ -545,9 +727,10 @@
             <label class="input-label" for="urlInput">
                 <i class="fas fa-paste"></i> 输入需要清理的链接
             </label>
-            <textarea id="urlInput" class="url-input" placeholder="粘贴包含追踪参数的链接，支持多行输入，例如:
-https://example.com/page?utm_source=google&utm_medium=cpc&utm_campaign=summer&ref=homepage
-https://shop.example.com/product/123?fbclid=abc123&gclid=def456&utm_term=keyword"></textarea>
+            <textarea id="urlInput" aria-label="待清理链接" class="url-input" placeholder="每行一个链接，没有 https:// 也可以，例如:
+https://example.com/page?utm_source=google&utm_medium=cpc
+www.google.com?utm_source=x"></textarea>
+            <p class="input-hint">脏链接进来，干净链接出去。看不懂的行会标成「无法解析」。复制前会显示将复制和将跳过的行数。</p>
         </div>
 
         <div class="button-group">
@@ -559,15 +742,14 @@ https://shop.example.com/product/123?fbclid=abc123&gclid=def456&utm_term=keyword
                 <i class="fas fa-broom"></i>
                 清理链接
             </button>
-            <button class="copy-new-button" onclick="copyNewLinks()" id="copyNewBtn" disabled>
-                <i class="fas fa-copy"></i>
-                复制新链接
-            </button>
             <button class="clear-button" onclick="clearAll()">
                 <i class="fas fa-eraser"></i>
                 清空
             </button>
         </div>
+
+        <p>最多100万字符、2000行链接。结果按50行显示，复制仍完整。原参数编码保留，签名链接可回退原文。</p>
+        <div id="pageMessage" class="page-message" hidden></div>
 
         <div class="result-container" id="resultContainer" style="display: none;">
             <div class="result-header">
@@ -576,7 +758,36 @@ https://shop.example.com/product/123?fbclid=abc123&gclid=def456&utm_term=keyword
                     清理后的链接
                 </div>
             </div>
+            <p class="result-summary" id="resultSummary" aria-live="polite"></p>
             <div class="result-value" id="resultValue"></div>
+            <div id="linkResultPager" hidden>
+                <button type="button" id="linkPreviousPage" class="btn btn-secondary">上一批</button>
+                <span id="linkPageStatus" role="status"></span>
+                <button type="button" id="linkNextPage" class="btn btn-secondary">下一批</button>
+            </div>
+            <div id="manualCopyPanel" hidden>
+                <label for="manualCopyResult">复制未成功，请从这里手动复制完整结果</label>
+                <textarea id="manualCopyResult" readonly></textarea>
+            </div>
+            <div class="copy-panel">
+                <p class="copy-summary" id="copySummary"></p>
+                <div class="copy-actions">
+                    <div class="copy-choice">
+                        <button type="button" class="copy-new-button" id="copyValidBtn" aria-describedby="copyValidNote" onclick="copyValidLinks()" disabled>
+                            <i class="fas fa-copy"></i>
+                            只复制有效链接
+                        </button>
+                        <p class="copy-note" id="copyValidNote"></p>
+                    </div>
+                    <div class="copy-choice">
+                        <button type="button" class="copy-keep-button" id="copyKeepInvalidBtn" aria-describedby="copyKeepNote" onclick="copyKeepInvalidLinks()" disabled>
+                            <i class="fas fa-copy"></i>
+                            保留无效行
+                        </button>
+                        <p class="copy-note" id="copyKeepNote"></p>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="bottom-section">
@@ -600,6 +811,7 @@ https://shop.example.com/product/123?fbclid=abc123&gclid=def456&utm_term=keyword
                     <h3 class="history-title">
                         <i class="fas fa-history"></i>
                         清理历史
+                        <span class="history-lifetime">仅本次页面</span>
                     </h3>
                     <button class="clear-history-btn" onclick="clearCleaningHistory()" id="clearHistoryBtn"
                         style="display: none;">
@@ -617,67 +829,12 @@ https://shop.example.com/product/123?fbclid=abc123&gclid=def456&utm_term=keyword
         </div>
     </div>
 
-    <script src="../js/unsaved-guard.js"></script>
-    <script src="../js/theme.js"></script>
+    <script src="../js/text-budget-core.js"></script>
+    <script src="../js/clipboard.js"></script>
+    <script src="../js/link-cleaner-core.js"></script>
     <script>
-        // 仅保留含义明确、移除后不会改变页面内容的追踪参数。
-        // q、variant、app、from、ref 等可能承载业务状态，不在全局规则中删除。
-        const trackingParams = new Set([
-            // Google Analytics & Ads
-            'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
-            'gclid', 'gclsrc', 'dclid', 'gbraid', 'wbraid',
-
-            // Facebook
-            'fbclid', 'fb_action_ids', 'fb_action_types', 'fb_source', 'fb_ref',
-
-            // Twitter
-            'twclid', 'ref_src', 'ref_url',
-
-            // LinkedIn
-            'li_fat_id', 'trk', 'trkCampaign',
-
-            // TikTok
-            'ttclid',
-
-            // Microsoft/Bing
-            'msclkid',
-
-            // Email tracking
-            'mc_cid', 'mc_eid', 'mkt_tok',
-
-            // 明确的分析/分享追踪参数
-            '_ga', '_gl', 'igshid', 'ved', 'usg',
-
-            // Shopify 列表来源信息（保留决定商品规格的 variant）
-            '_pos', '_sid', '_ss',
-
-            // Other common tracking parameters
-            'spm', 'scm', 'share_medium', 'share_source',
-            'vn_medium', 'vn_campaign', 'vn_source', 'vn_term', 'vn_content'
-        ].map(param => param.toLowerCase()));
-
-        const AMAZON_HOST_PATTERN = /(^|\.)amazon\.[a-z]{2,3}(\.[a-z]{2})?$/i;
-
-        function isTrackingParameter(paramName, hostname) {
-            const name = paramName.toLowerCase();
-
-            if (name.startsWith('utm_') || trackingParams.has(name)) {
-                return true;
-            }
-
-            // 这些名称过于通用，只能在确定的站点上按追踪参数处理。
-            if (AMAZON_HOST_PATTERN.test(hostname) &&
-                (name === 'tag' || name === 'ref' || name === 'ref_' || name.startsWith('pf_rd_'))) {
-                return true;
-            }
-
-            const isYouTube = hostname === 'youtu.be' || hostname === 'youtube.com' || hostname.endsWith('.youtube.com');
-            if (isYouTube && (name === 'feature' || name === 'si')) {
-                return true;
-            }
-
-            return false;
-        }
+        const core = window.LinkCleanerCore;
+        const MESSAGES = core.MESSAGES;
 
         // 参数说明字典
         const paramDescriptions = {
@@ -771,98 +928,183 @@ https://shop.example.com/product/123?fbclid=abc123&gclid=def456&utm_term=keyword
         let cleaningStats = {
             totalLinks: 0,
             cleanedLinks: 0,
+            alreadyCleanLinks: 0,
+            invalidLinks: 0,
             removedParams: []
         };
 
         let cleaningHistory = [];
+        let lastCleanResult = core.cleanInput('');
+        let linkResultPage = 0;
+        const LINK_PAGE_SIZE = 50;
+        let messageTimer = null;
+
+        function cleanSingleLink(url) {
+            return core.cleanSingleLink(url);
+        }
+
+        function showPageMessage(text, kind) {
+            const el = document.getElementById('pageMessage');
+            if (messageTimer) {
+                clearTimeout(messageTimer);
+                messageTimer = null;
+            }
+            if (!text) {
+                el.hidden = true;
+                el.textContent = '';
+                el.className = 'page-message';
+                return;
+            }
+            el.hidden = false;
+            el.className = 'page-message is-' + (kind === 'success' ? 'success' : 'error');
+            el.textContent = text;
+            if (kind === 'success') {
+                messageTimer = setTimeout(function () {
+                    showPageMessage('', '');
+                }, 2000);
+            }
+        }
+
+        function setButtonLabel(button, iconClass, label) {
+            clearElement(button);
+            appendIcon(button, iconClass);
+            button.append(' ' + label);
+        }
+
+        function renderCopyNotes(result) {
+            const summary = result && result.summary ? result.summary : '原始 0 行，有效 0 行，跳过 0 行';
+            const validNote = result && result.validCopyNote ? result.validCopyNote : '将复制 0 行，跳过 0 行';
+            const keepNote = result && result.keepCopyNote ? result.keepCopyNote : '将复制 0 行，其中 0 行保留无效占位';
+            document.getElementById('resultSummary').textContent = summary;
+            document.getElementById('copySummary').textContent = summary;
+            document.getElementById('copyValidNote').textContent = validNote;
+            document.getElementById('copyKeepNote').textContent = keepNote;
+        }
+
+        function setCopyButtonsDisabled(validDisabled, keepDisabled) {
+            document.getElementById('copyValidBtn').disabled = validDisabled;
+            document.getElementById('copyKeepInvalidBtn').disabled = keepDisabled;
+        }
+
+        function renderResultLines(lines) {
+            const resultValue = document.getElementById('resultValue');
+            clearElement(resultValue);
+            lines.slice(linkResultPage * LINK_PAGE_SIZE, (linkResultPage + 1) * LINK_PAGE_SIZE).forEach(function (line) {
+                const row = document.createElement('div');
+                row.className = 'result-line is-' + line.status;
+                row.setAttribute('data-status', line.status);
+
+                const badge = document.createElement('span');
+                badge.className = 'result-line-status';
+                badge.textContent = line.statusLabel;
+
+                const url = document.createElement('span');
+                url.className = 'result-line-url';
+                url.textContent = line.url;
+
+                row.append(badge, url);
+                if (line.warning) {
+                    const note = document.createElement('span');
+                    note.className = 'result-line-warning';
+                    note.textContent = line.warning;
+                    const original = document.createElement('button');
+                    original.type = 'button';
+                    original.className = 'btn btn-secondary result-original-button';
+                    original.textContent = '复制原链接';
+                    original.addEventListener('click', async function () {
+                        try { await writeClipboard(line.original); showPageMessage('已复制原链接', 'success'); }
+                        catch (error) { showPageMessage(error.message, 'error'); }
+                    });
+                    row.append(note, original);
+                }
+                resultValue.appendChild(row);
+            });
+            const pages = Math.max(1, Math.ceil(lines.length / LINK_PAGE_SIZE));
+            document.getElementById('linkResultPager').hidden = pages <= 1;
+            document.getElementById('linkPageStatus').textContent = '第' + (linkResultPage + 1) + '/' + pages + '批；复制仍包含全部有效结果';
+            document.getElementById('linkPreviousPage').disabled = linkResultPage === 0;
+            document.getElementById('linkNextPage').disabled = linkResultPage >= pages - 1;
+        }
+        document.getElementById('linkPreviousPage').addEventListener('click', function () {
+            linkResultPage = Math.max(0, linkResultPage - 1); renderResultLines(lastCleanResult.lines);
+        });
+        document.getElementById('linkNextPage').addEventListener('click', function () {
+            linkResultPage = Math.min(Math.ceil(lastCleanResult.lines.length / LINK_PAGE_SIZE) - 1, linkResultPage + 1); renderResultLines(lastCleanResult.lines);
+        });
+
+        function renderEmptyStats() {
+            const statsContent = document.getElementById('statsContent');
+            clearElement(statsContent);
+            const emptyState = document.createElement('div');
+            emptyState.className = 'empty-state';
+            appendIcon(emptyState, 'fas fa-info-circle');
+            emptyState.appendChild(document.createElement('br'));
+            emptyState.append('输入链接后查看清理统计');
+            statsContent.appendChild(emptyState);
+        }
+
+        async function writeClipboard(text) {
+            const result = await ToolsClipboard.copyText(text);
+            if (!result.ok) {
+                const output = document.getElementById('manualCopyResult');
+                output.value = text;
+                document.getElementById('manualCopyPanel').hidden = false;
+                output.focus();
+                output.select();
+                throw new Error(result.message);
+            }
+            document.getElementById('manualCopyPanel').hidden = true;
+        }
+
+        const copyFeedbackTimers = new WeakMap();
+        function restoreCopyButton(button, icon, label) {
+            clearTimeout(copyFeedbackTimers.get(button));
+            copyFeedbackTimers.delete(button);
+            setButtonLabel(button, icon, label);
+        }
+        function flashButton(button, iconClass, label, restoreIcon, restoreLabel, ms) {
+            clearTimeout(copyFeedbackTimers.get(button));
+            setButtonLabel(button, iconClass, label);
+            copyFeedbackTimers.set(button, setTimeout(function () {
+                restoreCopyButton(button, restoreIcon, restoreLabel);
+            }, ms));
+        }
 
         function cleanLinks() {
-            const input = document.getElementById('urlInput').value.trim();
-            if (!input) {
-                alert('请输入需要清理的链接');
+            const input = document.getElementById('urlInput').value;
+            let result;
+            try { result = core.cleanInput(input); }
+            catch (error) { showPageMessage(error.message, 'error'); return; }
+            lastCleanResult = result;
+            linkResultPage = 0;
+
+            if (result.empty) {
+                showPageMessage(MESSAGES.emptyInput, 'error');
+                document.getElementById('resultContainer').style.display = 'none';
+                setCopyButtonsDisabled(true, true);
                 return;
             }
 
-            // 重置统计
-            cleaningStats = {
-                totalLinks: 0,
-                cleanedLinks: 0,
-                removedParams: []
-            };
+            showPageMessage('', '');
+            cleaningStats = result.stats;
 
-            const lines = input.split('\n').filter(line => line.trim());
-            const cleanedLines = [];
-            const historyItems = [];
-
-            lines.forEach(line => {
-                const trimmedLine = line.trim();
-                if (trimmedLine) {
-                    cleaningStats.totalLinks++;
-                    const cleaned = cleanSingleLink(trimmedLine);
-                    cleanedLines.push(cleaned.url);
-                    if (cleaned.removed.length > 0) {
-                        cleaningStats.cleanedLinks++;
-                        cleaningStats.removedParams.push(...cleaned.removed);
-                    }
-
-                    // 添加到历史记录
-                    if (trimmedLine !== cleaned.url) {
-                        historyItems.push({
-                            original: trimmedLine,
-                            cleaned: cleaned.url,
-                            timestamp: new Date().toLocaleString(),
-                            removedParams: cleaned.removed
-                        });
-                    }
-                }
-            });
-
-            // 添加历史记录
-            cleaningHistory.unshift(...historyItems);
+            const timestamp = new Date().toLocaleString();
+            const historyItems = result.lines
+                .map(function (line) {
+                    return core.historyItemFromLine(line, timestamp);
+                })
+                .filter(Boolean);
+            cleaningHistory = core.appendHistory(cleaningHistory, historyItems);
             updateHistory();
 
-            // 显示结果
             const resultContainer = document.getElementById('resultContainer');
-            const resultValue = document.getElementById('resultValue');
-            const copyNewBtn = document.getElementById('copyNewBtn');
-
-            resultValue.textContent = cleanedLines.join('\n');
+            renderResultLines(result.lines);
+            renderCopyNotes(result);
             resultContainer.style.display = 'block';
-            copyNewBtn.disabled = false;
+            setCopyButtonsDisabled(result.copyText.length === 0, result.lines.length === 0);
 
-            // 更新统计信息
             updateStats();
-
-            // 滚动到结果区域
             resultContainer.scrollIntoView({ behavior: 'smooth' });
-        }
-
-        function cleanSingleLink(url) {
-            try {
-                const urlObj = new URL(url);
-                const removedParams = [];
-
-                // 按参数名逐项判断，避免用 ref/source 等模糊子串误删业务参数。
-                const paramNames = Array.from(urlObj.searchParams.keys());
-                paramNames.forEach(paramName => {
-                    if (isTrackingParameter(paramName, urlObj.hostname)) {
-                        removedParams.push(paramName);
-                        urlObj.searchParams.delete(paramName);
-                    }
-                });
-
-                return {
-                    // 没有移除任何参数时保留用户原始文本，避免无意义的 URL 规范化。
-                    url: removedParams.length > 0 ? urlObj.toString() : url,
-                    removed: removedParams
-                };
-            } catch (e) {
-                // 如果不是有效URL，返回原始字符串
-                return {
-                    url: url,
-                    removed: []
-                };
-            }
         }
 
         function updateStats() {
@@ -871,7 +1113,9 @@ https://shop.example.com/product/123?fbclid=abc123&gclid=def456&utm_term=keyword
 
             clearElement(statsContent);
             statsContent.appendChild(createStatItem('处理链接数', cleaningStats.totalLinks));
-            statsContent.appendChild(createStatItem('清理成功数', cleaningStats.cleanedLinks));
+            statsContent.appendChild(createStatItem('已清理', cleaningStats.cleanedLinks));
+            statsContent.appendChild(createStatItem('本来就干净', cleaningStats.alreadyCleanLinks));
+            statsContent.appendChild(createStatItem('无法解析', cleaningStats.invalidLinks));
             statsContent.appendChild(createStatItem('移除参数数', cleaningStats.removedParams.length));
 
             if (uniqueRemovedParams.length > 0) {
@@ -886,14 +1130,14 @@ https://shop.example.com/product/123?fbclid=abc123&gclid=def456&utm_term=keyword
                 title.append(' 移除的参数:');
                 removedParams.appendChild(title);
 
-                uniqueRemovedParams.forEach(param => {
+                uniqueRemovedParams.forEach(function (param) {
                     const tag = document.createElement('span');
                     tag.className = 'param-tag';
                     tag.append(param);
 
                     const description = document.createElement('span');
                     description.className = 'param-description';
-                    description.textContent = `(${paramDescriptions[param] || paramDescriptions[param.toLowerCase()] || '追踪参数'})`;
+                    description.textContent = '(' + (paramDescriptions[param] || paramDescriptions[param.toLowerCase()] || '追踪参数') + ')';
                     tag.appendChild(description);
                     removedParams.appendChild(tag);
                 });
@@ -1007,103 +1251,90 @@ https://shop.example.com/product/123?fbclid=abc123&gclid=def456&utm_term=keyword
         }
 
         function pasteLinks() {
-            navigator.clipboard.readText().then(text => {
+            if (!navigator.clipboard || typeof navigator.clipboard.readText !== 'function') {
+                showPageMessage(MESSAGES.clipboardDenied, 'error');
+                return;
+            }
+            navigator.clipboard.readText().then(function (text) {
                 const urlInput = document.getElementById('urlInput');
                 urlInput.value = text;
                 urlInput.focus();
-            }).catch(() => {
-                alert('无法读取剪贴板内容，请手动粘贴');
+                showPageMessage('', '');
+            }).catch(function () {
+                showPageMessage(MESSAGES.clipboardDenied, 'error');
             });
         }
 
-        function copyNewLinks() {
-            const resultValue = document.getElementById('resultValue').textContent;
-            if (!resultValue) {
-                alert('没有可复制的内容');
+        function copyPrepared(text, button, restoreLabel, successMessage) {
+            if (!text) {
+                showPageMessage(MESSAGES.nothingToCopy, 'error');
                 return;
             }
 
-            navigator.clipboard.writeText(resultValue).then(() => {
-                const copyNewBtn = document.getElementById('copyNewBtn');
-                const originalHTML = copyNewBtn.innerHTML;
-                copyNewBtn.innerHTML = '<i class="fas fa-check"></i> 已复制';
-
-                setTimeout(() => {
-                    copyNewBtn.innerHTML = originalHTML;
-                }, 2000);
-            }).catch(() => {
-                // 备用复制方法
-                const textArea = document.createElement('textarea');
-                textArea.value = resultValue;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-
-                alert('链接已复制到剪贴板');
+            writeClipboard(text).then(function () {
+                flashButton(button, 'fas fa-check', '已复制', 'fas fa-copy', restoreLabel, 2000);
+                showPageMessage(successMessage, 'success');
+            }).catch(function () {
+                restoreCopyButton(button, 'fas fa-copy', restoreLabel);
+                showPageMessage(MESSAGES.copyFailed, 'error');
             });
         }
 
+        function copyValidLinks() {
+            const result = lastCleanResult;
+            copyPrepared(
+                result && result.copyText,
+                document.getElementById('copyValidBtn'),
+                '只复制有效链接',
+                MESSAGES.copiedValid
+            );
+        }
+
+        function copyKeepInvalidLinks() {
+            const result = lastCleanResult;
+            copyPrepared(
+                result && result.copyTextKeepInvalid,
+                document.getElementById('copyKeepInvalidBtn'),
+                '保留无效行',
+                MESSAGES.copiedKeepInvalid
+            );
+        }
+
         function copyHistoryLink(url, type, button) {
-            navigator.clipboard.writeText(url).then(() => {
-                // 临时显示成功提示
-                const originalHTML = button.innerHTML;
+            writeClipboard(url).then(function () {
                 const typeText = type === 'original' ? '原链接' : '新链接';
-                button.innerHTML = `<i class="fas fa-check"></i> 已复制${typeText}`;
-
-                setTimeout(() => {
-                    button.innerHTML = originalHTML;
-                }, 1500);
-            }).catch(() => {
-                // 备用复制方法
-                const textArea = document.createElement('textarea');
-                textArea.value = url;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-
-                alert('链接已复制到剪贴板');
+                const restoreLabel = type === 'original' ? '复制原链接' : '复制新链接';
+                flashButton(button, 'fas fa-check', '已复制' + typeText, 'fas fa-copy', restoreLabel, 1500);
+                showPageMessage(MESSAGES.copied, 'success');
+            }).catch(function () {
+                restoreCopyButton(button, 'fas fa-copy', type === 'original' ? '复制原链接' : '复制新链接');
+                showPageMessage(MESSAGES.copyFailed, 'error');
             });
         }
 
         function clearCleaningHistory() {
             if (cleaningHistory.length === 0) return;
-
-            if (confirm('确定要清空所有清理历史吗？')) {
-                cleaningHistory = [];
-                updateHistory();
-            }
+            cleaningHistory = [];
+            updateHistory();
         }
-
 
         function clearAll() {
             document.getElementById('urlInput').value = '';
             document.getElementById('resultContainer').style.display = 'none';
-
-            // 禁用复制新链接按钮
-            const copyNewBtn = document.getElementById('copyNewBtn');
-            copyNewBtn.disabled = true;
-
-            // 重置统计
-            const statsContent = document.getElementById('statsContent');
-            statsContent.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-info-circle"></i><br>
-                    输入链接后查看清理统计
-                </div>
-            `;
-
-            // 聚焦到输入框
+            setCopyButtonsDisabled(true, true);
+            lastCleanResult = core.cleanInput('');
+            renderCopyNotes(lastCleanResult);
+            showPageMessage('', '');
+            renderEmptyStats();
             document.getElementById('urlInput').focus();
         }
 
-        // 页面加载完成后初始化
         document.addEventListener('DOMContentLoaded', function () {
-            // 自动聚焦到输入框
             document.getElementById('urlInput').focus();
         });
     </script>
+    <script src="../js/unsaved-guard.js"></script>
+    <script src="../js/theme.js"></script>
 </body>
 
 </html>

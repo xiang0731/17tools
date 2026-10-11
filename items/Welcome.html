@@ -1,61 +1,39 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh" data-unsaved-guard="off">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>欢迎页面</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        (function applyThemeEarly() {
+            try {
+                var pref = localStorage.getItem('17tools-theme');
+                if (pref == null) {
+                    pref = localStorage.getItem('theme');
+                    if (pref != null) {
+                        localStorage.setItem('17tools-theme', pref);
+                    }
+                }
+                var theme = (pref === 'light' || pref === 'dark')
+                    ? pref
+                    : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) { /* 存储不可用时由 theme.js 降级 */ }
+        })();
+    </script>
+    <link rel="stylesheet" href="../css/theme.css">
+    <link href="../vendor/fontawesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root {
-            /* 浅色模式变量 */
-            --primary-color: #6366f1;
-            --secondary-color: #f8fafc;
-            --accent-color: #10b981;
-            --text-primary: #1f2937;
-            --text-secondary: #6b7280;
-            --background-primary: #ffffff;
-            --background-secondary: #f8fafc;
-            --background-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --card-background: rgba(255, 255, 255, 0.9);
-            --border-color: #e5e7eb;
-            --shadow-light: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-            --shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            --shadow-large: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
-
-        [data-theme="dark"] {
-            /* 深色模式变量 */
-            --primary-color: #818cf8;
-            --secondary-color: #1f2937;
-            --accent-color: #34d399;
-            --text-primary: #f9fafb;
-            --text-secondary: #d1d5db;
-            --background-primary: #111827;
-            --background-secondary: #1f2937;
-            --background-gradient: linear-gradient(135deg, #434190 0%, #5a4b7c 100%);
-            --card-background: rgba(31, 41, 55, 0.9);
-            --border-color: #374151;
-            --shadow-light: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
-            --shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-            --shadow-large: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
         body {
-            font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: var(--font-family);
             background: var(--background-gradient);
             color: var(--text-primary);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s ease;
+            transition: background-color var(--transition-base), color var(--transition-base);
             overflow: hidden;
             position: relative;
         }
@@ -128,7 +106,7 @@
             text-align: center;
             background: var(--background-secondary);
             border: 1px solid var(--border-color);
-            border-radius: 24px;
+            border-radius: var(--radius-2xl);
             padding: 60px 40px;
             box-shadow: var(--shadow-sm);
             max-width: 600px;
@@ -175,9 +153,9 @@
         .version {
             display: inline-block;
             background: var(--primary-color);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 12px;
+            color: var(--text-inverse);
+            padding: var(--spacing-xs) var(--spacing-md);
+            border-radius: var(--radius-lg);
             font-size: 12px;
             font-weight: 600;
             margin-bottom: 24px;
@@ -198,23 +176,34 @@
         .features {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 24px;
-            margin-bottom: 40px;
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
         }
 
         .feature-card {
             background: var(--background-secondary);
             border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 24px 20px;
-            transition: all 0.3s ease;
-            cursor: default;
+            border-radius: var(--radius-xl);
+            padding: var(--spacing-lg) 20px;
+            transition: all var(--transition-base);
+            cursor: pointer;
+            font: inherit;
+            color: inherit;
+            width: 100%;
+            text-align: center;
+            appearance: none;
+            -webkit-appearance: none;
         }
 
         .feature-card:hover {
-            transform: translateY(-4px);
+            transform: translateY(-4px) scale(1.02);
             box-shadow: var(--shadow-medium);
             border-color: var(--primary-color);
+        }
+
+        .feature-card:focus-visible {
+            outline: 2px solid var(--border-focus);
+            outline-offset: 2px;
         }
 
         .feature-icon {
@@ -251,7 +240,7 @@
         .info-item {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: var(--spacing-sm);
             font-size: 14px;
             color: var(--text-secondary);
         }
@@ -263,7 +252,7 @@
         /* 响应式设计 */
         @media (max-width: 768px) {
             .welcome-container {
-                padding: 40px 24px;
+                padding: 40px var(--spacing-lg);
                 margin: 20px;
             }
 
@@ -281,7 +270,7 @@
 
             .features {
                 grid-template-columns: 1fr;
-                gap: 16px;
+                gap: var(--spacing-md);
             }
 
             .footer-info {
@@ -316,6 +305,9 @@
         .info-item {
             transition: all 0.3s ease;
         }
+        .task-shortcuts { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--spacing-sm); margin-bottom: var(--spacing-lg); }
+        .task-shortcuts p { width: 100%; color: var(--text-secondary); }
+        .task-shortcut { font: inherit; color: var(--text-primary); background: var(--background-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-md); min-height: 44px; padding: var(--spacing-sm) var(--spacing-md); cursor: pointer; }
     </style>
 </head>
 
@@ -326,42 +318,48 @@
                 <i class="fas fa-tools"></i>
             </div>
             <h1 class="title">17Tools</h1>
-            <div class="version" data-version>v2.16.2</div>
+            <div class="version" data-version>v2.19.1</div>
             <p class="description">
                 现代化的在线工具集合，为您的日常工作提供高效便捷的解决方案
             </p>
         </div>
 
         <div class="features">
-            <div class="feature-card">
+            <button type="button" class="feature-card" data-file="Calculator.html" aria-label="打开极速计算">
                 <div class="feature-icon">
-                    <i class="fas fa-rocket"></i>
+                    <i class="fas fa-calculator" aria-hidden="true"></i>
                 </div>
-                <div class="feature-title">高效便捷</div>
-                <div class="feature-desc">无需安装，打开即用，提升工作效率</div>
-            </div>
+                <div class="feature-title">极速计算</div>
+                <div class="feature-desc">打开即用，心算变笔算</div>
+            </button>
 
-            <div class="feature-card">
+            <button type="button" class="feature-card" data-file="Board.html" aria-label="打开智能白板">
                 <div class="feature-icon">
-                    <i class="fas fa-palette"></i>
+                    <i class="fas fa-paint-brush" aria-hidden="true"></i>
                 </div>
-                <div class="feature-title">现代设计</div>
-                <div class="feature-desc">精美界面，支持深色模式，护眼舒适</div>
-            </div>
+                <div class="feature-title">智能白板</div>
+                <div class="feature-desc">画画写字，想法先落在板上</div>
+            </button>
 
-            <div class="feature-card">
+            <button type="button" class="feature-card" data-file="QRCode.html" aria-label="打开二维码工具">
                 <div class="feature-icon">
-                    <i class="fas fa-mobile-alt"></i>
+                    <i class="fas fa-qrcode" aria-hidden="true"></i>
                 </div>
-                <div class="feature-title">响应式布局</div>
-                <div class="feature-desc">完美适配各种设备，随时随地使用</div>
-            </div>
+                <div class="feature-title">二维码工具</div>
+                <div class="feature-desc">链接、名片、WiFi，手机扫一扫</div>
+            </button>
         </div>
 
+        <div class="task-shortcuts" aria-label="按任务打开工具">
+            <p>今天想做什么？</p>
+            <button type="button" class="task-shortcut" data-file="ImageProcessor.html">压缩图片 / 隐私遮挡</button>
+            <button type="button" class="task-shortcut" data-file="LinkCleaner.html">去掉链接追踪参数</button>
+            <button type="button" class="task-shortcut" data-file="DateCalculator.html">计算工作日</button>
+        </div>
         <div class="footer-info">
             <div class="info-item">
                 <i class="fas fa-wrench"></i>
-                <span>19个实用工具</span>
+                <span>20个实用工具</span>
             </div>
             <div class="info-item">
                 <i class="fas fa-shield-alt"></i>
@@ -374,74 +372,22 @@
         </div>
     </div>
 
+    <script src="../js/tool-route-core.js"></script>
     <script>
-        // 检测并应用父窗口的主题
-        function getSafeParentDocumentElement() {
-            try {
-                if (window.parent === window) return null;
-                const parentDoc = window.parent && window.parent.document;
-                const parentRoot = parentDoc && parentDoc.documentElement;
-                return parentRoot instanceof Node ? parentRoot : null;
-            } catch (e) {
-                return null;
-            }
-        }
-
-        function applyParentTheme() {
-            try {
-                const parentRoot = getSafeParentDocumentElement();
-                const parentTheme = parentRoot ? parentRoot.getAttribute('data-theme') : null;
-                if (parentTheme) {
-                    document.documentElement.setAttribute('data-theme', parentTheme);
+        document.querySelectorAll('.feature-card[data-file], .task-shortcut[data-file]').forEach(function (card) {
+            card.addEventListener('click', function () {
+                const file = card.getAttribute('data-file');
+                if (window.ToolRoute && ToolRoute.requestParentNavigate(window, file)) {
+                    return;
                 }
-            } catch (e) {
-                // 如果无法访问父窗口，使用默认主题
-                const savedTheme = localStorage.getItem('theme') || 'light';
-                document.documentElement.setAttribute('data-theme', savedTheme);
-            }
-        }
-
-        // 监听主题变化
-        function watchThemeChanges() {
-            try {
-                const parentRoot = getSafeParentDocumentElement();
-                if (parentRoot) {
-                    const observer = new MutationObserver(function (mutations) {
-                        mutations.forEach(function (mutation) {
-                            if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
-                                const parentTheme = parentRoot.getAttribute('data-theme');
-                                document.documentElement.setAttribute('data-theme', parentTheme);
-                            }
-                        });
-                    });
-
-                    observer.observe(parentRoot, {
-                        attributes: true,
-                        attributeFilter: ['data-theme']
-                    });
-                }
-            } catch (e) {
-                console.log('无法监听父窗口主题变化');
-            }
-        }
-
-        // 页面加载完成后初始化
-        document.addEventListener('DOMContentLoaded', function () {
-            applyParentTheme();
-            watchThemeChanges();
-        });
-
-        // 添加一些交互效果
-        document.querySelectorAll('.feature-card').forEach(card => {
-            card.addEventListener('mouseenter', function () {
-                this.style.transform = 'translateY(-4px) scale(1.02)';
-            });
-
-            card.addEventListener('mouseleave', function () {
-                this.style.transform = 'translateY(0) scale(1)';
+                const search = window.ToolRoute
+                    ? ToolRoute.buildSearch(file)
+                    : ('?tool=' + encodeURIComponent(file || ''));
+                window.location.href = '../index.html' + search;
             });
         });
     </script>
+    <script src="../js/theme.js"></script>
     <script src="../js/version.js"></script>
 </body>
 

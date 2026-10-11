@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <script>
+        (function applyThemeEarly() {
+            try {
+                var pref = localStorage.getItem('17tools-theme');
+                if (pref == null) {
+                    pref = localStorage.getItem('theme');
+                    if (pref != null) {
+                        localStorage.setItem('17tools-theme', pref);
+                    }
+                }
+                var theme = (pref === 'light' || pref === 'dark')
+                    ? pref
+                    : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) { /* 存储不可用时由 theme.js 降级 */ }
+        })();
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>汽车能耗成本</title>
+    <link rel="stylesheet" href="../css/theme.css">
+    <link href="../vendor/fontawesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background: var(--background-primary);
+            color: var(--text-primary);
+            font-family: var(--font-family);
+        }
+
+        body {
+            padding: var(--spacing-lg);
+            box-sizing: border-box;
+        }
+
+        .page {
+            width: min(1080px, 100%);
+            margin: 0 auto;
+        }
+
+        .page-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 28px;
+            line-height: 1.2;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .header-note {
+            margin: var(--spacing-sm) 0 0;
+            max-width: 680px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .text-button {
+            flex-shrink: 0;
+            border: 1px solid var(--border-color);
+            background: var(--background-secondary);
+            color: var(--text-primary);
+            border-radius: var(--radius-md);
+            padding: 8px 14px;
+            font: inherit;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .text-button:hover {
+            background: var(--background-hover);
+        }
+
+        .text-button:focus-visible,
+        input:focus-visible {
+            outline: 2px solid var(--border-focus);
+            outline-offset: 2px;
+        }
+
+        .distance-card,
+        .vehicle-card,
+        .compare-card {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            background: var(--background-secondary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .distance-card {
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .vehicle-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: var(--spacing-lg);
+        }
+
+        .vehicle-card {
+            padding: var(--spacing-lg);
+            background: var(--background-primary);
+            min-width: 0;
+        }
+
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin: 0 0 var(--spacing-sm);
+            font-size: 20px;
+        }
+
+        .card-title .gas-icon {
+            color: var(--warning-color);
+        }
+
+        .card-title .electric-icon {
+            color: var(--accent-color);
+        }
+
+        .formula {
+            margin: 0 0 var(--spacing-md);
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .fields {
+            display: grid;
+            gap: var(--spacing-md);
+        }
+
+        .field {
+            display: grid;
+            gap: var(--spacing-xs);
+        }
+
+        .field-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .field-control {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            min-width: 0;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--background-secondary);
+            padding-right: var(--spacing-md);
+        }
+
+        .field-control:focus-within {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        input {
+            width: 100%;
+            min-width: 0;
+            border: 0;
+            background: transparent;
+            color: var(--text-primary);
+            font: inherit;
+            font-size: 16px;
+            padding: 12px 14px;
+        }
+
+        input:focus {
+            outline: none;
+        }
+
+        input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .field-unit {
+            flex-shrink: 0;
+            color: var(--text-tertiary);
+            font-size: 13px;
+        }
+
+        .field-message {
+            min-height: 1.4em;
+            margin: var(--spacing-sm) 0 0;
+            color: var(--error-color);
+            font-size: 13px;
+        }
+
+        .result {
+            margin-top: var(--spacing-lg);
+            padding-top: var(--spacing-md);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .result-kicker {
+            margin: 0;
+            color: var(--text-tertiary);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+
+        .result-main {
+            display: flex;
+            align-items: baseline;
+            gap: var(--spacing-xs);
+            margin: var(--spacing-xs) 0;
+        }
+
+        .result-value {
+            font-family: var(--font-mono);
+            font-size: clamp(32px, 5vw, 44px);
+            font-weight: 800;
+            line-height: 1.1;
+            color: var(--primary-color);
+            overflow-wrap: anywhere;
+        }
+
+        .result[data-state="empty"] .result-value,
+        .result[data-state="invalid"] .result-value {
+            color: var(--text-tertiary);
+        }
+
+        .result-unit {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .result-sub,
+        .result-note {
+            margin: 0;
+            min-height: 1.5em;
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .result-sub[data-state="invalid"] {
+            color: var(--error-color);
+        }
+
+        .result-note {
+            color: var(--error-color);
+        }
+
+        .result[data-state="empty"] .result-note {
+            color: var(--text-secondary);
+        }
+
+        .compare-card {
+            margin-top: var(--spacing-lg);
+            padding: var(--spacing-lg);
+        }
+
+        .compare-card[data-state="electric"] {
+            border-color: var(--accent-color);
+        }
+
+        .compare-card[data-state="gas"] {
+            border-color: var(--warning-color);
+        }
+
+        .compare-kicker {
+            margin: 0 0 var(--spacing-xs);
+            color: var(--text-tertiary);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+
+        .compare-headline {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 700;
+            line-height: 1.4;
+        }
+
+        .compare-detail {
+            margin: var(--spacing-xs) 0 0;
+            min-height: 1.5em;
+            color: var(--text-secondary);
+            font-size: 15px;
+        }
+
+        .storage-panel,
+        .legacy-banner {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-lg);
+            padding: var(--spacing-md);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            background: var(--background-secondary);
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        .legacy-banner {
+            border-color: var(--warning-color);
+        }
+
+        .legacy-banner[hidden] {
+            display: none;
+        }
+
+        .storage-status,
+        .legacy-banner p {
+            margin: 0;
+            flex: 1 1 12rem;
+            min-width: 0;
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.5;
+            overflow-wrap: anywhere;
+        }
+
+        .storage-status[data-state="saved"] {
+            color: var(--success-color);
+        }
+
+        .storage-status[data-state="error"] {
+            color: var(--error-color);
+        }
+
+        .legacy-banner p {
+            color: var(--text-primary);
+        }
+
+        .save-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            min-height: 44px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .save-toggle input {
+            width: 1.15rem;
+            height: 1.15rem;
+            margin: 0;
+            padding: 0;
+            flex: 0 0 auto;
+            accent-color: var(--primary-color);
+        }
+
+        .save-toggle input:focus-visible {
+            outline: 2px solid var(--border-focus);
+            outline-offset: 2px;
+        }
+
+        .storage-panel .text-button,
+        .legacy-banner .text-button {
+            max-width: 100%;
+        }
+
+        @media (max-width: 800px) {
+            body {
+                padding: var(--spacing-md);
+            }
+
+            .page-header {
+                flex-direction: column;
+            }
+
+            .vehicle-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .storage-panel,
+            .legacy-banner {
+                align-items: stretch;
+            }
+
+            .storage-panel .text-button,
+            .legacy-banner .text-button {
+                flex: 1 1 auto;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+        }
+        .advanced-card [hidden] { display: none; }
+        .advanced-card { margin-top: var(--spacing-lg); padding: var(--spacing-lg); border: 1px solid var(--border-color); border-radius: var(--radius-lg); background: var(--background-primary); }
+        .advanced-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:var(--spacing-md);margin:var(--spacing-md) 0; }
+        .advanced-card input[type="text"], .advanced-card select { width:100%;min-width:0;min-height:44px;padding:var(--spacing-sm);font:inherit;color:var(--text-primary);background:var(--background-secondary);border:1px solid var(--border-color);border-radius:var(--radius-sm); }
+        .annual-fees { min-width:0;margin:0;padding:var(--spacing-md);border:1px solid var(--border-color);border-radius:var(--radius-md); }
+        .annual-fees .save-toggle { display:flex;align-items:center;gap:var(--spacing-sm);min-height:44px;margin-bottom:var(--spacing-md); }
+        .annual-fees .field { margin-top:var(--spacing-sm); }
+        .advanced-result { color:var(--text-secondary);line-height:1.7;overflow-wrap:anywhere; }
+        .advanced-result strong { color:var(--text-primary); }
+        .advanced-result [data-state="invalid"] { color:var(--error-color); }
+    </style>
+</head>
+
+<body>
+    <div class="page">
+        <header class="page-header">
+            <div>
+                <h1>
+                    <i class="fas fa-gas-pump" aria-hidden="true"></i>
+                    汽车能耗成本
+                </h1>
+                <p class="header-note">填入百公里油耗或电耗，以及对应单价，计算每公里花费。填写油箱容积或电池容量后，按同样的能耗估算大约能跑多少公里。可选填行驶里程，算出这次行程的总价，并对比油车和电车。上方简易模式只计算能源费用；下方可选高级模式可加入保险、保养、折旧等年度费用。</p>
+            </div>
+            <button class="text-button" id="clear-btn" type="button">清空</button>
+        </header>
+
+        <section class="storage-panel" aria-label="本机保存">
+            <p class="storage-status" id="storage-status" data-state="session" role="status">仅本次页面</p>
+            <label class="save-toggle" for="save-on-device">
+                <input id="save-on-device" type="checkbox">
+                <span>在此设备保存</span>
+            </label>
+            <button class="text-button" id="clear-storage-btn" type="button">清除本机数据</button>
+        </section>
+
+        <div class="legacy-banner" id="legacy-banner" hidden role="region" aria-label="本机旧数据">
+            <p id="legacy-banner-text">本机留有上次填写的油耗和电价等数字</p>
+            <button class="text-button" id="restore-legacy-btn" type="button">恢复</button>
+            <button class="text-button" id="delete-legacy-btn" type="button">删除</button>
+        </div>
+
+        <section class="distance-card" aria-labelledby="distance-label">
+            <label class="field" id="distance-label">
+                <span class="field-label">行驶里程（可选）</span>
+                <span class="field-control">
+                    <input id="distance" type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
+                        placeholder="例如 100" aria-describedby="distance-message">
+                    <span class="field-unit">公里</span>
+                </span>
+            </label>
+            <p class="field-message" id="distance-message" role="status"></p>
+        </section>
+
+        <div class="vehicle-grid">
+            <section class="vehicle-card" aria-labelledby="gas-title">
+                <h2 class="card-title" id="gas-title">
+                    <i class="fas fa-gas-pump gas-icon" aria-hidden="true"></i>
+                    油车
+                </h2>
+                <p class="formula" id="gas-formula">每公里花费 = 百公里油耗 × 油价 ÷ 100<br>续航公里 = 油箱容积 ÷ 百公里油耗 × 100</p>
+                <div class="fields">
+                    <label class="field">
+                        <span class="field-label">百公里油耗</span>
+                        <span class="field-control">
+                            <input id="gas-consumption" type="text" inputmode="decimal" autocomplete="off"
+                                spellcheck="false" placeholder="例如 7.5" aria-describedby="gas-formula">
+                            <span class="field-unit">升</span>
+                        </span>
+                    </label>
+                    <label class="field">
+                        <span class="field-label">油价</span>
+                        <span class="field-control">
+                            <input id="gas-price" type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
+                                placeholder="例如 7.89">
+                            <span class="field-unit">元/升</span>
+                        </span>
+                    </label>
+                    <label class="field">
+                        <span class="field-label">油箱容积（可选）</span>
+                        <span class="field-control">
+                            <input id="gas-tank" type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
+                                placeholder="例如 50" aria-describedby="gas-formula">
+                            <span class="field-unit">升</span>
+                        </span>
+                    </label>
+                </div>
+                <div class="result" id="gas-result" data-state="empty" aria-live="polite">
+                    <p class="result-kicker">每公里能源费用</p>
+                    <p class="result-main">
+                        <span class="result-value" id="gas-per-km">—</span>
+                        <span class="result-unit">元</span>
+                    </p>
+                    <p class="result-sub" id="gas-per-100"></p>
+                    <p class="result-sub" id="gas-trip"></p>
+                    <p class="result-sub" id="gas-range" data-state="empty"></p>
+                    <p class="result-note" id="gas-message"></p>
+                </div>
+            </section>
+
+            <section class="vehicle-card" aria-labelledby="electric-title">
+                <h2 class="card-title" id="electric-title">
+                    <i class="fas fa-charging-station electric-icon" aria-hidden="true"></i>
+                    电车
+                </h2>
+                <p class="formula" id="electric-formula">每公里花费 = 百公里电耗 × 电价 ÷ 100。1 度 = 1 千瓦时。简易结果不另加充电损耗。<br>续航公里 = 电池容量 ÷ 百公里电耗 × 100</p>
+                <div class="fields">
+                    <label class="field">
+                        <span class="field-label">百公里电耗</span>
+                        <span class="field-control">
+                            <input id="electric-consumption" type="text" inputmode="decimal" autocomplete="off"
+                                spellcheck="false" placeholder="例如 13" aria-describedby="electric-formula">
+                            <span class="field-unit">千瓦时</span>
+                        </span>
+                    </label>
+                    <label class="field">
+                        <span class="field-label">电价</span>
+                        <span class="field-control">
+                            <input id="electric-price" type="text" inputmode="decimal" autocomplete="off"
+                                spellcheck="false" placeholder="例如 0.6">
+                            <span class="field-unit">元/度</span>
+                        </span>
+                    </label>
+                    <label class="field">
+                        <span class="field-label">电池容量（可选）</span>
+                        <span class="field-control">
+                            <input id="electric-battery" type="text" inputmode="decimal" autocomplete="off"
+                                spellcheck="false" placeholder="例如 60" aria-describedby="electric-formula">
+                            <span class="field-unit">千瓦时</span>
+                        </span>
+                    </label>
+                </div>
+                <div class="result" id="electric-result" data-state="empty" aria-live="polite">
+                    <p class="result-kicker">每公里能源费用</p>
+                    <p class="result-main">
+                        <span class="result-value" id="electric-per-km">—</span>
+                        <span class="result-unit">元</span>
+                    </p>
+                    <p class="result-sub" id="electric-per-100"></p>
+                    <p class="result-sub" id="electric-trip"></p>
+                    <p class="result-sub" id="electric-range" data-state="empty"></p>
+                    <p class="result-note" id="electric-message"></p>
+                </div>
+            </section>
+        </div>
+
+        <section class="compare-card" id="compare-card" data-state="incomplete" aria-live="polite">
+            <p class="compare-kicker">油电能源费用对比</p>
+            <p class="compare-headline" id="compare-headline"></p>
+            <p class="compare-detail" id="compare-detail"></p>
+        </section>
+
+        <section class="advanced-card" aria-labelledby="advanced-title">
+            <h2 id="advanced-title">高级：一年养车费用</h2>
+            <label class="save-toggle"><input id="advanced-enabled" type="checkbox">启用高级成本（可随时关闭）</label>
+            <p class="formula">上方简易结果只比较能源费用。这里将能源、保险、保养、其他固定费用和折旧分开；留空表示未知，勾选“不计此项”表示主动排除。</p>
+            <div id="advanced-fields" hidden>
+                <div class="advanced-grid">
+                    <label class="field"><span>年里程（公里/年）</span><input id="annualMileage" type="text" inputmode="decimal" autocomplete="off" placeholder="例如 15000"></label>
+                    <label class="field"><span>电耗口径</span><select id="chargeBasis"><option value="battery">电池侧：实际用于行驶的电量</option><option value="meter">电表侧：购电量，已包含损耗</option></select></label>
+                </div>
+                <label class="save-toggle"><input id="lossEnabled" type="checkbox">计入充电损耗（仅电池侧适用）</label>
+                <label class="field" id="efficiency-field"><span>充电效率（1–100%）</span><input id="chargeEfficiency" type="text" inputmode="decimal" autocomplete="off" placeholder="用户根据充电记录填写"></label>
+                <label class="save-toggle"><input id="blendedEnabled" type="checkbox">混合家充与公共充电电价</label>
+                <div class="advanced-grid" id="blended-fields" hidden>
+                    <label class="field"><span>家充占比（0–100%）</span><input id="homeShare" type="text" inputmode="decimal" autocomplete="off" placeholder="例如 80"></label>
+                    <label class="field"><span>家充电价（元/度）</span><input id="homePrice" type="text" inputmode="decimal" autocomplete="off" placeholder="包含实际费用，允许 0"></label>
+                    <label class="field"><span>公共充电电价（元/度）</span><input id="publicPrice" type="text" inputmode="decimal" autocomplete="off" placeholder="电费加服务费，允许 0"></label>
+                </div>
+                <div class="advanced-grid">
+                    <fieldset class="annual-fees"><legend>油车固定费用（元/年）</legend>
+                        <label class="field"><span>保险</span><input id="gasInsurance" type="text" inputmode="decimal" autocomplete="off" placeholder="留空为未知；确为 0 请填写 0"></label>
+                        <label class="save-toggle"><input id="gasInsuranceExcluded" type="checkbox">不计保险（主动排除）</label>
+                        <label class="field"><span>保养</span><input id="gasMaintenance" type="text" inputmode="decimal" autocomplete="off" placeholder="留空为未知；确为 0 请填写 0"></label>
+                        <label class="save-toggle"><input id="gasMaintenanceExcluded" type="checkbox">不计保养（主动排除）</label>
+                        <label class="field"><span>其他固定费用</span><input id="gasOther" type="text" inputmode="decimal" autocomplete="off" placeholder="留空为未知；确为 0 请填写 0"></label>
+                        <label class="save-toggle"><input id="gasOtherExcluded" type="checkbox">不计其他固定费用（主动排除）</label>
+                        <label class="field"><span>折旧</span><input id="gasDepreciation" type="text" inputmode="decimal" autocomplete="off" placeholder="留空为未知；确为 0 请填写 0"></label>
+                        <label class="save-toggle"><input id="gasDepreciationExcluded" type="checkbox">不计折旧（主动排除）</label>
+                    </fieldset>
+                    <fieldset class="annual-fees"><legend>电车固定费用（元/年）</legend>
+                        <label class="field"><span>保险</span><input id="electricInsurance" type="text" inputmode="decimal" autocomplete="off" placeholder="留空为未知；确为 0 请填写 0"></label>
+                        <label class="save-toggle"><input id="electricInsuranceExcluded" type="checkbox">不计保险（主动排除）</label>
+                        <label class="field"><span>保养</span><input id="electricMaintenance" type="text" inputmode="decimal" autocomplete="off" placeholder="留空为未知；确为 0 请填写 0"></label>
+                        <label class="save-toggle"><input id="electricMaintenanceExcluded" type="checkbox">不计保养（主动排除）</label>
+                        <label class="field"><span>其他固定费用</span><input id="electricOther" type="text" inputmode="decimal" autocomplete="off" placeholder="留空为未知；确为 0 请填写 0"></label>
+                        <label class="save-toggle"><input id="electricOtherExcluded" type="checkbox">不计其他固定费用（主动排除）</label>
+                        <label class="field"><span>折旧</span><input id="electricDepreciation" type="text" inputmode="decimal" autocomplete="off" placeholder="留空为未知；确为 0 请填写 0"></label>
+                        <label class="save-toggle"><input id="electricDepreciationExcluded" type="checkbox">不计折旧（主动排除）</label>
+                    </fieldset>
+                </div>
+                <div id="advanced-result" class="advanced-result" role="status" aria-live="polite"></div>
+            </div>
+        </section>
+    </div>
+
+    <script src="../js/energy-cost-core.js"></script>
+    <script>
+        (function () {
+            var core = window.EnergyCostCore;
+            var distanceInput = document.getElementById('distance');
+            var distanceMessage = document.getElementById('distance-message');
+            var gasConsumption = document.getElementById('gas-consumption');
+            var gasPrice = document.getElementById('gas-price');
+            var gasTank = document.getElementById('gas-tank');
+            var electricConsumption = document.getElementById('electric-consumption');
+            var electricPrice = document.getElementById('electric-price');
+            var electricBattery = document.getElementById('electric-battery');
+            var compareCard = document.getElementById('compare-card');
+            var compareHeadline = document.getElementById('compare-headline');
+            var compareDetail = document.getElementById('compare-detail');
+            var saveOnDevice = document.getElementById('save-on-device');
+            var storageStatus = document.getElementById('storage-status');
+            var legacyBanner = document.getElementById('legacy-banner');
+            var inputs = [distanceInput, gasConsumption, gasPrice, gasTank, electricConsumption, electricPrice, electricBattery];
+            var advancedEnabled = document.getElementById('advanced-enabled');
+            var advancedKeys = Object.keys(core.blankAdvanced()).filter(function (key) { return key !== 'enabled'; });
+            var advancedInputs = advancedKeys.map(function (key) { return document.getElementById(key); });
+
+            function currentAdvanced() {
+                var data = { enabled: advancedEnabled.checked };
+                advancedKeys.forEach(function (key) { var field = document.getElementById(key); data[key] = field.type === 'checkbox' ? field.checked : field.value; });
+                return data;
+            }
+
+            function applyAdvanced(data) {
+                var clean = core.normalizeAdvanced(data);
+                advancedEnabled.checked = clean.enabled;
+                advancedKeys.forEach(function (key) { var field = document.getElementById(key); if (field.type === 'checkbox') field.checked = clean[key]; else field.value = clean[key]; });
+            }
+
+            function renderAdvanced(prefs) {
+                var options = currentAdvanced();
+                document.getElementById('advanced-fields').hidden = !options.enabled;
+                document.getElementById('efficiency-field').hidden = !options.lossEnabled || options.chargeBasis === 'meter';
+                document.getElementById('lossEnabled').disabled = options.chargeBasis === 'meter';
+                document.getElementById('blended-fields').hidden = !options.blendedEnabled;
+                ['gas', 'electric'].forEach(function (vehicle) { ['Insurance', 'Maintenance', 'Other', 'Depreciation'].forEach(function (cost) { document.getElementById(vehicle + cost).disabled = options[vehicle + cost + 'Excluded']; }); });
+                var result = core.calculateAdvancedCosts(Object.assign({}, prefs, { advanced: options }));
+                var host = document.getElementById('advanced-result');
+                host.replaceChildren();
+                if (!result.enabled) return;
+                if (result.errors.length) { var error = document.createElement('p'); error.dataset.state = 'invalid'; error.textContent = result.errors.join('；'); host.appendChild(error); }
+                ['gas', 'electric'].forEach(function (vehicle) {
+                    var data = result[vehicle];
+                    var title = document.createElement('h3'); title.textContent = (vehicle === 'gas' ? '油车' : '电车') + '年度费用'; host.appendChild(title);
+                    data.lines.forEach(function (line) { var row = document.createElement('p'); row.textContent = line.label + '：' + line.value; host.appendChild(row); });
+                    var total = document.createElement('strong'); total.textContent = data.complete && result.status !== 'invalid' ? '所选项目年度合计：' + data.totalText + ' 元' : '已知费用小计：' + (data.knownTotalText || '无法计算') + ' 元；尚不能当成全年总费用'; host.appendChild(total);
+                });
+                if (result.missing.length) { var missing = document.createElement('p'); missing.textContent = '待补全：' + result.missing.join('、'); host.appendChild(missing); }
+                if (result.comparison) { var comparison = document.createElement('p'); comparison.textContent = result.comparison; host.appendChild(comparison); }
+                result.assumptions.forEach(function (text) { var note = document.createElement('p'); note.textContent = text; host.appendChild(note); });
+            }
+
+            function setText(id, text) {
+                document.getElementById(id).textContent = text;
+            }
+
+            function renderVehicle(prefix, result) {
+                var box = document.getElementById(prefix + '-result');
+                setText(prefix + '-per-km', result.status === 'ok' ? result.perKmText : '—');
+                setText(prefix + '-per-100', result.status === 'ok' ? ('每百公里 ' + result.per100kmText + ' 元') : '');
+                if (result.status === 'ok' && result.tripCostText) {
+                    setText(prefix + '-trip', '行驶 ' + result.distanceText + ' 公里，共 ' + result.tripCostText + ' 元');
+                } else if (result.status === 'ok') {
+                    setText(prefix + '-trip', '填写里程后，显示这次行程花费');
+                } else {
+                    setText(prefix + '-trip', '');
+                }
+                setText(prefix + '-message', result.status === 'ok' ? '' : result.message);
+                box.dataset.state = result.status;
+            }
+
+            function renderRange(prefix, range, noun) {
+                var line = document.getElementById(prefix + '-range');
+                var text = '';
+                if (range.status === 'ok') {
+                    text = '大约可跑 ' + range.rangeText + ' 公里';
+                    if (range.shareText === '0' && !range.overRange) {
+                        text += '，这次行程不到 0.1%';
+                    } else if (range.overRange && range.multiplesText) {
+                        text += '，这次行程大约需要 ' + range.multiplesText + noun;
+                    } else if (range.shareText) {
+                        text += '，这次行程大约用掉 ' + range.shareText + '%';
+                    }
+                } else if (range.status === 'invalid' || range.status === 'waiting') {
+                    text = range.message;
+                } else {
+                    text = prefix === 'gas' ? '填写油箱容积后，估算续航' : '填写电池容量后，估算续航';
+                }
+                line.textContent = text;
+                line.dataset.state = range.status === 'invalid' ? 'invalid' : 'empty';
+            }
+
+            function currentPrefs() {
+                return {
+                    gasConsumption: gasConsumption.value,
+                    gasPrice: gasPrice.value,
+                    gasTank: gasTank.value,
+                    electricConsumption: electricConsumption.value,
+                    electricPrice: electricPrice.value,
+                    electricBattery: electricBattery.value,
+                    distanceKm: distanceInput.value
+                };
+            }
+
+            function render() {
+                var prefs = currentPrefs();
+                var gas = core.calculateVehicleCost({
+                    consumptionPer100: prefs.gasConsumption,
+                    unitPrice: prefs.gasPrice,
+                    distanceKm: prefs.distanceKm
+                });
+                var electric = core.calculateVehicleCost({
+                    consumptionPer100: prefs.electricConsumption,
+                    unitPrice: prefs.electricPrice,
+                    distanceKm: prefs.distanceKm
+                });
+                renderVehicle('gas', gas);
+                renderVehicle('electric', electric);
+                renderRange('gas', core.calculateRange({
+                    consumptionPer100: prefs.gasConsumption,
+                    capacity: prefs.gasTank,
+                    distanceKm: prefs.distanceKm
+                }), ' 箱');
+                renderRange('electric', core.calculateRange({
+                    consumptionPer100: prefs.electricConsumption,
+                    capacity: prefs.electricBattery,
+                    distanceKm: prefs.distanceKm
+                }), ' 次充满');
+
+                var distanceNote = core.describeDistance(gas.distanceStatus);
+                distanceMessage.textContent = distanceNote;
+                distanceInput.setAttribute('aria-invalid', distanceNote ? 'true' : 'false');
+
+                var comparison = core.compareCosts(gas, electric);
+                compareHeadline.textContent = comparison.headline;
+                compareDetail.textContent = comparison.detail;
+                compareCard.dataset.state = comparison.status === 'ok' ? comparison.winner : 'incomplete';
+                renderAdvanced(prefs);
+            }
+
+            function applyPrefs(prefs) {
+                var data = prefs || {};
+                gasConsumption.value = data.gasConsumption || '';
+                gasPrice.value = data.gasPrice || '';
+                gasTank.value = data.gasTank || '';
+                electricConsumption.value = data.electricConsumption || '';
+                electricPrice.value = data.electricPrice || '';
+                electricBattery.value = data.electricBattery || '';
+                distanceInput.value = data.distanceKm || '';
+            }
+
+            function setStorageStatus(text) {
+                storageStatus.textContent = text;
+                if (text === '已保存在此设备') {
+                    storageStatus.dataset.state = 'saved';
+                } else if (text === '保存失败，当前输入仍在页面上') {
+                    storageStatus.dataset.state = 'error';
+                } else {
+                    storageStatus.dataset.state = 'session';
+                }
+            }
+
+            function hideLegacyBanner() {
+                legacyBanner.hidden = true;
+            }
+
+            function showLegacyBanner() {
+                legacyBanner.hidden = false;
+            }
+
+            function persistPreferences() {
+                if (!saveOnDevice.checked) {
+                    return;
+                }
+                var prefs = currentPrefs();
+                var advanced = currentAdvanced();
+                var wrote = core.writePreferences(window.localStorage, prefs, true, advanced);
+                var state = core.readStorageState(window.localStorage);
+                if (wrote === false || !core.preferencesEqual(prefs, state.prefs) || !core.advancedEqual(advanced, state.advanced) || ((core.hasStoredValues(prefs) || core.hasAdvancedValues(advanced)) && state.optIn !== true)) {
+                    setStorageStatus('保存失败，当前输入仍在页面上');
+                    return;
+                }
+                if (!core.hasStoredValues(state.prefs) && !core.hasAdvancedValues(state.advanced)) {
+                    setStorageStatus('仅本次页面');
+                    return;
+                }
+                setStorageStatus('已保存在此设备');
+                hideLegacyBanner();
+            }
+
+            function forgetDeviceData() {
+                var removed = core.clearPreferences(window.localStorage);
+                if (removed === false) {
+                    setStorageStatus('保存失败，当前输入仍在页面上');
+                    return false;
+                }
+                hideLegacyBanner();
+                setStorageStatus('仅本次页面');
+                return true;
+            }
+
+            function loadStorageState() {
+                var state = core.readStorageState(window.localStorage);
+                if (state.exists && state.optIn) {
+                    applyPrefs(state.prefs);
+                    applyAdvanced(state.advanced);
+                    saveOnDevice.checked = true;
+                    hideLegacyBanner();
+                    setStorageStatus((core.hasStoredValues(state.prefs) || core.hasAdvancedValues(state.advanced)) ? '已保存在此设备' : '仅本次页面');
+                    return;
+                }
+                saveOnDevice.checked = false;
+                if (state.exists) {
+                    showLegacyBanner();
+                } else {
+                    hideLegacyBanner();
+                }
+                setStorageStatus('仅本次页面');
+            }
+
+            inputs.concat(advancedInputs, [advancedEnabled]).forEach(function (input) {
+                input.addEventListener('input', function () {
+                    render();
+                    persistPreferences();
+                });
+            });
+            document.getElementById('clear-btn').addEventListener('click', function () {
+                inputs.forEach(function (input) {
+                    input.value = '';
+                });
+                applyAdvanced(core.blankAdvanced());
+                render();
+                if (saveOnDevice.checked) {
+                    persistPreferences();
+                }
+                gasConsumption.focus();
+            });
+            saveOnDevice.addEventListener('change', function () {
+                if (!saveOnDevice.checked) {
+                    if (!forgetDeviceData()) {
+                        saveOnDevice.checked = true;
+                    }
+                    return;
+                }
+                if (!core.hasStoredValues(currentPrefs()) && !core.hasAdvancedValues(currentAdvanced())) {
+                    return;
+                }
+                persistPreferences();
+            });
+            document.getElementById('clear-storage-btn').addEventListener('click', forgetDeviceData);
+            document.getElementById('restore-legacy-btn').addEventListener('click', function () {
+                applyPrefs(core.readPreferences(window.localStorage));
+                applyAdvanced(core.readStorageState(window.localStorage).advanced);
+                saveOnDevice.checked = false;
+                hideLegacyBanner();
+                setStorageStatus('仅本次页面');
+                render();
+            });
+            document.getElementById('delete-legacy-btn').addEventListener('click', function () {
+                forgetDeviceData();
+            });
+
+            loadStorageState();
+            render();
+        })();
+    </script>
+    <script src="../js/unsaved-guard.js"></script>
+    <script src="../js/theme.js"></script>
+</body>
+
+</html>

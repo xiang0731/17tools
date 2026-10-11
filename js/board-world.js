@@ -49,6 +49,37 @@
         };
     }
 
+    // 双指：间距比缩放（钳制在 MIN_SCALE–MAX_SCALE），中心移动则平移。
+    // 上一帧中心下的世界点，在新缩放下仍落在新中心。
+    function pinchCamera(camera, prev, next) {
+        const base = camera || createCamera();
+        const scale0 = base.scale || 1;
+        const prevDist = Number(prev && prev.distance);
+        const nextDist = Number(next && next.distance);
+        let scale1 = clampScale(scale0);
+        if (prevDist > 0 && nextDist > 0) {
+            scale1 = clampScale(scale0 * (nextDist / prevDist));
+        }
+        const cx0 = Number(prev && prev.x);
+        const cy0 = Number(prev && prev.y);
+        const cx1 = Number(next && next.x);
+        const cy1 = Number(next && next.y);
+        const fromX = Number.isFinite(cx0) ? cx0 : 0;
+        const fromY = Number.isFinite(cy0) ? cy0 : 0;
+        const toX = Number.isFinite(cx1) ? cx1 : fromX;
+        const toY = Number.isFinite(cy1) ? cy1 : fromY;
+        const world = screenToWorld(fromX, fromY, {
+            offsetX: base.offsetX || 0,
+            offsetY: base.offsetY || 0,
+            scale: scale0
+        });
+        return {
+            offsetX: world.x - toX / scale1,
+            offsetY: world.y - toY / scale1,
+            scale: scale1
+        };
+    }
+
     function worldToTile(worldX, worldY, tileSize) {
         const size = tileSize || TILE_SIZE;
         return {
@@ -98,6 +129,7 @@
         screenToWorld: screenToWorld,
         worldToScreen: worldToScreen,
         panByScreenDelta: panByScreenDelta,
+        pinchCamera: pinchCamera,
         worldToTile: worldToTile,
         tileKey: tileKey,
         parseTileKey: parseTileKey,

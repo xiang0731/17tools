@@ -16,6 +16,63 @@
 
     const EXCLUDED_PAGES = ['Calendar.html', 'Regex.html'];
 
+    function isFileNullOrigin(origin) {
+        return origin === 'null' || origin === 'file://';
+    }
+
+    function readLocationOrigin(win) {
+        try {
+            return win && win.location ? String(win.location.origin || '') : '';
+        } catch (e) {
+            return '';
+        }
+    }
+
+    function postMessageTargetOrigin(targetWin) {
+        const origin = readLocationOrigin(targetWin);
+        // file:// 页面的 origin 是 "null"。HTML 不允许把 targetOrigin 写成可用的确定值，
+        // 只能用 "*"。安全性靠接收端校验 event.source，而不是靠 *。
+        if (!origin || isFileNullOrigin(origin)) {
+            return '*';
+        }
+        return origin;
+    }
+
+    function isTrustedParentMessage(event, win) {
+        if (!event || !win || event.source !== win.parent) {
+            return false;
+        }
+        const origin = event.origin == null ? '' : String(event.origin);
+        const loc = win.location || {};
+        if (isFileNullOrigin(origin)) {
+            // file:// 打开时 event.origin 为 "null"，无法写死成 http origin。
+            return loc.protocol === 'file:' || isFileNullOrigin(loc.origin);
+        }
+        if (origin && origin === loc.origin) {
+            return true;
+        }
+        try {
+            const parentOrigin = readLocationOrigin(win.parent);
+            if (origin && origin === parentOrigin) {
+                return true;
+            }
+        } catch (e) { /* 读不到父 origin 时不放行 http 异源 */ }
+        return false;
+    }
+
+    function isTrustedFrameMessage(event, iframe) {
+        if (!event || !iframe || !iframe.contentWindow || event.source !== iframe.contentWindow) {
+            return false;
+        }
+        const origin = event.origin == null ? '' : String(event.origin);
+        const expected = readLocationOrigin(iframe.contentWindow);
+        if (isFileNullOrigin(origin)) {
+            // file:// 打开时 event.origin 为 "null"，无法写死 origin；source 已限定为该 iframe。
+            return !expected || isFileNullOrigin(expected);
+        }
+        return Boolean(origin && expected && origin === expected);
+    }
+
     function isExcludedPage(src) {
         const value = String(src || '');
         if (!value) {
@@ -189,19 +246,21 @@
         if (!guard || !doc || typeof doc.addEventListener !== 'function') {
             return;
         }
-        const markExtra = (event) => {
+        const markFileChange = (event) => {
             const target = event && event.target;
             if (!target) {
                 return;
             }
+            if (typeof target.closest === 'function' && target.closest('[data-unsaved-ignore]')) {
+                return;
+            }
             const tag = String(target.tagName || '').toUpperCase();
             const type = String(target.type || '').toLowerCase();
-            if (tag === 'CANVAS' || (tag === 'INPUT' && type === 'file')) {
+            if (tag === 'INPUT' && type === 'file') {
                 guard.markExtraDirty();
             }
         };
-        doc.addEventListener('change', markExtra, true);
-        doc.addEventListener('pointerdown', markExtra, true);
+        doc.addEventListener('change', markFileChange, true);
     }
 
     function postDirtyState(win, guard) {
@@ -210,7 +269,7 @@
         }
         const dirty = !!(guard && guard.isDirty(win.document));
         try {
-            win.parent.postMessage({ type: MESSAGE.STATE, dirty: dirty }, '*');
+            win.parent.postMessage({ type: MESSAGE.STATE, dirty: dirty }, postMessageTargetOrigin(win.parent));
         } catch (e) { /* ignore */ }
     }
 
@@ -219,7 +278,10 @@
             return;
         }
         win.addEventListener('message', (event) => {
-            if (!event || !event.data) {
+            if (!event || !event.data || typeof event.data !== 'object') {
+                return;
+            }
+            if (!isTrustedParentMessage(event, win)) {
                 return;
             }
             if (event.data.type === MESSAGE.CHECK) {
@@ -230,7 +292,7 @@
                 guard.allowUnload();
                 if (win.parent && win.parent !== win) {
                     try {
-                        win.parent.postMessage({ type: MESSAGE.ALLOWED }, '*');
+                        win.parent.postMessage({ type: MESSAGE.ALLOWED }, postMessageTargetOrigin(win.parent));
                     } catch (e) { /* ignore */ }
                 }
             }
@@ -273,14 +335,17 @@
             done(!!dirty);
         };
         const onMessage = (event) => {
-            if (event && event.data && event.data.type === MESSAGE.STATE) {
+            if (!isTrustedFrameMessage(event, iframe)) {
+                return;
+            }
+            if (event.data && event.data.type === MESSAGE.STATE) {
                 finish(event.data.dirty);
             }
         };
 
         target.addEventListener('message', onMessage);
         try {
-            iframe.contentWindow.postMessage({ type: MESSAGE.CHECK }, '*');
+            iframe.contentWindow.postMessage({ type: MESSAGE.CHECK }, postMessageTargetOrigin(iframe.contentWindow));
         } catch (e) {
             finish(false);
             return;
@@ -318,7 +383,10 @@
             done();
         };
         const onMessage = (event) => {
-            if (event && event.data && event.data.type === MESSAGE.ALLOWED) {
+            if (!isTrustedFrameMessage(event, iframe)) {
+                return;
+            }
+            if (event.data && event.data.type === MESSAGE.ALLOWED) {
                 finish();
             }
         };
@@ -326,7 +394,7 @@
             target.addEventListener('message', onMessage);
         }
         try {
-            iframe.contentWindow.postMessage({ type: MESSAGE.ALLOW }, '*');
+            iframe.contentWindow.postMessage({ type: MESSAGE.ALLOW }, postMessageTargetOrigin(iframe.contentWindow));
         } catch (e) {
             finish();
             return;
@@ -409,6 +477,10 @@
         MESSAGE,
         EXCLUDED_PAGES,
         isExcludedPage,
+        isFileNullOrigin,
+        postMessageTargetOrigin,
+        isTrustedParentMessage,
+        isTrustedFrameMessage,
         SKIP_INPUT_TYPES,
         isTrackedElement,
         fieldValue,
@@ -418,6 +490,7 @@
         isSameToolPage,
         createGuard,
         bindDocument,
+        bindMessaging,
         requestDirty,
         allowUnload,
         install,

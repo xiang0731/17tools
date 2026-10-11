@@ -1,6 +1,8 @@
 /* 17Tools 通用主题样式 */
 
 :root {
+    color-scheme: light;
+
     /* 浅色模式变量 */
     --primary-color: #6366f1;
     --primary-hover: #5b5ce6;
@@ -15,7 +17,9 @@
     /* 文本颜色 */
     --text-primary: #1f2937;
     --text-secondary: #6b7280;
-    --text-tertiary: #9ca3af;
+    --text-tertiary: #606978;
+    --text-error: #991b1b;
+    --text-warning: #854d0e;
     --text-inverse: #ffffff;
 
     /* 背景颜色 */
@@ -67,9 +71,18 @@
     --transition-base: 0.3s ease;
     --transition-slow: 0.5s ease;
     --animation-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    /* 兼容旧页变量名 */
+    --shadow-light: var(--shadow-sm);
+    --shadow-medium: var(--shadow-md);
+    --shadow-large: var(--shadow-lg);
+    --card-background: rgba(255, 255, 255, 0.9);
+    --primary-soft: var(--primary-light);
 }
 
 [data-theme="dark"] {
+    color-scheme: dark;
+
     /* 深色模式变量 */
     --primary-color: #818cf8;
     --primary-hover: #6366f1;
@@ -84,7 +97,9 @@
     /* 文本颜色 */
     --text-primary: #f9fafb;
     --text-secondary: #d1d5db;
-    --text-tertiary: #9ca3af;
+    --text-tertiary: #b4bcc9;
+    --text-error: #fca5a5;
+    --text-warning: #fde68a;
     --text-inverse: #1f2937;
 
     /* 背景颜色 */
@@ -110,6 +125,12 @@
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
     --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+
+    --shadow-light: var(--shadow-sm);
+    --shadow-medium: var(--shadow-md);
+    --shadow-large: var(--shadow-lg);
+    --card-background: rgba(31, 41, 55, 0.9);
+    --primary-soft: rgba(129, 140, 248, 0.14);
 }
 
 /* 基础重置样式 */
@@ -453,6 +474,23 @@ body {
     }
 }
 
+/* 尊重系统的减少动态效果设置，同时保留即时状态变化。 */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    .btn:hover,
+    .card:hover {
+        transform: none !important;
+    }
+}
+
 /* 打印样式 */
 @media print {
     * {
@@ -463,4 +501,9 @@ body {
     .no-print {
         display: none !important;
     }
+}
+
+/* 窄屏操作保持可点击面积，不改变各工具的主题与布局。 */
+@media (max-width: 768px) {
+    .btn, .action-button { min-height: 44px; }
 }

@@ -3,10 +3,28 @@
 
 <head>
     <meta charset="UTF-8">
+    <script>
+        (function applyThemeEarly() {
+            try {
+                var pref = localStorage.getItem('17tools-theme');
+                if (pref == null) {
+                    pref = localStorage.getItem('theme');
+                    if (pref != null) {
+                        localStorage.setItem('17tools-theme', pref);
+                    }
+                }
+                var theme = (pref === 'light' || pref === 'dark')
+                    ? pref
+                    : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) { /* 存储不可用时由 theme.js 降级 */ }
+        })();
+    </script>
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>文本分割工具</title>
     <link rel="stylesheet" href="../css/theme.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="../vendor/fontawesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
             /* Fallback colors if theme.css is missing or incomplete */
@@ -151,7 +169,7 @@
             display: grid;
             gap: var(--spacing-md);
             margin-bottom: var(--spacing-lg);
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
         }
 
         .input-group {
@@ -341,6 +359,8 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            flex-wrap: wrap;
+            gap: var(--spacing-sm);
             margin-bottom: var(--spacing-md);
         }
 
@@ -378,7 +398,8 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            min-width: 280px;
+            min-width: 0;
+            width: min(280px, calc(100vw - 32px));
             max-width: 90vw;
             animation: toastSlideDown 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
             pointer-events: auto;
@@ -448,6 +469,85 @@
                 transform: translateY(0);
             }
         }
+
+        .container,
+        .input-section,
+        .input-container,
+        .control-panel,
+        .result-section,
+        .result-block,
+        .split-summary {
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        textarea,
+        input[type="number"] {
+            max-width: 100%;
+        }
+
+        .input-header,
+        .button-container,
+        .split-pager {
+            flex-wrap: wrap;
+        }
+
+        .result-block-title,
+        .result-block-meta {
+            min-width: 0;
+        }
+
+        .split-pager {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .split-note {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        @media (max-width: 420px) {
+            body {
+                padding: var(--spacing-md);
+            }
+
+            h1 {
+                font-size: 22px;
+            }
+
+            .input-header,
+            .result-block-header {
+                align-items: flex-start;
+            }
+
+            .result-block-header {
+                flex-direction: column;
+            }
+
+            .result-block-meta {
+                display: block;
+                margin-left: 0;
+            }
+
+            .input-stats {
+                margin-left: 0;
+            }
+
+            .settings-inputs {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
     </style>
 </head>
 
@@ -465,7 +565,7 @@
                     <i class="fas fa-file-alt"></i>
                     原始数据
                 </div>
-                <textarea id="originalText" placeholder="请在此粘贴需要分割的多行数据..."></textarea>
+                <textarea id="originalText" aria-label="待分割原文" placeholder="请在此粘贴需要分割的多行数据..."></textarea>
                 <div class="button-container">
                     <button class="btn btn-secondary" onclick="pasteFromClipboard()">
                         <i class="fas fa-paste"></i>
@@ -530,9 +630,14 @@
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
 
+    <script src="../js/clipboard.js"></script>
+    <script src="../js/text-split-core.js"></script>
     <script src="../js/unsaved-guard.js"></script>
     <script src="../js/theme.js"></script>
     <script>
+        var splitResult = null;
+        var splitPageIndex = 0;
+
         // Real-time Stats Logic
         function updateStats() {
             const text = document.getElementById('originalText').value;
@@ -550,10 +655,19 @@
                 return;
             }
 
-            const lines = text.split(/\r?\n/);
-            const totalLines = lines.length;
-            const hasEmptyLines = lines.some(line => line.trim() === '');
-
+            if (text.length > TextSplitCore.MAX_INPUT_CHARS) {
+                document.getElementById('lineCount').textContent = '超过100万字符，请缩小文本';
+                return;
+            }
+            let totalLines = 1, hasEmptyLines = false, start = 0;
+            const separators = /\r\n|\r|\n/g;
+            let match;
+            while ((match = separators.exec(text))) {
+                if (!text.slice(start, match.index).trim()) hasEmptyLines = true;
+                start = separators.lastIndex;
+                totalLines++;
+            }
+            if (!text.slice(start).trim()) hasEmptyLines = true;
             document.getElementById('lineCount').textContent = `共 ${totalLines} 行`;
             document.getElementById('emptyLineWarning').style.display = hasEmptyLines ? 'inline-flex' : 'none';
         }
@@ -563,119 +677,185 @@
 
         // Split Logic
         function splitText() {
-            const originalText = document.getElementById('originalText').value;
-            const linesPerPart = parseInt(document.getElementById('linesPerPart').value, 10);
-            const resultContainer = document.getElementById('resultContainer');
-
-            if (!originalText) {
-                showToast('请先输入原始数据', 'warning');
-                return;
-            }
-
-            if (isNaN(linesPerPart) || linesPerPart < 1) {
-                showToast('请输入有效的行数', 'warning');
-                return;
-            }
-
-            // Capture Split Time
-            const now = new Date();
-            const timeStr = now.getHours().toString().padStart(2, '0') + ':' +
+            var originalText = document.getElementById('originalText').value;
+            var linesPerPart = Number(document.getElementById('linesPerPart').value);
+            var now = new Date();
+            var timeStr = now.getHours().toString().padStart(2, '0') + ':' +
                 now.getMinutes().toString().padStart(2, '0') + ':' +
                 now.getSeconds().toString().padStart(2, '0');
             document.getElementById('splitExecutionTime').textContent = timeStr;
 
-            // Split by newline
-            const allLines = originalText.split(/\r?\n/);
-            const totalLines = allLines.length;
-            const partsCount = Math.ceil(totalLines / linesPerPart);
+            splitResult = TextSplitCore.splitText(originalText, linesPerPart);
+            splitPageIndex = 0;
+            renderSplitResult();
 
-            resultContainer.innerHTML = ''; // Clear previous results
+            if (!splitResult.ok) {
+                showToast(splitResult.reason, 'warning');
+                return;
+            }
+            showToast('共 ' + splitResult.totalLines + ' 行，分割为 ' + splitResult.partsCount + ' 份', 'success');
+        }
 
-            if (totalLines === 0 || (totalLines === 1 && allLines[0] === '')) {
-                showToast('没有检测到有效行', 'warning');
+        function renderSplitResult() {
+            var resultContainer = document.getElementById('resultContainer');
+            resultContainer.replaceChildren();
+            if (!splitResult) return;
+
+            if (!splitResult.ok) {
+                var note = document.createElement('div');
+                note.id = 'splitNotice';
+                note.className = 'split-summary';
+                note.textContent = splitResult.reason;
+                resultContainer.appendChild(note);
                 return;
             }
 
-            // Create Summary
-            const isLastPartIncomplete = totalLines % linesPerPart !== 0;
-            const lastPartLines = isLastPartIncomplete ? (totalLines % linesPerPart) : linesPerPart;
+            resultContainer.appendChild(buildSummary(splitResult));
 
-            const summaryHtml = `
-                <div class="split-summary">
-                    <div class="summary-title">
-                        <i class="fas fa-chart-pie"></i> 分割总结
-                    </div>
-                    <div class="summary-grid">
-                        <div class="summary-item">
-                            <span class="monitor-label">总行数</span>
-                            <span class="summary-val">${totalLines}</span>
-                        </div>
-                        <div class="summary-item">
-                            <span class="monitor-label">每份行数</span>
-                            <span class="summary-val">${linesPerPart}</span>
-                        </div>
-                        <div class="summary-item">
-                            <span class="monitor-label">分割总份数</span>
-                            <span class="summary-val">${partsCount}</span>
-                        </div>
-                    </div>
-                    ${isLastPartIncomplete ? `
-                        <div class="last-part-warning">
-                            <i class="fas fa-info-circle"></i> 最后一份不满 ${linesPerPart} 行 (实际: ${lastPartLines} 行)
-                        </div>
-                    ` : ''}
-                </div>
-            `;
-
-            const summaryDiv = document.createElement('div');
-            summaryDiv.innerHTML = summaryHtml;
-            resultContainer.appendChild(summaryDiv);
-
-            showToast(`共 ${totalLines} 行，分割为 ${partsCount} 份`, 'success');
-
-            for (let i = 0; i < partsCount; i++) {
-                const startIdx = i * linesPerPart;
-                const endIdx = Math.min((i + 1) * linesPerPart, totalLines);
-                const partLines = allLines.slice(startIdx, endIdx);
-                const partText = partLines.join('\n');
-
-                const partId = `part-${i}`;
-                const title = `第 ${i + 1} 份`;
-                const meta = `(行 ${startIdx + 1} - ${endIdx}, 共 ${partLines.length} 行)`;
-
-                const block = document.createElement('div');
-                block.className = 'result-block';
-                block.innerHTML = `
-                    <div class="result-block-header">
-                        <div class="result-block-title">
-                            ${title}
-                            <span class="result-block-meta">${meta}</span>
-                        </div>
-                        <div class="button-container">
-                            <button class="btn btn-secondary" onclick="copyPart('${partId}')">
-                                <i class="fas fa-copy"></i> 复制
-                            </button>
-                             <button class="btn btn-secondary" onclick="downloadPart('${partId}', 'split_part_${i + 1}.txt')">
-                                <i class="fas fa-download"></i> 下载
-                            </button>
-                        </div>
-                    </div>
-                    <textarea id="${partId}" readonly>${escapeHtml(partText)}</textarea>
-                `;
-                resultContainer.appendChild(block);
+            var windowInfo = TextSplitCore.pageWindow(splitResult.partsCount, splitPageIndex);
+            splitPageIndex = windowInfo.page;
+            if (windowInfo.truncated) {
+                resultContainer.appendChild(buildPager(windowInfo, splitResult.partsCount));
+                var budget = document.createElement('p');
+                budget.id = 'splitNotice';
+                budget.className = 'split-note';
+                budget.textContent = TextSplitCore.displayBudgetMessage();
+                resultContainer.appendChild(budget);
             }
+
+            TextSplitCore.visibleParts(splitResult, splitPageIndex).forEach(function (part) {
+                resultContainer.appendChild(buildPartBlock(part));
+            });
         }
 
-        // Utils
-        function escapeHtml(text) {
-            const map = {
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#039;'
-            };
-            return text.replace(/[&<>"']/g, function (m) { return map[m]; });
+        function buildSummary(result) {
+            var summary = document.createElement('div');
+            summary.className = 'split-summary';
+
+            var title = document.createElement('div');
+            title.className = 'summary-title';
+            var titleIcon = document.createElement('i');
+            titleIcon.className = 'fas fa-chart-pie';
+            titleIcon.setAttribute('aria-hidden', 'true');
+            title.append(titleIcon, document.createTextNode(' 分割总结'));
+
+            var grid = document.createElement('div');
+            grid.className = 'summary-grid';
+            grid.append(
+                summaryItem('总行数', String(result.totalLines)),
+                summaryItem('每份行数', String(result.linesPerPart)),
+                summaryItem('分割总份数', String(result.partsCount))
+            );
+            summary.append(title, grid);
+
+            if (result.lastPartIncomplete) {
+                var warning = document.createElement('div');
+                warning.className = 'last-part-warning';
+                var warningIcon = document.createElement('i');
+                warningIcon.className = 'fas fa-info-circle';
+                warningIcon.setAttribute('aria-hidden', 'true');
+                warning.append(warningIcon, document.createTextNode(
+                    ' 最后一份不满 ' + result.linesPerPart + ' 行 (实际: ' + result.lastPartLines + ' 行)'
+                ));
+                summary.appendChild(warning);
+            }
+
+            var actions = document.createElement('div');
+            actions.className = 'button-container';
+            var copyAll = makeButton('全部复制', 'fa-copy', copyAllParts);
+            copyAll.id = 'splitCopyAll';
+            var downloadAll = makeButton('全部下载', 'fa-download', downloadAllParts);
+            downloadAll.id = 'splitDownloadAll';
+            actions.append(copyAll, downloadAll);
+            summary.appendChild(actions);
+            return summary;
+        }
+
+        function summaryItem(label, value) {
+            var item = document.createElement('div');
+            item.className = 'summary-item';
+            var name = document.createElement('span');
+            name.className = 'monitor-label';
+            name.textContent = label;
+            var val = document.createElement('span');
+            val.className = 'summary-val';
+            val.textContent = value;
+            item.append(name, val);
+            return item;
+        }
+
+        function buildPager(windowInfo, partsCount) {
+            var pager = document.createElement('div');
+            pager.className = 'split-pager';
+            pager.id = 'splitPager';
+            var prev = makeButton('上一批', 'fa-arrow-left', function () {
+                showSplitPage(splitPageIndex - 1);
+            });
+            prev.id = 'splitPrev';
+            prev.disabled = windowInfo.page <= 0;
+            var label = document.createElement('span');
+            label.id = 'splitPageLabel';
+            label.textContent = '第 ' + (windowInfo.page + 1) + ' / ' + windowInfo.pageCount +
+                ' 批，本批 ' + windowInfo.count + ' 份，共 ' + partsCount + ' 份';
+            var next = makeButton('下一批', 'fa-arrow-right', function () {
+                showSplitPage(splitPageIndex + 1);
+            });
+            next.id = 'splitNext';
+            next.disabled = windowInfo.page >= windowInfo.pageCount - 1;
+            pager.append(prev, label, next);
+            return pager;
+        }
+
+        function buildPartBlock(part) {
+            var block = document.createElement('div');
+            block.className = 'result-block';
+            block.dataset.partIndex = String(part.index);
+
+            var header = document.createElement('div');
+            header.className = 'result-block-header';
+            var title = document.createElement('div');
+            title.className = 'result-block-title';
+            title.appendChild(document.createTextNode('第 ' + part.number + ' 份'));
+            var meta = document.createElement('span');
+            meta.className = 'result-block-meta';
+            meta.textContent = '(行 ' + part.startLine + ' - ' + part.endLine + ', 共 ' + part.lineCount + ' 行)';
+            title.appendChild(meta);
+
+            var actions = document.createElement('div');
+            actions.className = 'button-container';
+            actions.append(
+                makeButton('复制', 'fa-copy', function () { copyPart(part.index); }),
+                makeButton('下载', 'fa-download', function () { downloadPart(part.index); })
+            );
+            header.append(title, actions);
+
+            var textarea = document.createElement('textarea');
+            textarea.id = 'part-' + part.index;
+            textarea.setAttribute('aria-label', '第' + part.number + '份，原文第' + part.startLine + '至' + part.endLine + '行');
+            textarea.readOnly = true;
+            textarea.value = part.text;
+            block.append(header, textarea);
+            return block;
+        }
+
+        function makeButton(label, iconClass, onClick) {
+            var button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'btn btn-secondary';
+            var icon = document.createElement('i');
+            icon.className = 'fas ' + iconClass;
+            icon.setAttribute('aria-hidden', 'true');
+            var text = document.createElement('span');
+            text.textContent = label;
+            button.append(icon, text);
+            button.addEventListener('click', onClick);
+            return button;
+        }
+
+        function showSplitPage(pageIndex) {
+            if (!splitResult || !splitResult.ok) return;
+            splitPageIndex = pageIndex;
+            renderSplitResult();
         }
 
         async function pasteFromClipboard() {
@@ -692,28 +872,44 @@
         function clearText() {
             if (confirm('确定清空输入吗？')) {
                 document.getElementById('originalText').value = '';
-                document.getElementById('resultContainer').innerHTML = '';
+                splitResult = null;
+                splitPageIndex = 0;
+                document.getElementById('resultContainer').replaceChildren();
                 updateStats();
             }
         }
 
-        async function copyPart(elementId) {
-            const textarea = document.getElementById(elementId);
-            try {
-                await navigator.clipboard.writeText(textarea.value);
-                showToast('复制成功', 'success');
-            } catch (err) {
-                textarea.select();
-                document.execCommand('copy');
-                showToast('复制成功', 'success');
-            }
+        function copyPart(index) {
+            if (!splitResult || !splitResult.ok) return;
+            copyText(TextSplitCore.exportPartText(splitResult, index), document.getElementById('part-' + index));
         }
 
-        function downloadPart(elementId, filename) {
-            const text = document.getElementById(elementId).value;
-            const blob = new Blob([text], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
+        function downloadPart(index) {
+            if (!splitResult || !splitResult.ok) return;
+            var part = splitResult.parts[index];
+            if (!part) return;
+            downloadText(part.text, part.filename);
+        }
+
+        function copyAllParts() {
+            if (!splitResult || !splitResult.ok) return;
+            copyText(TextSplitCore.exportAllText(splitResult), document.getElementById('originalText'));
+        }
+
+        function downloadAllParts() {
+            if (!splitResult || !splitResult.ok) return;
+            downloadText(TextSplitCore.exportAllText(splitResult), 'split_all.txt');
+        }
+
+        async function copyText(text, element) {
+            var result = await ToolsClipboard.copyText(text, { element: element });
+            showToast(result.message, result.ok ? 'success' : 'error');
+        }
+
+        function downloadText(text, filename) {
+            var blob = new Blob([text], { type: 'text/plain' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
             a.href = url;
             a.download = filename;
             document.body.appendChild(a);
@@ -734,7 +930,12 @@
             };
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            toast.innerHTML = `<i class="fas ${icons[type] || icons.info} toast-icon"></i><span class="toast-message">${message}</span>`;
+            const icon = document.createElement('i');
+            icon.className = `fas ${icons[type] || icons.info} toast-icon`;
+            const text = document.createElement('span');
+            text.className = 'toast-message';
+            text.textContent = message;
+            toast.append(icon, text);
             container.appendChild(toast);
             setTimeout(() => {
                 toast.style.animation = 'toastFadeOut 0.3s forwards';

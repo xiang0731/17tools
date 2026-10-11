@@ -24,7 +24,7 @@
         // 注入Font Awesome
         const faLink = document.createElement('link');
         faLink.rel = 'stylesheet';
-        faLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css';
+        faLink.href = '../vendor/fontawesome/6.0.0/css/all.min.css';
         document.head.appendChild(faLink);
     }
 
@@ -584,6 +584,10 @@
         const lightThemeLink = document.querySelector('link[href*="github.min.css"]');
         if (lightThemeLink && document.documentElement.getAttribute('data-theme') === 'dark') {
             lightThemeLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github-dark.min.css';
+            lightThemeLink.integrity = 'sha512-rO+olRTkcf304DQBxSWxln8JXCzTHlKnIdnMUwYvQa9/Jd4cQaNkItIUj6Z4nvW1dqK0SKXLbn9h4KwZTNtAyw==';
+            lightThemeLink.crossOrigin = 'anonymous';
+            lightThemeLink.setAttribute('integrity', lightThemeLink.integrity);
+            lightThemeLink.setAttribute('crossorigin', 'anonymous');
         }
     }
 

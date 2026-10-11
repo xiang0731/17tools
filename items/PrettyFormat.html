@@ -3,41 +3,28 @@
 
 <head>
     <meta charset="UTF-8">
+    <script>
+        (function applyThemeEarly() {
+            try {
+                var pref = localStorage.getItem('17tools-theme');
+                if (pref == null) {
+                    pref = localStorage.getItem('theme');
+                    if (pref != null) {
+                        localStorage.setItem('17tools-theme', pref);
+                    }
+                }
+                var theme = (pref === 'light' || pref === 'dark')
+                    ? pref
+                    : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) { /* 存储不可用时由 theme.js 降级 */ }
+        })();
+    </script>
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>代码格式化工具</title>
     <link rel="stylesheet" href="../css/theme.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/standalone.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-babel.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-html.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-postcss.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-typescript.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-json.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-yaml.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-markdown.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-graphql.js"></script>
-    <!-- 添加highlight.js库 -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/javascript.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/typescript.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/xml.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/css.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/json.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/yaml.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/markdown.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/graphql.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/php.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/python.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/java.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/ruby.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/go.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/swift.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/csharp.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/cpp.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/rust.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/shell.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/sql.min.js"></script>
+    <link href="../vendor/fontawesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         html,
         body {
@@ -48,7 +35,8 @@
             background-color: var(--background-primary);
             color: var(--text-primary);
             font-family: var(--font-family);
-            overflow: hidden;
+            overflow-x: auto;
+            overflow-y: hidden;
         }
 
         .app-container {
@@ -57,6 +45,8 @@
             height: 100vh;
             padding: var(--spacing-lg);
             box-sizing: border-box;
+            min-width: 0;
+            min-height: 0;
         }
 
         /* 标题样式 */
@@ -131,7 +121,7 @@
             align-items: center;
             gap: var(--spacing-md);
             flex: 1 1 auto;
-            min-width: 300px;
+            min-width: 0;
             flex-wrap: wrap;
             row-gap: var(--spacing-sm);
         }
@@ -155,6 +145,7 @@
         /* 行号容器 */
         .line-numbers {
             width: 60px;
+            flex-shrink: 0;
             background: var(--background-tertiary);
             border-right: 1px solid var(--border-color);
             padding: var(--spacing-md) 0;
@@ -178,11 +169,8 @@
 
         .line-numbers span {
             padding: 0 var(--spacing-sm);
-            min-height: 22.4px;
-            height: 22.4px;
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
+            flex-shrink: 0;
+            display: block;
             box-sizing: border-box;
         }
 
@@ -210,6 +198,7 @@
         /* 代码输出区域 */
         .code-output {
             flex: 1;
+            min-width: 0;
             overflow: auto;
             background: var(--background-primary);
         }
@@ -296,7 +285,7 @@
         }
 
         .btn-danger:hover {
-            background: #dc2626;
+            background: var(--error-color);
         }
 
         .btn-secondary {
@@ -327,7 +316,9 @@
             background-position: right var(--spacing-sm) center;
             background-size: 16px;
             padding-right: var(--spacing-xl);
-            min-width: 150px;
+            min-width: 0;
+            max-width: 100%;
+            flex: 1 1 12rem;
         }
 
         select:focus {
@@ -362,6 +353,20 @@
             color: var(--primary-color);
         }
 
+        .result-status {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .result-status.is-stale {
+            color: var(--text-warning);
+        }
+
+        .result-status.is-failed {
+            color: var(--text-error);
+        }
+
         /* 状态提示 */
         .status-message {
             position: fixed;
@@ -389,8 +394,9 @@
         }
 
         .status-error {
-            background: var(--error-color);
-            color: var(--text-inverse);
+            background: var(--background-primary);
+            color: var(--text-error);
+            border: 1px solid var(--border-color);
         }
 
         .status-info {
@@ -438,6 +444,7 @@
             align-items: center;
             justify-content: center;
             height: 100%;
+            box-sizing: border-box;
             color: var(--text-tertiary);
             text-align: center;
             padding: var(--spacing-xl);
@@ -481,7 +488,7 @@
             }
 
             .language-controls {
-                min-width: auto;
+                min-width: 0;
                 width: 100%;
                 justify-content: flex-start;
             }
@@ -502,6 +509,16 @@
 
             .app-container {
                 height: auto;
+                padding: var(--spacing-sm);
+            }
+
+            h1 {
+                font-size: 20px;
+                margin-bottom: var(--spacing-sm);
+            }
+
+            .language-selector {
+                padding: var(--spacing-sm);
             }
 
             .main-layout {
@@ -529,10 +546,6 @@
                 min-width: auto;
             }
 
-            h1 {
-                font-size: 24px;
-            }
-
             .line-numbers {
                 width: 50px;
             }
@@ -554,13 +567,19 @@
                 transform: rotate(360deg);
             }
         }
+
+        .task-budget { color: var(--text-secondary); font-size: 13px; line-height: 1.6; padding-inline: var(--spacing-md); }
+        @media (max-width: 768px) {
+            .action-button { min-height: 44px; min-width: 44px; white-space: normal; }
+            .panel-header, .action-buttons { flex-wrap: wrap; }
+        }
     </style>
 </head>
 
 <body>
     <div class="app-container">
         <h1>
-            <i class="fas fa-code"></i>
+            <i class="fas fa-code" aria-hidden="true"></i>
             代码格式化工具
         </h1>
 
@@ -568,62 +587,63 @@
             <!-- 输入区域 -->
             <div class="code-area">
                 <div class="code-header">
-                    <i class="fas fa-edit"></i>
+                    <i class="fas fa-edit" aria-hidden="true"></i>
                     代码输入
                 </div>
                 <div class="language-selector">
                     <div class="language-controls">
                         <label class="language-label" for="language">
-                            <i class="fas fa-cog"></i>
+                            <i class="fas fa-cog" aria-hidden="true"></i>
                             语言:
                         </label>
                         <select id="language">
-                            <option value="auto" selected>🤖 自动检测</option>
-                            <option value="babel">📄 JavaScript</option>
-                            <option value="typescript">📘 TypeScript</option>
-                            <option value="html">🌐 HTML</option>
-                            <option value="css">🎨 CSS</option>
-                            <option value="json">📋 JSON</option>
-                            <option value="yaml">📊 YAML</option>
-                            <option value="markdown">📝 Markdown</option>
-                            <option value="graphql">🔗 GraphQL</option>
-                            <option value="cpp-highlight">⚡ C/C++</option>
-                            <option value="csharp-highlight">🔷 C#</option>
-                            <option value="java-highlight">☕ Java</option>
-                            <option value="python-highlight">🐍 Python</option>
-                            <option value="go-highlight">🚀 Go</option>
-                            <option value="rust-highlight">🦀 Rust</option>
-                            <option value="swift-highlight">🍎 Swift</option>
-                            <option value="php-highlight">🐘 PHP</option>
-                            <option value="ruby-highlight">💎 Ruby</option>
-                            <option value="shell-highlight">💻 Shell/Bash</option>
-                            <option value="sql-highlight">🗃️ SQL</option>
+                            <option value="auto" selected>自动检测</option>
+                            <option value="generic">通用语言（文本 / 请求 Body）</option>
+                            <option value="babel">JavaScript</option>
+                            <option value="typescript">TypeScript</option>
+                            <option value="html">HTML</option>
+                            <option value="css">CSS</option>
+                            <option value="json">JSON</option>
+                            <option value="yaml">YAML</option>
+                            <option value="markdown">Markdown</option>
+                            <option value="graphql">GraphQL</option>
+                            <option value="cpp-highlight">C/C++</option>
+                            <option value="csharp-highlight">C#</option>
+                            <option value="java-highlight">Java</option>
+                            <option value="python-highlight">Python</option>
+                            <option value="go-highlight">Go</option>
+                            <option value="rust-highlight">Rust</option>
+                            <option value="swift-highlight">Swift</option>
+                            <option value="php-highlight">PHP</option>
+                            <option value="ruby-highlight">Ruby</option>
+                            <option value="shell-highlight">Shell/Bash</option>
+                            <option value="sql-highlight">SQL</option>
                         </select>
                         <div id="detected-language" class="language-indicator">
-                            <i class="fas fa-check-circle"></i>
+                            <i class="fas fa-check-circle" aria-hidden="true"></i>
                             <span id="language-name">JavaScript</span>
                         </div>
                     </div>
                     <div class="action-buttons">
                         <button id="clear-btn" class="action-button btn-danger" title="清空内容">
-                            <i class="fas fa-trash"></i>
+                            <i class="fas fa-trash" aria-hidden="true"></i>
                             清空
                         </button>
                         <button id="copy-input-btn" class="action-button btn-secondary" title="复制内容">
-                            <i class="fas fa-copy"></i>
+                            <i class="fas fa-copy" aria-hidden="true"></i>
                             复制
                         </button>
                         <button id="download-input-btn" class="action-button btn-secondary" title="下载文件">
-                            <i class="fas fa-download"></i>
+                            <i class="fas fa-download" aria-hidden="true"></i>
                             下载
                         </button>
                     </div>
                 </div>
                 <div class="editor-wrapper">
-                    <div id="input-line-numbers" class="line-numbers"></div>
-                    <textarea id="input-code" placeholder="🚀 在此粘贴或输入您的代码...
+                    <div id="input-line-numbers" class="line-numbers" aria-hidden="true"><span>1</span></div>
+                    <textarea aria-label="待格式化代码" id="input-code" placeholder="🚀 在此粘贴或输入您的代码...
 
-💡 支持多种编程语言
+💡 支持通用语言文本、请求 Body 和多种编程语言
 📝 自动检测语言类型
 ✨ 智能格式化美化
 🎯 语法高亮显示"></textarea>
@@ -633,32 +653,35 @@
             <!-- 输出区域 -->
             <div class="code-area">
                 <div class="code-header">
-                    <i class="fas fa-magic"></i>
+                    <i class="fas fa-magic" aria-hidden="true"></i>
                     格式化结果
                 </div>
                 <div class="language-selector">
                     <div class="language-controls">
-                        <button id="format-btn" class="action-button btn-primary" style="min-width: 120px;">
-                            <i class="fas fa-magic"></i>
+                        <button id="format-btn" class="action-button btn-primary">
+                            <i class="fas fa-magic" aria-hidden="true"></i>
                             格式化代码
                         </button>
+                        <div id="result-status" role="status" aria-live="polite" class="result-status" hidden></div>
+                        <p class="task-budget">自动处理 100KB 以内；手动处理最多 2MB 字符，后台计算限时 15 秒。</p>
+                    <div id="compute-hint" role="status" aria-live="polite" class="result-status" hidden></div>
                     </div>
                     <div class="action-buttons">
                         <button id="copy-btn" class="action-button btn-secondary" title="复制结果">
-                            <i class="fas fa-copy"></i>
+                            <i class="fas fa-copy" aria-hidden="true"></i>
                             复制
                         </button>
                         <button id="download-btn" class="action-button btn-secondary" title="下载结果">
-                            <i class="fas fa-download"></i>
+                            <i class="fas fa-download" aria-hidden="true"></i>
                             下载
                         </button>
                     </div>
                 </div>
                 <div class="editor-wrapper">
-                    <div id="output-line-numbers" class="line-numbers" style="display: none;"></div>
+                    <div id="output-line-numbers" class="line-numbers" aria-hidden="true"><span>1</span></div>
                     <div class="code-output">
                         <div class="empty-state" id="empty-state">
-                            <i class="fas fa-code"></i>
+                            <i class="fas fa-code" aria-hidden="true"></i>
                             <h3>等待格式化</h3>
                             <p>输入代码后点击"格式化代码"按钮</p>
                         </div>
@@ -670,491 +693,16 @@
     </div>
 
     <!-- 状态消息容器 -->
-    <div id="status-message" class="status-message"></div>
+    <div id="status-message" role="status" aria-live="polite" class="status-message"></div>
 
+    <script src="../js/editor-runtime-core.js"></script>
+    <script src="../js/editor-task-core.js"></script>
+    <script src="../js/clipboard.js"></script>
+    <script src="../js/lazy-script-core.js"></script>
+    <script src="../js/pretty-format-core.js"></script>
     <script src="../js/unsaved-guard.js"></script>
     <script src="../js/theme.js"></script>
-    <script>
-        // 防抖动函数
-        function debounce(func, wait) {
-            let timeout;
-            return function (...args) {
-                const context = this;
-                clearTimeout(timeout);
-                timeout = setTimeout(() => func.apply(context, args), wait);
-            };
-        }
-
-        // 状态提示功能
-        function showStatus(message, type = 'info', duration = 3000) {
-            const statusEl = document.getElementById('status-message');
-            statusEl.className = `status-message status-${type}`;
-
-            const iconMap = {
-                'success': 'fas fa-check-circle',
-                'error': 'fas fa-exclamation-circle',
-                'info': 'fas fa-info-circle'
-            };
-
-            const icon = document.createElement('i');
-            icon.className = iconMap[type] || iconMap.info;
-            statusEl.replaceChildren(icon, document.createTextNode(` ${String(message)}`));
-            statusEl.classList.add('show');
-
-            setTimeout(() => {
-                statusEl.classList.remove('show');
-            }, duration);
-        }
-
-        // 语言映射
-        const languageMap = {
-            'babel': 'JavaScript',
-            'typescript': 'TypeScript',
-            'html': 'HTML',
-            'css': 'CSS',
-            'json': 'JSON',
-            'yaml': 'YAML',
-            'markdown': 'Markdown',
-            'graphql': 'GraphQL',
-            'php-highlight': 'PHP',
-            'python-highlight': 'Python',
-            'java-highlight': 'Java',
-            'ruby-highlight': 'Ruby',
-            'go-highlight': 'Go',
-            'swift-highlight': 'Swift',
-            'csharp-highlight': 'C#',
-            'cpp-highlight': 'C/C++',
-            'rust-highlight': 'Rust',
-            'shell-highlight': 'Shell/Bash',
-            'sql-highlight': 'SQL',
-            'auto': '自动检测'
-        };
-
-        // highlight.js语言映射
-        const highlightLangMap = {
-            'babel': 'javascript',
-            'typescript': 'typescript',
-            'html': 'xml',
-            'css': 'css',
-            'json': 'json',
-            'yaml': 'yaml',
-            'markdown': 'markdown',
-            'graphql': 'graphql',
-            'php-highlight': 'php',
-            'python-highlight': 'python',
-            'java-highlight': 'java',
-            'ruby-highlight': 'ruby',
-            'go-highlight': 'go',
-            'swift-highlight': 'swift',
-            'csharp-highlight': 'csharp',
-            'cpp-highlight': 'cpp',
-            'rust-highlight': 'rust',
-            'shell-highlight': 'shell',
-            'sql-highlight': 'sql'
-        };
-
-        // 文件扩展名映射
-        const fileExtMap = {
-            'babel': 'js',
-            'typescript': 'ts',
-            'html': 'html',
-            'css': 'css',
-            'json': 'json',
-            'yaml': 'yaml',
-            'markdown': 'md',
-            'graphql': 'graphql',
-            'php-highlight': 'php',
-            'python-highlight': 'py',
-            'java-highlight': 'java',
-            'ruby-highlight': 'rb',
-            'go-highlight': 'go',
-            'swift-highlight': 'swift',
-            'csharp-highlight': 'cs',
-            'cpp-highlight': 'cpp',
-            'rust-highlight': 'rs',
-            'shell-highlight': 'sh',
-            'sql-highlight': 'sql'
-        };
-
-        let lastDetectedLanguage = '';
-        let isFormatting = false;
-
-        function syncOutputScroll() {
-            const outputCode = document.getElementById('output-code');
-            const outputLineNumbers = document.getElementById('output-line-numbers');
-            const codeOutput = outputCode.parentElement;
-            outputLineNumbers.scrollTop = codeOutput.scrollTop;
-        }
-
-        // 事件监听器
-        document.addEventListener('DOMContentLoaded', function () {
-            const inputCode = document.getElementById('input-code');
-            const languageSelect = document.getElementById('language');
-            const formatBtn = document.getElementById('format-btn');
-            const copyBtn = document.getElementById('copy-btn');
-            const copyInputBtn = document.getElementById('copy-input-btn');
-            const downloadBtn = document.getElementById('download-btn');
-            const downloadInputBtn = document.getElementById('download-input-btn');
-            const clearBtn = document.getElementById('clear-btn');
-            const outputCode = document.getElementById('output-code');
-
-            // 绑定事件
-            formatBtn.addEventListener('click', formatCode);
-            copyBtn.addEventListener('click', copyCode);
-            copyInputBtn.addEventListener('click', copyInputCode);
-            downloadBtn.addEventListener('click', downloadCode);
-            downloadInputBtn.addEventListener('click', downloadInputCode);
-            clearBtn.addEventListener('click', clearCode);
-
-            // 输入事件监听器
-            inputCode.addEventListener('paste', handleInputChange);
-            inputCode.addEventListener('input', debounce(handleInputChange, 300));
-            inputCode.addEventListener('scroll', syncInputScroll);
-            inputCode.addEventListener('input', updateInputLineNumbers);
-            outputCode.parentElement.addEventListener('scroll', syncOutputScroll);
-
-            // 语言选择变化
-            languageSelect.addEventListener('change', () => {
-                const code = inputCode.value.trim();
-                if (code) {
-                    formatCode();
-                }
-                // 隐藏检测标签，除非是自动检测
-                const detectedLanguageEl = document.getElementById('detected-language');
-                if (languageSelect.value !== 'auto') {
-                    detectedLanguageEl.classList.remove('show');
-                }
-            });
-
-            // 初始化
-            updateInputLineNumbers();
-            inputCode.focus();
-
-            // 同步输入区域滚动
-            function syncInputScroll() {
-                document.getElementById('input-line-numbers').scrollTop = inputCode.scrollTop;
-            }
-
-            // 更新输入区行号
-            function updateInputLineNumbers() {
-                const lineCount = inputCode.value.split('\n').length;
-                let lineNumbers = '';
-                for (let i = 1; i <= lineCount; i++) {
-                    lineNumbers += `<span>${i}</span>`;
-                }
-                document.getElementById('input-line-numbers').innerHTML = lineNumbers;
-            }
-
-            // 检测语言
-            function detectLanguage() {
-                const code = inputCode.value.trim();
-                if (!code || languageSelect.value !== 'auto') return;
-
-                let detectedLanguage = 'babel'; // 默认为JavaScript
-
-                // 简化的语言检测逻辑
-                if ((code.startsWith('{') && code.endsWith('}')) || (code.startsWith('[') && code.endsWith(']'))) {
-                    try {
-                        JSON.parse(code);
-                        detectedLanguage = 'json';
-                    } catch (e) {
-                        // 不是有效的JSON
-                    }
-                } else if (code.includes('<!DOCTYPE html>') || code.match(/<html.*>/i)) {
-                    detectedLanguage = 'html';
-                } else if (code.match(/[\w-]+\s*:\s*[^;]+;/) && code.includes('{') && !code.includes('function')) {
-                    detectedLanguage = 'css';
-                } else if (code.includes(':') && (code.includes('interface ') || code.includes('type ') || code.match(/:\s*(string|number|boolean|any)\b/))) {
-                    detectedLanguage = 'typescript';
-                } else if (code.includes('def ') && code.includes('print(')) {
-                    detectedLanguage = 'python-highlight';
-                } else if (code.includes('<?php')) {
-                    detectedLanguage = 'php-highlight';
-                }
-
-                // 更新显示
-                if (detectedLanguage !== lastDetectedLanguage) {
-                    lastDetectedLanguage = detectedLanguage;
-                    const detectedLanguageEl = document.getElementById('detected-language');
-                    const languageNameEl = document.getElementById('language-name');
-
-                    languageNameEl.textContent = languageMap[detectedLanguage];
-                    detectedLanguageEl.classList.add('show');
-
-                    setTimeout(() => {
-                        if (languageSelect.value === 'auto') {
-                            formatCode();
-                        }
-                    }, 100);
-                }
-            }
-
-            function handleInputChange() {
-                const code = inputCode.value.trim();
-                updateInputLineNumbers();
-
-                if (!code) {
-                    // 清空输出
-                    document.getElementById('empty-state').style.display = 'flex';
-                    document.getElementById('output-line-numbers').style.display = 'none';
-                    document.getElementById('output-code').style.display = 'none';
-                    return;
-                }
-
-                if (languageSelect.value === 'auto') {
-                    detectLanguage();
-                }
-            }
-        });
-
-        // 格式化代码主函数
-        async function formatCode() {
-            if (isFormatting) return;
-
-            const inputElement = document.getElementById('input-code');
-            const code = inputElement.value.trim();
-
-            if (!code) {
-                showStatus('请输入要格式化的代码', 'error');
-                return;
-            }
-
-            isFormatting = true;
-            const formatBtn = document.getElementById('format-btn');
-            const originalText = formatBtn.innerHTML;
-            formatBtn.innerHTML = '<span class="loading"></span> 格式化中...';
-            formatBtn.disabled = true;
-
-            try {
-                const selectedLanguage = document.getElementById('language').value;
-                const language = selectedLanguage === 'auto' ? lastDetectedLanguage || 'babel' : selectedLanguage;
-
-                let formattedCode = '';
-
-                // 根据语言类型进行格式化
-                switch (language) {
-                    case 'babel':
-                    case 'typescript':
-                        try {
-                            formattedCode = prettier.format(code, {
-                                parser: language === 'typescript' ? 'typescript' : 'babel',
-                                plugins: prettierPlugins,
-                                singleQuote: true,
-                                trailingComma: 'es5',
-                                tabWidth: 2,
-                                semi: true
-                            });
-                        } catch (error) {
-                            throw new Error(`JavaScript/TypeScript 格式化错误: ${error.message}`);
-                        }
-                        break;
-
-                    case 'html':
-                        try {
-                            formattedCode = prettier.format(code, {
-                                parser: 'html',
-                                plugins: prettierPlugins,
-                                tabWidth: 2,
-                                htmlWhitespaceSensitivity: 'css'
-                            });
-                        } catch (error) {
-                            throw new Error(`HTML 格式化错误: ${error.message}`);
-                        }
-                        break;
-
-                    case 'css':
-                        try {
-                            formattedCode = prettier.format(code, {
-                                parser: 'css',
-                                plugins: prettierPlugins,
-                                tabWidth: 2
-                            });
-                        } catch (error) {
-                            throw new Error(`CSS 格式化错误: ${error.message}`);
-                        }
-                        break;
-
-                    case 'json':
-                        try {
-                            const parsed = JSON.parse(code);
-                            formattedCode = JSON.stringify(parsed, null, 2);
-                        } catch (error) {
-                            throw new Error(`JSON 格式化错误: ${error.message}`);
-                        }
-                        break;
-
-                    case 'yaml':
-                        try {
-                            formattedCode = prettier.format(code, {
-                                parser: 'yaml',
-                                plugins: prettierPlugins,
-                                tabWidth: 2
-                            });
-                        } catch (error) {
-                            // YAML格式化失败时保持原样
-                            formattedCode = code;
-                        }
-                        break;
-
-                    case 'markdown':
-                        try {
-                            formattedCode = prettier.format(code, {
-                                parser: 'markdown',
-                                plugins: prettierPlugins,
-                                tabWidth: 2,
-                                proseWrap: 'preserve'
-                            });
-                        } catch (error) {
-                            formattedCode = code;
-                        }
-                        break;
-
-                    case 'graphql':
-                        try {
-                            formattedCode = prettier.format(code, {
-                                parser: 'graphql',
-                                plugins: prettierPlugins,
-                                tabWidth: 2
-                            });
-                        } catch (error) {
-                            formattedCode = code;
-                        }
-                        break;
-
-                    default:
-                        // 对于不支持prettier格式化的语言，保持原样但进行基本的缩进处理
-                        formattedCode = code.split('\n').map(line => line.trim()).join('\n');
-                        break;
-                }
-
-                // 更新输出显示
-                updateOutputDisplay(formattedCode, language);
-                showStatus('代码格式化完成！', 'success');
-
-            } catch (error) {
-                console.error('格式化失败:', error);
-                showStatus(error.message || '格式化失败，请检查代码语法', 'error');
-            } finally {
-                isFormatting = false;
-                formatBtn.innerHTML = originalText;
-                formatBtn.disabled = false;
-            }
-        }
-
-        // 更新输出显示
-        function updateOutputDisplay(formattedCode, language) {
-            const emptyState = document.getElementById('empty-state');
-            const outputLineNumbers = document.getElementById('output-line-numbers');
-            const outputCode = document.getElementById('output-code');
-            const codeElement = outputCode.querySelector('code');
-
-            emptyState.style.display = 'none';
-            outputLineNumbers.style.display = 'flex';
-            outputCode.style.display = 'block';
-
-            // 更新行号
-            const lines = formattedCode.split('\n');
-            let lineNumbers = '';
-            for (let i = 1; i <= lines.length; i++) {
-                lineNumbers += `<span>${i}</span>`;
-            }
-            outputLineNumbers.innerHTML = lineNumbers;
-
-            // 更新代码内容
-            codeElement.textContent = formattedCode;
-            codeElement.className = `language-${highlightLangMap[language] || 'plaintext'}`;
-
-            // 应用语法高亮
-            hljs.highlightElement(codeElement);
-
-            syncOutputScroll();
-        }
-
-        // 复制功能
-        function copyCode() {
-            const outputCode = document.getElementById('output-code');
-            if (outputCode.style.display === 'none') {
-                showStatus('没有可复制的格式化结果', 'error');
-                return;
-            }
-
-            const formattedCode = outputCode.querySelector('code').textContent;
-
-            navigator.clipboard.writeText(formattedCode).then(() => {
-                showStatus('格式化结果已复制到剪贴板', 'success');
-            }).catch(() => {
-                showStatus('复制失败，请手动选择复制', 'error');
-            });
-        }
-
-        function copyInputCode() {
-            const inputCode = document.getElementById('input-code').value;
-            if (!inputCode.trim()) {
-                showStatus('输入框为空', 'error');
-                return;
-            }
-
-            navigator.clipboard.writeText(inputCode).then(() => {
-                showStatus('输入代码已复制到剪贴板', 'success');
-            }).catch(() => {
-                showStatus('复制失败，请手动选择复制', 'error');
-            });
-        }
-
-        // 下载功能
-        function downloadCode() {
-            const outputCode = document.getElementById('output-code');
-            if (outputCode.style.display === 'none') {
-                showStatus('没有可下载的格式化结果', 'error');
-                return;
-            }
-
-            const formattedCode = outputCode.querySelector('code').textContent;
-            const language = document.getElementById('language').value === 'auto' ? lastDetectedLanguage : document.getElementById('language').value;
-            const extension = fileExtMap[language] || 'txt';
-
-            downloadFile(formattedCode, `formatted-code.${extension}`);
-        }
-
-        function downloadInputCode() {
-            const inputCode = document.getElementById('input-code').value;
-            if (!inputCode.trim()) {
-                showStatus('输入框为空', 'error');
-                return;
-            }
-
-            const language = document.getElementById('language').value === 'auto' ? lastDetectedLanguage : document.getElementById('language').value;
-            const extension = fileExtMap[language] || 'txt';
-
-            downloadFile(inputCode, `input-code.${extension}`);
-        }
-
-        function downloadFile(content, filename) {
-            const blob = new Blob([content], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            showStatus(`文件 ${filename} 下载成功`, 'success');
-        }
-
-        // 清空功能
-        function clearCode() {
-            document.getElementById('input-code').value = '';
-            document.getElementById('input-line-numbers').innerHTML = '<span>1</span>';
-            document.getElementById('empty-state').style.display = 'flex';
-            document.getElementById('output-line-numbers').style.display = 'none';
-            document.getElementById('output-code').style.display = 'none';
-            document.getElementById('detected-language').classList.remove('show');
-            lastDetectedLanguage = '';
-            showStatus('已清空所有内容', 'info');
-            document.getElementById('input-code').focus();
-        }
-    </script>
+    <script src="../js/pretty-format-page.js"></script>
 </body>
 
 </html>

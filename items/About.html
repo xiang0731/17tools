@@ -5,12 +5,30 @@
     <meta charset="UTF-8"><!-- 设置字符编码为UTF-8，支持中文等各种字符 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0"><!-- 设置视口以适应移动设备 -->
     <title>动画效果</title><!-- 设置网页标题 -->
+    <script>
+        (function applyThemeEarly() {
+            try {
+                var pref = localStorage.getItem('17tools-theme');
+                if (pref == null) {
+                    pref = localStorage.getItem('theme');
+                    if (pref != null) {
+                        localStorage.setItem('17tools-theme', pref);
+                    }
+                }
+                var theme = (pref === 'light' || pref === 'dark')
+                    ? pref
+                    : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) { /* 存储不可用时由 theme.js 降级 */ }
+        })();
+    </script>
+    <link rel="stylesheet" href="../css/theme.css">
     <style>
         /* CSS样式开始 */
         body {
             margin: 0;
             /* 移除页面边距 */
-            height: 100vh;
+            min-height: 100vh;
             /* 设置高度为视口的100%，vh表示视口高度 */
             display: flex;
             /* 使用弹性布局 */
@@ -18,11 +36,15 @@
             /* 水平居中 */
             align-items: center;
             /* 垂直居中 */
-            background-color: white;
-            /* 背景颜色设为白色 */
+            background-color: var(--background-primary);
+            color: var(--text-primary);
+            padding: var(--spacing-md);
         }
 
         .container {
+            width: 100%;
+            max-width: 800px;
+            padding: 0;
             position: relative;
             /* 设置相对定位，使内部元素可以基于它定位 */
             text-align: center;
@@ -42,7 +64,7 @@
             /* 水平居中的第二步：向左移动自身宽度的一半 */
             font-size: 24px;
             /* 字体大小 */
-            color: #666;
+            color: var(--text-secondary);
             /* 字体颜色为灰色 */
             font-family: "Microsoft YaHei", sans-serif;
             /* 字体设置为微软雅黑，如果没有则使用无衬线字体 */
@@ -65,7 +87,7 @@
             /* 水平居中的第二步：向左移动自身宽度的一半 */
             font-size: 16px;
             /* 字体大小 */
-            color: #888;
+            color: var(--text-tertiary);
             /* 字体颜色为浅灰色 */
             font-family: "Microsoft YaHei", sans-serif;
             /* 字体设置为微软雅黑，如果没有则使用无衬线字体 */
@@ -76,11 +98,11 @@
         }
 
         .rectangle {
-            width: 800px;
+            width: 100%;
             /* 设置宽度为800像素 */
             height: 480px;
             /* 设置高度为480像素 */
-            background-color: #f0f0f0;
+            background-color: var(--background-tertiary);
             /* 背景色为浅灰色 */
             border-radius: 15px;
             /* 设置圆角为15像素，使矩形四角变圆 */
@@ -318,8 +340,7 @@
             /* 无边框 */
             border-radius: 5px;
             /* 圆角5像素 */
-            color: white;
-            /* 字体颜色为白色 */
+            color: var(--text-inverse);
             cursor: pointer;
             /* 鼠标悬停时显示手指图标 */
             font-family: "Microsoft YaHei", sans-serif;
@@ -384,294 +405,40 @@
                 /* 结束位置：恢复到原位 */
             }
         }
-    </style>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script><!-- 引入jQuery库，用于简化DOM操作 -->
-    <!-- 添加防止开发者工具的额外检测 -->
-    <script src="../js/theme-injector.js"></script>
-    <script>
-        // 检测开发者工具是否打开的额外防护
-        function checkDevTools() {
-            // 检测窗口大小变化
-            const widthThreshold = window.outerWidth - window.innerWidth > 160;
-            const heightThreshold = window.outerHeight - window.innerHeight > 160;
 
-            // 如果检测到可能打开了开发者工具
-            if (widthThreshold || heightThreshold) {
-                // 可以在这里添加响应措施
-                console.clear(); // 清除控制台
-                // 可选：添加提示消息
-                // document.body.innerHTML = '<div style="text-align:center;font-family:\'Microsoft YaHei\',sans-serif;margin-top:100px;"><h1>提示信息</h1></div>';
+        @media (prefers-reduced-motion: reduce) {
+            .rectangle { opacity: 1; }
+            .floating-text {
+                display: none;
+            }
+
+            .rectangle,
+            .face,
+            .eyes,
+            .pupil,
+            .mouth,
+            .btn {
+                animation: none !important;
+                transition: none !important;
             }
         }
 
-        // 定期检查
-        setInterval(checkDevTools, 1000);
-
-        // 添加调试器断点检测
-        (function preventDebugger() {
-            const start = new Date().getTime();
-            debugger;
-            const end = new Date().getTime();
-            if (end - start > 100) {
-                // 尝试调试时执行操作
-                window.location.reload();
+        @media (max-width: 600px) {
+            .rectangle { padding: var(--spacing-md); }
+            .subtitle, .title {
+                position: relative;
+                top: auto;
+                left: auto;
+                width: 100%;
+                transform: none;
             }
-            setTimeout(preventDebugger, 100);
-        })();
-    </script>
-    <script>
-        $(document).ready(function () {
-            // 禁用右键菜单
-            $(document).on('contextmenu', function (e) {
-                e.preventDefault(); // 阻止默认右键菜单显示
-                return false; // 确保阻止默认行为
-            });
-
-            // 禁用F12键和其他开发者工具快捷键
-            $(document).on('keydown', function (e) {
-                // F12键的keyCode是123
-                if (e.keyCode === 123) {
-                    e.preventDefault();
-                    return false;
-                }
-
-                // 禁用Ctrl+Shift+I (打开开发者工具)
-                if (e.ctrlKey && e.shiftKey && e.keyCode === 73) {
-                    e.preventDefault();
-                    return false;
-                }
-
-                // 禁用Ctrl+Shift+J (打开开发者工具中的控制台)
-                if (e.ctrlKey && e.shiftKey && e.keyCode === 74) {
-                    e.preventDefault();
-                    return false;
-                }
-
-                // 禁用Ctrl+U (查看源代码)
-                if (e.ctrlKey && e.keyCode === 85) {
-                    e.preventDefault();
-                    return false;
-                }
-            });
-
-            // 当文档加载完成后执行的代码
-            const $rectangle = $('.rectangle'); // 获取矩形元素
-            const $eyes = $('.eyes'); // 获取眼睛元素
-            const $mouth = $('.mouth'); // 获取嘴巴元素
-            const $title = $('.title'); // 获取标题元素
-
-            $rectangle.on('mousemove', function (e) {
-                // 监听矩形上的鼠标移动事件
-                // 移除检查鼠标是否在标题区域的代码，让所有区域都处理事件
-                const rect = $rectangle[0].getBoundingClientRect(); // 获取矩形元素的位置和尺寸信息
-                const mouseX = e.clientX - rect.left; // 计算鼠标相对于矩形左边的位置
-                const mouseY = e.clientY - rect.top; // 计算鼠标相对于矩形顶部的位置
-
-                // 获取保留和卸载按钮的位置信息
-                const $keepBtn = $('.btn-keep');
-                const $uninstallBtn = $('.btn-uninstall');
-                const keepBtnRect = $keepBtn[0].getBoundingClientRect();
-                const uninstallBtnRect = $uninstallBtn[0].getBoundingClientRect();
-
-                // 计算鼠标到两个按钮的距离
-                const distToKeep = Math.hypot(
-                    (e.clientX - (keepBtnRect.left + keepBtnRect.width / 2)),
-                    (e.clientY - (keepBtnRect.top + keepBtnRect.height / 2))
-                );
-                const distToUninstall = Math.hypot(
-                    (e.clientX - (uninstallBtnRect.left + uninstallBtnRect.width / 2)),
-                    (e.clientY - (uninstallBtnRect.top + uninstallBtnRect.height / 2))
-                );
-
-                // 定义最大距离范围（用于归一化）
-                const maxDist = Math.hypot(rect.width, rect.height) / 2;
-
-                // 计算鼠标离开保留按钮到靠近卸载按钮的进度（0-1之间）
-                // 保留按钮附近为0，卸载按钮附近为1
-                let progress = (distToKeep / (distToKeep + distToUninstall));
-
-                // 确保值在0-1之间
-                progress = Math.max(0, Math.min(1, progress));
-
-                // 处理眼球移动（保持原来的逻辑）
-                $eyes.each(function () {
-                    const $eye = $(this); // 当前眼睛元素
-                    const eyeRect = this.getBoundingClientRect(); // 获取眼睛元素的位置和尺寸信息
-                    const eyeCenterX = eyeRect.left + eyeRect.width / 2 - rect.left; // 计算眼睛中心X坐标
-                    const eyeCenterY = eyeRect.top + eyeRect.height / 2 - rect.top; // 计算眼睛中心Y坐标
-
-                    const angle = Math.atan2(mouseY - eyeCenterY, mouseX - eyeCenterX); // 计算鼠标到眼睛中心的角度
-                    const maxDistance = 20; // 将眼球移动的最大距离从15增加到20，适应更大的眼睛
-
-                    const distance = Math.min(
-                        maxDistance,
-                        Math.hypot(mouseX - eyeCenterX, mouseY - eyeCenterY) / 5
-                    ); // 计算眼球移动距离，有上限值
-
-                    const pupilX = Math.cos(angle) * distance; // 计算瞳孔X方向的位移
-                    const pupilY = Math.sin(angle) * distance; // 计算瞳孔Y方向的位移
-
-                    $eye.find('.pupil').css('transform', `translate(${pupilX}px, ${pupilY}px)`); // 移动瞳孔
-                });
-
-                // 处理嘴巴形状变化和位置
-                // 计算嘴巴的偏移量，基于鼠标在整个矩形中的位置
-                const centerX = rect.width / 2; // 矩形中心X坐标
-                const centerY = rect.height / 2; // 矩形中心Y坐标
-                // 嘴巴随着鼠标移动而移动，数字越大移动距离越大
-                const maxOffset = 8;  // 最大偏移像素
-
-                // 计算相对于中心点的偏移
-                const offsetX = ((mouseX - centerX) / centerX) * maxOffset;
-                const offsetY = ((mouseY - centerY) / centerY) * maxOffset;
-
-                // 嘴巴在开心和沮丧最大值时的圆角
-                // 基于progress直接计算嘴巴的圆角形状，实现完全平滑的过渡
-                // 计算底部圆角（从148px逐渐变为0）
-                const bottomRadius = Math.max(8, 148 * (1 - progress));
-                // 计算顶部圆角（从0逐渐变为148px）
-                const topRadius = Math.max(8, 148 * progress);
-
-                // 设置嘴巴CSS，形状完全由progress值决定
-                $mouth.css({
-                    'border-radius': `${topRadius}px ${topRadius}px ${bottomRadius}px ${bottomRadius}px`,
-                    'height': '70px',
-                    'bottom': `${50 - offsetY / 2}px`,
-                    'transform': `translateX(calc(-50% + ${offsetX / 2}px))`
-                });
-
-                // 处理脸部渐变色
-                // 使用相同的progress值来更新脸部颜色
-                const baseGreen = 216;  // 绿色基础值
-                const targetYellow = 255;  // FFE17F 的 RGB 值
-                const targetGreen = 225;   // FFE17F 的 RGB 值
-                const targetBlue = 127;    // FFE17F 的 RGB 值
-
-                // 根据位置计算RGB分量
-                let redValue, blueValue;
-                if (progress <= 0.5) {
-                    // 从 FFE17F 到灰绿色
-                    redValue = Math.floor(targetYellow - progress * 2 * (targetYellow - 184));  // 184 是灰绿色的红色分量
-                    blueValue = Math.floor(targetBlue + progress * 2 * (190 - targetBlue));    // 190 是灰绿色的蓝色分量
-                } else {
-                    // 从灰绿色到深灰绿色
-                    redValue = Math.floor(184 - (progress - 0.5) * 2 * (184 - 164));
-                    blueValue = Math.floor(190 - (progress - 0.5) * 2 * (190 - 170));
-                }
-
-                const topColor = `rgb(${redValue}, ${baseGreen}, ${blueValue})`; // 创建RGB颜色字符串
-                $('.face').css('background', `linear-gradient(to bottom, ${topColor}, #FFE17F)`); // 设置脸部渐变背景
-
-                // 处理脸颊红晕的透明度和阴影
-                const blushOpacity = Math.max(0, 1 - progress);  // 从1逐渐减小到0
-                const shadowOpacity = Math.max(0, 1 - progress);  // 阴影也跟随透明度变化
-                $('.blush').css({
-                    'background-color': `rgba(255, 99, 132, ${blushOpacity * 0.3})`, // 设置红晕颜色和透明度
-                    'box-shadow': `inset 0 2px 5px rgba(0, 0, 0, ${shadowOpacity * 0.1})` // 设置红晕阴影
-                });
-            });
-
-            // 鼠标离开时重置所有状态
-            $rectangle.on('mouseleave', function () {
-                $('.eye-left .pupil').css('transform', 'translate(14px, 14px)'); // 左眼瞳孔恢复初始位置
-                $('.eye-right .pupil').css('transform', 'translate(-14px, -14px)'); // 右眼瞳孔恢复初始位置
-
-                // 嘴巴恢复初始状态
-                $mouth.css({
-                    'border-radius': '0 0 148px 148px', // 恢复微笑形状（底部圆角）
-                    'height': '70px', // 恢复原始高度
-                    'bottom': '50px', // 恢复原始位置
-                    'transform': 'translateX(-50%)' // 恢复原始位置
-                });
-
-                // 重置红晕透明度和阴影
-                $('.blush').css({
-                    'background-color': 'rgba(255, 99, 132, 0.3)', // 恢复原始颜色和透明度
-                    'box-shadow': 'inset 0 2px 5px rgba(0, 0, 0, 0.1)' // 恢复原始阴影
-                });
-
-                // 重置脸部渐变色为柔和的灰绿色
-                $('.face').css('background', 'linear-gradient(to bottom, #B8D8BE, #FFE17F)'); // 恢复原始渐变色
-            });
-
-            // 添加"好呀"按钮点击事件
-            $('.btn-keep').on('click', function () {
-                // 更改按钮文字
-                $(this).text('走起走起').css({
-                    'background-color': '#2ecc71',  // 更亮的绿色
-                    'transform': 'scale(1.1)',     // 稍微放大按钮
-                    'box-shadow': '0 0 15px rgba(46, 204, 113, 0.5)'  // 添加发光效果
-                });
-
-                // 添加跳转前的动画效果
-                const $button = $(this);
-
-                // 按钮跳动动画
-                let bounce = 0;
-                const bounceInterval = setInterval(function () {
-                    bounce++;
-                    if (bounce % 2 === 0) {
-                        $button.css('transform', 'scale(1.15)');
-                    } else {
-                        $button.css('transform', 'scale(1.05)');
-                    }
-
-                    if (bounce >= 4) {
-                        clearInterval(bounceInterval);
-                    }
-                }, 250);
-
-                // 2秒后跳转
-                setTimeout(function () {
-                    window.location.href = 'https://www.wow17.com';
-                }, 2000);
-            });
-
-            // 添加"下次一定"按钮点击事件
-            $('.btn-uninstall').on('click', function (e) {
-                // 定义多种文字选项
-                const texts = ["快来快来", "来交朋友", "过来看看", "点左边", "试一试", "来留留言"];
-                // 同时显示的文字数量
-                const numTextsToShow = 1;
-
-                // 显示多个文字
-                for (let i = 0; i < numTextsToShow; i++) {
-                    // 随机选择一个文字
-                    const randomIndex = Math.floor(Math.random() * texts.length);
-                    const text = texts[randomIndex];
-
-                    // 随机颜色
-                    const colors = ["#FF4444", "#4CAF50", "#3498db", "#9b59b6", "#e67e22", "#f1c40f"];
-                    const randomColor = colors[Math.floor(Math.random() * colors.length)];
-
-                    // 创建显示文字的元素
-                    const $floatingText = $('<div class="floating-text"></div>').text(text);
-
-                    // 随机位置偏移（围绕鼠标点击位置）
-                    const offsetX = (Math.random() - 0.5) * 100; // -50到50之间的随机值
-                    const offsetY = (Math.random() - 0.5) * 60;  // -30到30之间的随机值
-
-                    // 设置文字位置和样式
-                    $floatingText.css({
-                        left: (e.clientX - 40 + offsetX) + 'px',
-                        top: (e.clientY - 10 + offsetY) + 'px',
-                        color: randomColor,
-                        // 随机动画持续时间（1.2秒到2秒）
-                        animationDuration: (1.2 + Math.random() * 0.8) + 's'
-                    });
-
-                    // 添加到body
-                    $('body').append($floatingText);
-
-                    // 动画结束后移除元素
-                    const animDuration = parseFloat($floatingText.css('animation-duration')) * 1000;
-                    setTimeout(function () {
-                        $floatingText.remove();
-                    }, animDuration);
-                }
-            });
-        });
-    </script>
+            .title { margin-top: var(--spacing-sm); font-size: 20px; }
+            .face { transform: translate(-50%, -50%) scale(0.72); }
+            .buttons { padding: 0 var(--spacing-md); gap: var(--spacing-md); }
+            .buttons .btn { padding: var(--spacing-sm) var(--spacing-md); min-height: 44px; }
+        }
+    </style>
+    <script src="../js/theme.js"></script>
 </head>
 
 <body>
@@ -699,6 +466,159 @@
             </div>
         </div>
     </div>
+    <script>
+        (function () {
+            const rectangle = document.querySelector('.rectangle');
+            const eyes = document.querySelectorAll('.eyes');
+            const mouth = document.querySelector('.mouth');
+            const face = document.querySelector('.face');
+            const blushes = document.querySelectorAll('.blush');
+            const keepBtn = document.querySelector('.btn-keep');
+            const uninstallBtn = document.querySelector('.btn-uninstall');
+            const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+            rectangle.addEventListener('mousemove', function (e) {
+                if (reducedMotion.matches) {
+                    return;
+                }
+                const rect = rectangle.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+
+                const keepBtnRect = keepBtn.getBoundingClientRect();
+                const uninstallBtnRect = uninstallBtn.getBoundingClientRect();
+
+                const distToKeep = Math.hypot(
+                    (e.clientX - (keepBtnRect.left + keepBtnRect.width / 2)),
+                    (e.clientY - (keepBtnRect.top + keepBtnRect.height / 2))
+                );
+                const distToUninstall = Math.hypot(
+                    (e.clientX - (uninstallBtnRect.left + uninstallBtnRect.width / 2)),
+                    (e.clientY - (uninstallBtnRect.top + uninstallBtnRect.height / 2))
+                );
+
+                let progress = (distToKeep / (distToKeep + distToUninstall));
+                progress = Math.max(0, Math.min(1, progress));
+
+                eyes.forEach(function (eye) {
+                    const eyeRect = eye.getBoundingClientRect();
+                    const eyeCenterX = eyeRect.left + eyeRect.width / 2 - rect.left;
+                    const eyeCenterY = eyeRect.top + eyeRect.height / 2 - rect.top;
+                    const angle = Math.atan2(mouseY - eyeCenterY, mouseX - eyeCenterX);
+                    const maxDistance = 20;
+                    const distance = Math.min(
+                        maxDistance,
+                        Math.hypot(mouseX - eyeCenterX, mouseY - eyeCenterY) / 5
+                    );
+                    const pupilX = Math.cos(angle) * distance;
+                    const pupilY = Math.sin(angle) * distance;
+                    const pupil = eye.querySelector('.pupil');
+                    if (pupil) {
+                        pupil.style.transform = 'translate(' + pupilX + 'px, ' + pupilY + 'px)';
+                    }
+                });
+
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                const maxOffset = 8;
+                const offsetX = ((mouseX - centerX) / centerX) * maxOffset;
+                const offsetY = ((mouseY - centerY) / centerY) * maxOffset;
+                const bottomRadius = Math.max(8, 148 * (1 - progress));
+                const topRadius = Math.max(8, 148 * progress);
+
+                mouth.style.borderRadius = topRadius + 'px ' + topRadius + 'px ' + bottomRadius + 'px ' + bottomRadius + 'px';
+                mouth.style.height = '70px';
+                mouth.style.bottom = (50 - offsetY / 2) + 'px';
+                mouth.style.transform = 'translateX(calc(-50% + ' + (offsetX / 2) + 'px))';
+
+                const baseGreen = 216;
+                const targetYellow = 255;
+                const targetBlue = 127;
+                let redValue, blueValue;
+                if (progress <= 0.5) {
+                    redValue = Math.floor(targetYellow - progress * 2 * (targetYellow - 184));
+                    blueValue = Math.floor(targetBlue + progress * 2 * (190 - targetBlue));
+                } else {
+                    redValue = Math.floor(184 - (progress - 0.5) * 2 * (184 - 164));
+                    blueValue = Math.floor(190 - (progress - 0.5) * 2 * (190 - 170));
+                }
+                face.style.background = 'linear-gradient(to bottom, rgb(' + redValue + ', ' + baseGreen + ', ' + blueValue + '), #FFE17F)';
+
+                const blushOpacity = Math.max(0, 1 - progress);
+                const shadowOpacity = Math.max(0, 1 - progress);
+                blushes.forEach(function (blush) {
+                    blush.style.backgroundColor = 'rgba(255, 99, 132, ' + (blushOpacity * 0.3) + ')';
+                    blush.style.boxShadow = 'inset 0 2px 5px rgba(0, 0, 0, ' + (shadowOpacity * 0.1) + ')';
+                });
+            });
+
+            rectangle.addEventListener('mouseleave', function () {
+                const leftPupil = document.querySelector('.eye-left .pupil');
+                const rightPupil = document.querySelector('.eye-right .pupil');
+                if (leftPupil) leftPupil.style.transform = 'translate(14px, 14px)';
+                if (rightPupil) rightPupil.style.transform = 'translate(-14px, -14px)';
+
+                mouth.style.borderRadius = '0 0 148px 148px';
+                mouth.style.height = '70px';
+                mouth.style.bottom = '50px';
+                mouth.style.transform = 'translateX(-50%)';
+
+                blushes.forEach(function (blush) {
+                    blush.style.backgroundColor = 'rgba(255, 99, 132, 0.3)';
+                    blush.style.boxShadow = 'inset 0 2px 5px rgba(0, 0, 0, 0.1)';
+                });
+                face.style.background = 'linear-gradient(to bottom, #B8D8BE, #FFE17F)';
+            });
+
+            keepBtn.addEventListener('click', function () {
+                keepBtn.textContent = '走起走起';
+                keepBtn.style.backgroundColor = '#2ecc71';
+                keepBtn.style.transform = reducedMotion.matches ? 'none' : 'scale(1.1)';
+                keepBtn.style.boxShadow = reducedMotion.matches ? 'none' : '0 0 15px rgba(46, 204, 113, 0.5)';
+
+                if (!reducedMotion.matches) {
+                    let bounce = 0;
+                    const bounceInterval = setInterval(function () {
+                        bounce++;
+                        keepBtn.style.transform = bounce % 2 === 0 ? 'scale(1.15)' : 'scale(1.05)';
+                        if (bounce >= 4) {
+                            clearInterval(bounceInterval);
+                        }
+                    }, 250);
+                }
+
+                setTimeout(function () {
+                    window.location.href = 'https://www.wow17.com';
+                }, 2000);
+            });
+
+            uninstallBtn.addEventListener('click', function (e) {
+                if (reducedMotion.matches) {
+                    return;
+                }
+                const texts = ['快来快来', '来交朋友', '过来看看', '点左边', '试一试', '来留留言'];
+                const colors = ['#FF4444', '#4CAF50', '#3498db', '#9b59b6', '#e67e22', '#f1c40f'];
+                const text = texts[Math.floor(Math.random() * texts.length)];
+                const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                const floatingText = document.createElement('div');
+                floatingText.className = 'floating-text';
+                floatingText.textContent = text;
+                const offsetX = (Math.random() - 0.5) * 100;
+                const offsetY = (Math.random() - 0.5) * 60;
+                floatingText.style.left = (e.clientX - 40 + offsetX) + 'px';
+                floatingText.style.top = (e.clientY - 10 + offsetY) + 'px';
+                floatingText.style.color = randomColor;
+                floatingText.style.animationDuration = (1.2 + Math.random() * 0.8) + 's';
+                document.body.appendChild(floatingText);
+                const animDuration = parseFloat(getComputedStyle(floatingText).animationDuration) * 1000;
+                setTimeout(function () {
+                    if (floatingText.parentNode) {
+                        floatingText.parentNode.removeChild(floatingText);
+                    }
+                }, animDuration);
+            });
+        })();
+    </script>
 </body>
 
 </html>

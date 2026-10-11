@@ -3,9 +3,26 @@
 
 <head>
     <meta charset="UTF-8">
+    <script>
+        (function applyThemeEarly() {
+            try {
+                var pref = localStorage.getItem('17tools-theme');
+                if (pref == null) {
+                    pref = localStorage.getItem('theme');
+                    if (pref != null) {
+                        localStorage.setItem('17tools-theme', pref);
+                    }
+                }
+                var theme = (pref === 'light' || pref === 'dark')
+                    ? pref
+                    : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) { /* 存储不可用时由 theme.js 降级 */ }
+        })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>实验性工具 - 17Tools</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="../vendor/fontawesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
             /* 浅色模式变量 */
@@ -389,11 +406,11 @@
         <div class="feedback-section">
             <h2>帮助我们改进</h2>
             <p>你的反馈对我们非常重要！请告诉我们你的使用体验。</p>
-            <a href="https://github.com/xiang0731/17tools/issues/new" target="_blank" class="feedback-btn">
+            <a href="https://github.com/xiang0731/17tools/issues/new" target="_blank" rel="noopener noreferrer" class="feedback-btn">
                 <i class="fas fa-bug"></i>
                 报告问题
             </a>
-            <a href="https://github.com/xiang0731/17tools/discussions" target="_blank" class="feedback-btn">
+            <a href="https://github.com/xiang0731/17tools/discussions" target="_blank" rel="noopener noreferrer" class="feedback-btn">
                 <i class="fas fa-comments"></i>
                 分享想法
             </a>
@@ -444,6 +461,7 @@
             }
         });
     </script>
+    <script src="../js/theme.js"></script>
 </body>
 
 </html>

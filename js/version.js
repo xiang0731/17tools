@@ -3,8 +3,10 @@
  * 统一管理所有页面的版本号显示
  * 
  * @author 17Tools Team
- * @version 2.16.2
+ * @version 2.19.1
  */
+
+const DEFAULT_VERSION = '2.19.1';
 
 class GlobalVersionManager {
     constructor() {
@@ -19,58 +21,53 @@ class GlobalVersionManager {
             this.updateVersionDisplays();
         } catch (error) {
             console.warn('版本获取失败，使用默认版本', error);
-            this.version = '2.16.2'; // 默认版本
+            this.version = DEFAULT_VERSION;
             this.updateVersionDisplays();
         }
     }
 
     // 从 History.html 获取最新版本号
     async fetchVersion() {
-        return new Promise((resolve, reject) => {
-            // 如果当前就在 History 页面，直接从页面获取
-            if (window.location.pathname.includes('History.html')) {
-                this.extractVersionFromCurrentPage();
-                resolve();
-                return;
-            }
-
-            // 创建隐藏的 iframe 加载 History.html
+        if (window.location.pathname.includes('History.html')) {
+            this.extractVersionFromCurrentPage();
+            return;
+        }
+        let cacheHost = window;
+        try { if (window.parent && window.parent.location.origin === window.location.origin) cacheHost = window.parent; } catch (error) { /* independent page */ }
+        const cached = cacheHost.__17toolsVersionCache;
+        if (cached && cached.fallback === DEFAULT_VERSION && cached.expires > Date.now()) {
+            this.version = cached.version;
+            return;
+        }
+        await new Promise((resolve, reject) => {
             const iframe = document.createElement('iframe');
             iframe.style.display = 'none';
-            // 修正路径：History.html 在 items/ 目录下
-            const currentPath = window.location.pathname;
-            if (currentPath.includes('/items/')) {
-                iframe.src = 'History.html';
-            } else {
-                iframe.src = 'items/History.html';
-            }
-
+            iframe.src = window.location.pathname.includes('/items/') ? 'History.html' : 'items/History.html';
+            let settled = false;
+            let timer;
+            const finish = (error, version) => {
+                if (settled) return;
+                settled = true;
+                clearTimeout(timer);
+                iframe.onload = null;
+                iframe.onerror = null;
+                if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+                if (error) { reject(error); return; }
+                this.version = version;
+                cacheHost.__17toolsVersionCache = { version: version, fallback: DEFAULT_VERSION, expires: Date.now() + 60000 };
+                resolve();
+            };
             iframe.onload = () => {
                 try {
-                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                    const versionElements = iframeDoc.querySelectorAll('.version-number');
-
-                    if (versionElements.length > 0) {
-                        const versionText = versionElements[0].textContent;
-                        const versionMatch = versionText.match(/(\d+\.\d+\.\d+)/);
-                        this.version = versionMatch ? versionMatch[1] : '2.16.2';
-                    } else {
-                        this.version = '2.16.2';
-                    }
-
-                    document.body.removeChild(iframe);
-                    resolve();
-                } catch (error) {
-                    document.body.removeChild(iframe);
-                    reject(error);
-                }
+                    const doc = iframe.contentDocument || iframe.contentWindow.document;
+                    const first = doc.querySelectorAll('.version-number')[0];
+                    const match = first && first.textContent.match(/(\d+\.\d+\.\d+)/);
+                    if (!match) throw new Error('History.html 缺少有效版本号');
+                    finish(null, match[1]);
+                } catch (error) { finish(error); }
             };
-
-            iframe.onerror = () => {
-                document.body.removeChild(iframe);
-                reject(new Error('无法加载 History.html'));
-            };
-
+            iframe.onerror = () => finish(new Error('无法加载 History.html'));
+            timer = setTimeout(() => finish(new Error('版本查询超时')), 8000);
             document.body.appendChild(iframe);
         });
     }
@@ -81,9 +78,9 @@ class GlobalVersionManager {
         if (versionElements.length > 0) {
             const versionText = versionElements[0].textContent;
             const versionMatch = versionText.match(/(\d+\.\d+\.\d+)/);
-            this.version = versionMatch ? versionMatch[1] : '2.16.2';
+            this.version = versionMatch ? versionMatch[1] : DEFAULT_VERSION;
         } else {
-            this.version = '2.16.2';
+            this.version = DEFAULT_VERSION;
         }
     }
 

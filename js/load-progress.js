@@ -11,12 +11,13 @@
     const PROGRESS_CAP = 0.9;
     const DEFAULT_ESTIMATE_MS = 2500;
     const ESTIMATES_MS = {
-        'PrettyFormat.html': 8000,
+        'PrettyFormat.html': 1500,
         'ImageProcessor.html': 3000,
-        'Markdown.html': 3000,
+        'Markdown.html': 2000,
         'QRCode.html': 2000,
-        'CodeDiff.html': 1500,
-        'About.html': 1200
+        'CodeDiff.html': 1200,
+        'About.html': 1200,
+        'Board.html': 2500
     };
 
     function pageName(src) {

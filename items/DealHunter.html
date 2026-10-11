@@ -3,10 +3,28 @@
 
 <head>
     <meta charset="UTF-8">
+    <script>
+        (function applyThemeEarly() {
+            try {
+                var pref = localStorage.getItem('17tools-theme');
+                if (pref == null) {
+                    pref = localStorage.getItem('theme');
+                    if (pref != null) {
+                        localStorage.setItem('17tools-theme', pref);
+                    }
+                }
+                var theme = (pref === 'light' || pref === 'dark')
+                    ? pref
+                    : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) { /* 存储不可用时由 theme.js 降级 */ }
+        })();
+    </script>
+
     <title>优惠计算器</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../css/theme.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="../vendor/fontawesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         html,
         body {
@@ -102,6 +120,56 @@
             color: var(--text-secondary);
         }
 
+        .panel-header-title {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            min-width: 0;
+        }
+
+        .header-clear-btn {
+            min-height: 44px;
+            min-width: 44px;
+            flex-shrink: 0;
+            margin-left: auto;
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            background: var(--background-primary);
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            font-family: inherit;
+            white-space: nowrap;
+        }
+
+        .header-clear-btn:hover {
+            background: var(--background-hover);
+            color: var(--text-error);
+            border-color: var(--error-color);
+        }
+
+        .header-clear-btn:focus-visible {
+            outline: 2px solid var(--border-focus);
+            outline-offset: 2px;
+        }
+
+        .header-clear-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            color: var(--text-tertiary);
+        }
+
+        .header-clear-btn:disabled:hover {
+            background: var(--background-primary);
+            color: var(--text-tertiary);
+            border-color: var(--border-color);
+        }
+
         .panel-content {
             flex: 1;
             display: flex;
@@ -143,13 +211,34 @@
         }
 
         .output-line.winner {
-            background: rgba(16, 185, 129, 0.1);
+            background: color-mix(in srgb, var(--accent-color) 12%, transparent);
             border-left-color: var(--accent-color);
         }
 
         .output-line.winner .unit-price {
             color: var(--accent-color);
             font-weight: 700;
+        }
+
+        .output-line.discount-summary,
+        .output-line.comparison-summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px dashed var(--border-color);
+            padding-bottom: var(--spacing-sm);
+            min-height: 40px;
+        }
+
+        .output-line.comparison-summary {
+            color: var(--text-secondary);
+        }
+
+        .output-line.invalid {
+            border-left-color: var(--warning-color);
+        }
+
+        .output-line.invalid .unit-price {
+            color: var(--text-warning);
+            font-weight: 600;
         }
 
         .rank-badge {
@@ -163,12 +252,29 @@
 
         .winner .rank-badge {
             background: var(--accent-color);
-            color: white;
+            color: var(--text-inverse);
         }
 
         .unit-price {
             color: var(--primary-color);
             font-weight: 600;
+        }
+
+        .original-data {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .output-warning {
+            color: var(--text-warning);
+            font-size: 11px;
+            margin-left: var(--spacing-sm);
+            font-weight: normal;
+            display: inline-flex;
+            flex-direction: column;
+            vertical-align: middle;
+            line-height: 1.2;
         }
 
         .empty-state {
@@ -224,10 +330,10 @@
         <h1><i class="fas fa-balance-scale"></i> 优惠计算器</h1>
 
         <div class="function-buttons">
-            <button class="function-button active" onclick="switchMode('A', this)">
+            <button type="button" class="function-button active" onclick="switchMode('A', this)">
                 <i class="fas fa-balance-scale"></i> A-自由比价
             </button>
-            <button class="function-button" onclick="switchMode('B', this)">
+            <button type="button" class="function-button" onclick="switchMode('B', this)">
                 <i class="fas fa-calculator"></i> B-优惠计算
             </button>
         </div>
@@ -236,10 +342,15 @@
             <!-- 输入面板 -->
             <div class="panel">
                 <div id="inputHeader" class="panel-header">
-                    <i class="fas fa-edit"></i> 输入列表 (每行: 总价 数量)
+                    <span class="panel-header-title">
+                        <i class="fas fa-edit"></i>
+                        <span id="inputHeaderLabel">输入列表</span>
+                    </span>
+                    <button type="button" id="clearInputBtn" class="header-clear-btn" title="清空输入列表" onclick="clearInput()">清空</button>
                 </div>
                 <div class="panel-content">
-                    <textarea id="inputArea" placeholder="例如:
+                    <textarea id="inputArea" placeholder="用于比较单价，每行输入总价+空格+数量，自动计算最优方案
+例如:
 100 10
 200 25
 45.5 3" oninput="processComparison()"></textarea>
@@ -250,7 +361,11 @@
             <!-- 输出面板 -->
             <div class="panel">
                 <div id="outputHeader" class="panel-header">
-                    <i class="fas fa-chart-line"></i> 比价分析结果
+                    <span class="panel-header-title">
+                        <i id="outputHeaderIcon" class="fas fa-chart-line"></i>
+                        <span id="outputHeaderLabel">比价分析结果</span>
+                    </span>
+                    <button type="button" id="copyResultBtn" class="header-clear-btn" title="复制结果为纯文本" onclick="copyResult()" disabled>复制</button>
                 </div>
                 <div class="panel-content" id="outputArea">
                     <div class="empty-state">
@@ -262,197 +377,283 @@
         </div>
     </div>
 
-    <script src="../js/unsaved-guard.js"></script>
-    <script src="../js/theme.js"></script>
+    <script src="../js/deal-hunter-core.js"></script>
     <script>
         let currentMode = 'A';
+        let lastResult = null;
+        const DEFAULT_EMPTY_MESSAGE = '在左侧输入数据后\n在此查看实时分析';
+
+        function getCore() {
+            return window.DealHunterCore;
+        }
 
         function switchMode(mode, btn) {
             currentMode = mode;
 
-            // 更新按钮状态
-            document.querySelectorAll('.function-button').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.function-button').forEach(function (button) {
+                button.classList.remove('active');
+            });
             btn.classList.add('active');
 
-            // 更新 UI 提示
-            const inputHeader = document.getElementById('inputHeader');
-            const outputHeader = document.getElementById('outputHeader');
+            const inputHeaderLabel = document.getElementById('inputHeaderLabel');
+            const outputHeaderIcon = document.getElementById('outputHeaderIcon');
+            const outputHeaderLabel = document.getElementById('outputHeaderLabel');
             const inputArea = document.getElementById('inputArea');
             const inputHint = document.getElementById('inputHint');
 
             if (mode === 'A') {
-                inputHeader.innerHTML = '<i class="fas fa-edit"></i> 输入列表 (每行: 总价 数量)';
-                outputHeader.innerHTML = '<i class="fas fa-chart-line"></i> 比价分析结果';
-                inputArea.placeholder = "例如:\n100 10\n200 25\n45.5 3";
-                inputHint.innerText = "每行一个产品";
+                inputHeaderLabel.textContent = '输入列表';
+                outputHeaderIcon.className = 'fas fa-chart-line';
+                outputHeaderLabel.textContent = '比价分析结果';
+                inputArea.placeholder = "用于比较单价，每行输入总价+空格+数量，自动计算最优方案\n例如:\n100 10\n200 25\n45.5 3";
+                inputHint.textContent = '每行一个产品';
             } else {
-                inputHeader.innerHTML = '<i class="fas fa-edit"></i> 折扣计算 (首行: 总原价 实付价；后续每行: 单件原价)';
-                outputHeader.innerHTML = '<i class="fas fa-calculator"></i> 折扣分摊结果';
+                inputHeaderLabel.textContent = '折扣计算 (首行: 总原价 实付价；后续每行: 单件原价)';
+                outputHeaderIcon.className = 'fas fa-calculator';
+                outputHeaderLabel.textContent = '折扣分摊结果';
                 inputArea.placeholder = "例如 (首行先输入原价格总和，然后输入实付价格，然后空行输入每件商品原价格，就可以计算出每件商品的实付价格):\n500 400\n100\n200\n50";
-                inputHint.innerText = "首行: 总原价 总实付; 后续: 单件原价";
+                inputHint.textContent = '首行两列，商品行一列；金额最多两位小数，最大余数法按原行顺序补分。部分清单只分摊已列商品。不支持加价、退款或清单超额。';
             }
 
             processComparison();
             inputArea.focus();
         }
 
-        function processComparison() {
-            const input = document.getElementById('inputArea').value.trim();
-            const outputArea = document.getElementById('outputArea');
+        function clearInput() {
+            const inputArea = document.getElementById('inputArea');
+            inputArea.value = '';
+            processComparison();
+            inputArea.focus();
+        }
 
-            if (!input) {
-                outputArea.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-keyboard"></i>
-                        <p>在左侧输入数据后<br>在此查看实时分析</p>
-                    </div>
-                `;
+        function setCopyEnabled(enabled) {
+            const copyBtn = document.getElementById('copyResultBtn');
+            copyBtn.disabled = !enabled;
+            if (!enabled && copyBtn.textContent !== '复制') {
+                copyBtn.textContent = '复制';
+            }
+        }
+
+        function processComparison() {
+            const core = getCore();
+            const input = document.getElementById('inputArea').value;
+            const result = currentMode === 'A'
+                ? core.compareUnitPrices(input)
+                : core.allocateDiscount(input);
+            lastResult = result;
+
+            if (result.empty) {
+                renderDefaultEmpty();
+                setCopyEnabled(false);
+                return;
+            }
+
+            if (result.error && (currentMode === 'A' ? result.products.length === 0 : result.items.length === 0)) {
+                renderEmpty(result.error);
+                setCopyEnabled(false);
                 return;
             }
 
             if (currentMode === 'A') {
-                handleModeA(input);
+                renderModeA(result);
             } else {
-                handleModeB(input);
+                renderModeB(result);
             }
+            setCopyEnabled(result.copyable);
         }
 
-        function handleModeA(input) {
-            const lines = input.split('\n');
-            const products = [];
-
-            lines.forEach((line, index) => {
-                const parts = line.trim().split(/\s+/);
-                if (parts.length >= 1) {
-                    const price = parseFloat(parts[0]);
-                    const unit = parts.length >= 2 ? parseFloat(parts[1]) : 1;
-
-                    if (!isNaN(price)) {
-                        const unitPrice = unit > 0 ? price / unit : 0;
-                        products.push({
-                            price: price,
-                            unit: unit,
-                            unitPrice: unitPrice,
-                            index: index
-                        });
-                    }
-                }
-            });
-
-            if (products.length === 0) {
-                renderEmpty('请输入有效的数字格式');
-                return;
+        function createOutputLine(isWinner, isInvalid) {
+            const line = document.createElement('div');
+            line.className = 'output-line';
+            if (isWinner) {
+                line.classList.add('winner');
             }
-
-            const sortedProducts = [...products].sort((a, b) => a.unitPrice - b.unitPrice);
-            products.forEach(p => {
-                p.rank = sortedProducts.findIndex(sp => sp.unitPrice === p.unitPrice) + 1;
-            });
-
-            const minPrice = sortedProducts[0].unitPrice;
-
-            let html = '<div class="output-area">';
-            products.forEach(p => {
-                const isWinner = p.unitPrice === minPrice && products.length > 1;
-                const rankText = isWinner ? '最划算!' : `第 ${p.rank} 名`;
-
-                html += `
-                    <div class="output-line ${isWinner ? 'winner' : ''}">
-                        <div class="original-data">
-                            ${p.price} / ${p.unit} 
-                            <span class="rank-badge">${rankText}</span>
-                        </div>
-                        <div class="unit-price">
-                            单价: ${p.unitPrice.toFixed(2)}
-                        </div>
-                    </div>
-                `;
-            });
-            html += '</div>';
-            document.getElementById('outputArea').innerHTML = html;
+            if (isInvalid) {
+                line.classList.add('invalid');
+            }
+            return line;
         }
 
-        function handleModeB(input) {
-            const lines = input.split('\n');
-            if (lines.length < 1) return;
+        function renderModeA(result) {
+            const outputArea = document.getElementById('outputArea');
+            const wrap = document.createElement('div');
+            wrap.className = 'output-area';
 
-            // 解析第一行：总原价 总实付
-            const firstLineParts = lines[0].trim().split(/\s+/);
-            const totalOriginal = parseFloat(firstLineParts[0]);
-            const totalPaid = parseFloat(firstLineParts[1]);
+            const summaryLine = createOutputLine(false, false);
+            summaryLine.classList.add('comparison-summary');
+            const summaryText = document.createElement('div');
+            summaryText.className = 'original-data';
+            summaryText.textContent = result.summary;
+            summaryLine.appendChild(summaryText);
+            wrap.appendChild(summaryLine);
 
-            if (isNaN(totalOriginal) || isNaN(totalPaid) || totalOriginal === 0) {
-                renderEmpty('首行请输入: 总原价 总实付');
-                return;
-            }
+            result.products.forEach(function (product) {
+                const line = createOutputLine(product.isWinner, !product.valid);
+                const original = document.createElement('div');
+                original.className = 'original-data';
 
-            const discount = totalPaid / totalOriginal;
-            const discountPercent = (discount * 10).toFixed(2); // 几折
+                const lineLabel = document.createElement('span');
+                lineLabel.textContent = '第 ' + product.lineNumber + ' 行';
 
-            // 计算后续单品原价总和
-            let sumItemOriginal = 0;
-            const items = [];
-            for (let i = 1; i < lines.length; i++) {
-                const itemOriginal = parseFloat(lines[i].trim());
-                if (!isNaN(itemOriginal)) {
-                    sumItemOriginal += itemOriginal;
-                    items.push(itemOriginal);
-                }
-            }
+                const rawText = document.createElement('span');
+                rawText.textContent = product.raw;
 
-            const warnings = [];
-            if (sumItemOriginal > totalOriginal) {
-                warnings.push('<i class="fas fa-exclamation-triangle"></i> 单品总和已超总额');
-            }
-            if (totalPaid > totalOriginal) {
-                warnings.push('<i class="fas fa-exclamation-circle"></i> 实付价格大于原价');
-            }
+                const badge = document.createElement('span');
+                badge.className = 'rank-badge';
+                badge.textContent = product.valid ? product.rankLabel : '无法比价';
 
-            const warningHtml = warnings.length > 0
-                ? `<span style="color: #ef4444; font-size: 11px; margin-left: var(--spacing-sm); font-weight: normal; display: inline-flex; flex-direction: column; vertical-align: middle; line-height: 1.2;">${warnings.map(w => `<span>${w}</span>`).join('')}</span>`
-                : '';
+                original.append(lineLabel, document.createTextNode(' '), rawText, badge);
 
-            let html = '<div class="output-area">';
+                const detail = document.createElement('div');
+                detail.className = 'unit-price';
+                detail.textContent = product.valid
+                    ? ('单价: ' + product.unitPrice.toFixed(2))
+                    : (product.error || '无法比价');
 
-            // 输出折扣信息
-            html += `
-                <div class="output-line winner" style="margin-bottom: var(--spacing-md); border-bottom: 1px dashed var(--border-color); padding-bottom: var(--spacing-sm); min-height: 40px;">
-                    <div class="original-data" style="display: flex; align-items: center;">
-                        当前折扣 ${warningHtml}
-                    </div>
-                    <div class="unit-price">
-                        ${(discount * 100).toFixed(1)}% (${discountPercent} 折)
-                    </div>
-                </div>
-            `;
-
-            // 处理后续行
-            items.forEach(itemOriginal => {
-                const itemPaid = itemOriginal * discount;
-                html += `
-                    <div class="output-line">
-                        <div class="original-data">
-                            原价: ${itemOriginal.toFixed(2)}
-                        </div>
-                        <div class="unit-price">
-                            实付: ${itemPaid.toFixed(2)}
-                        </div>
-                    </div>
-                `;
+                line.append(original, detail);
+                wrap.appendChild(line);
             });
-            html += '</div>';
-            document.getElementById('outputArea').innerHTML = html;
+
+            outputArea.replaceChildren(wrap);
+        }
+
+        function renderModeB(result) {
+            const outputArea = document.getElementById('outputArea');
+            const wrap = document.createElement('div');
+            wrap.className = 'output-area';
+
+            const summary = createOutputLine(true, false);
+            summary.classList.add('discount-summary');
+
+            const original = document.createElement('div');
+            original.className = 'original-data';
+            original.appendChild(document.createTextNode(result.error || result.summary));
+
+            if (result.warnings.length > 0) {
+                const warningBox = document.createElement('span');
+                warningBox.className = 'output-warning';
+                result.warnings.forEach(function (warning) {
+                    const row = document.createElement('span');
+                    const icon = document.createElement('i');
+                    icon.className = warning.indexOf('实付') !== -1
+                        ? 'fas fa-exclamation-circle'
+                        : 'fas fa-exclamation-triangle';
+                    row.append(icon, document.createTextNode(' ' + warning));
+                    warningBox.appendChild(row);
+                });
+                original.appendChild(warningBox);
+            }
+
+            const unitPrice = document.createElement('div');
+            unitPrice.className = 'unit-price';
+            unitPrice.textContent = result.error ? '无法分摊' : result.discountPercent + ' (' + result.discountZhe + ' 折)';
+            summary.append(original, unitPrice);
+            wrap.appendChild(summary);
+
+            result.items.forEach(function (item) {
+                const line = createOutputLine(false, !item.valid);
+                const left = document.createElement('div');
+                left.className = 'original-data';
+                left.textContent = '第 ' + item.lineNumber + ' 行 · ' + item.raw;
+
+                const right = document.createElement('div');
+                right.className = 'unit-price';
+                right.textContent = item.valid && item.paid != null
+                    ? ('实付: ' + getCore().formatMoney(item.paid))
+                    : (item.error || result.error || '无法分摊');
+
+                line.append(left, right);
+                wrap.appendChild(line);
+            });
+
+            outputArea.replaceChildren(wrap);
+        }
+
+        function renderDefaultEmpty() {
+            const outputArea = document.getElementById('outputArea');
+            const wrap = document.createElement('div');
+            wrap.className = 'empty-state';
+            const icon = document.createElement('i');
+            icon.className = 'fas fa-keyboard';
+            const p = document.createElement('p');
+            const lines = DEFAULT_EMPTY_MESSAGE.split('\n');
+            p.appendChild(document.createTextNode(lines[0]));
+            p.appendChild(document.createElement('br'));
+            p.appendChild(document.createTextNode(lines[1]));
+            wrap.append(icon, p);
+            outputArea.replaceChildren(wrap);
         }
 
         function renderEmpty(msg) {
-            document.getElementById('outputArea').innerHTML = `<div class="empty-state"><p>${msg}</p></div>`;
+            const outputArea = document.getElementById('outputArea');
+            outputArea.replaceChildren();
+            const wrap = document.createElement('div');
+            wrap.className = 'empty-state';
+            const p = document.createElement('p');
+            p.textContent = msg;
+            wrap.appendChild(p);
+            outputArea.appendChild(wrap);
         }
 
-        // 页面加载后自动聚焦
-        window.onload = () => {
+        function copyTextToClipboard(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                return navigator.clipboard.writeText(text).catch(function () {
+                    return copyTextFallback(text);
+                });
+            }
+            return copyTextFallback(text);
+        }
+
+        function copyTextFallback(text) {
+            return new Promise(function (resolve, reject) {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.setAttribute('readonly', '');
+                textarea.style.position = 'fixed';
+                textarea.style.left = '-9999px';
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    const ok = document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                    if (ok) {
+                        resolve();
+                    } else {
+                        reject(new Error('copy failed'));
+                    }
+                } catch (error) {
+                    document.body.removeChild(textarea);
+                    reject(error);
+                }
+            });
+        }
+
+        function copyResult() {
+            const core = getCore();
+            const text = core.formatCopyText(lastResult);
+            const btn = document.getElementById('copyResultBtn');
+            if (!text) {
+                return;
+            }
+            copyTextToClipboard(text).then(function () {
+                btn.textContent = '已复制';
+                window.setTimeout(function () {
+                    btn.textContent = '复制';
+                }, 1500);
+            }).catch(function () {
+                btn.textContent = '复制失败';
+                window.setTimeout(function () {
+                    btn.textContent = '复制';
+                }, 1500);
+            });
+        }
+
+        window.onload = function () {
             document.getElementById('inputArea').focus();
         };
     </script>
+    <script src="../js/unsaved-guard.js"></script>
+    <script src="../js/theme.js"></script>
 </body>
 
 </html>
