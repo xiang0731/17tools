@@ -129,6 +129,7 @@
                     <div class="form-group">
                         <label for="urlInput">链接</label>
                         <input class="form-input" id="urlInput" type="text">
+                        <p class="field-hint">仅支持 HTTP(S)；裸域名默认 HTTPS，// 地址按 HTTPS 处理。支持 localhost:端口、域名:端口及 [IPv6]:端口。</p>
                         <div class="field-error" data-error-for="url"></div>
                     </div>
                 </div>
@@ -178,6 +179,7 @@
                     <div class="form-group">
                         <label for="vcardUrl">网址</label>
                         <input class="form-input" id="vcardUrl" type="text">
+                        <p class="field-hint">与链接类型相同：仅支持 HTTP(S)，裸域名与 // 地址默认 HTTPS。</p>
                         <div class="field-error" data-error-for="url"></div>
                     </div>
                 </div>
@@ -701,7 +703,11 @@
             try {
                 const pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
                 const decoded = window.jsQR(pixels.data, pixels.width, pixels.height, { inversionAttempts: 'attemptBoth' });
-                selfCheckStatus.textContent = decoded && decoded.data === currentPayload ? '本机自检通过：读回内容与输入一致。仍请用目标手机及实际打印材料试扫。' : decoded ? '读回内容与输入不一致，请重新生成并检查。' : '本机未能读回；请恢复黑白、增大尺寸或缩短内容。';
+                const generatedMatches = decoded && decoded.data === currentPayload;
+                const wifiMatches = currentType !== 'wifi' || (decoded && core.wifiMatchesInput(decoded.data, readFields('wifi')));
+                selfCheckStatus.textContent = generatedMatches && wifiMatches
+                    ? (currentType === 'wifi' ? '本机自检通过：读回内容与生成内容一致，WiFi 名称、密码和网络选项与原始输入一致。此自检不验证路由器连接。仍请用目标手机及实际打印材料试扫。' : '本机自检通过：读回内容与生成内容一致。仍请用目标手机及实际打印材料试扫。')
+                    : decoded ? '读回内容与生成内容或原始 WiFi 输入不一致，请重新生成并检查。' : '本机未能读回；请恢复黑白、增大尺寸或缩短内容。';
             } catch (_) { selfCheckStatus.textContent = '本机自检失败，请增大尺寸或重新生成。'; }
         });
 

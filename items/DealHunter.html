@@ -172,6 +172,7 @@
 
         .panel-content {
             flex: 1;
+            min-height: 0;
             display: flex;
             flex-direction: column;
             position: relative;
@@ -179,6 +180,7 @@
 
         textarea {
             flex: 1;
+            min-height: 120px;
             width: 100%;
             padding: var(--spacing-lg);
             border: none;
@@ -293,12 +295,12 @@
         }
 
         .hint {
-            position: absolute;
-            bottom: var(--spacing-md);
-            right: var(--spacing-md);
+            position: static;
+            flex-shrink: 0;
+            margin: var(--spacing-xs) var(--spacing-md);
             font-size: 12px;
+            line-height: 1.5;
             color: var(--text-tertiary);
-            pointer-events: none;
         }
 
         @media (max-width: 768px) {
@@ -312,6 +314,8 @@
                 flex: none;
             }
 
+            #outputArea { max-height: 480px; }
+
             html,
             body {
                 overflow: auto;
@@ -322,6 +326,10 @@
                 height: auto;
             }
         }
+        .result-pager { flex-shrink: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--spacing-sm); padding: var(--spacing-md); border-top: 1px solid var(--border-color); }
+        .result-pager[hidden] { display: none; }
+        #pageStatus { color: var(--text-secondary); font-size: 13px; }
+        #calculateBtn { align-self: flex-end; margin: var(--spacing-xs) var(--spacing-md); border: 1px solid var(--border-color); }
     </style>
 </head>
 
@@ -353,8 +361,11 @@
 例如:
 100 10
 200 25
-45.5 3" oninput="processComparison()"></textarea>
+45.5 3" oninput="scheduleComparison()"></textarea>
                     <div id="inputHint" class="hint">每行一个产品</div>
+                    <p class="hint">最多 200000 字符、10001 物理行、10000 结果行。200 行且 12000 字符以内自动计算，更大输入请点击计算；结果每页 50 行，复制包含全部结果。</p>
+                    <button type="button" id="calculateBtn" class="header-clear-btn" onclick="processComparison()" disabled>计算</button>
+                    <p id="calculationStatus" class="hint" role="status" aria-live="polite"></p>
                 </div>
             </div>
 
@@ -373,6 +384,13 @@
                         <p>在左侧输入数据后<br>在此查看实时分析</p>
                     </div>
                 </div>
+                <nav id="resultPager" class="result-pager" aria-label="结果分页" hidden>
+                    <button type="button" id="pageFirst" class="header-clear-btn" onclick="changePage(0)">首页</button>
+                    <button type="button" id="pagePrev" class="header-clear-btn" onclick="changePage(currentPage - 1)">上一页</button>
+                    <span id="pageStatus" role="status" aria-live="polite"></span>
+                    <button type="button" id="pageNext" class="header-clear-btn" onclick="changePage(currentPage + 1)">下一页</button>
+                    <button type="button" id="pageLast" class="header-clear-btn" onclick="changePage(Infinity)">末页</button>
+                </nav>
             </div>
         </div>
     </div>
@@ -381,6 +399,10 @@
     <script>
         let currentMode = 'A';
         let lastResult = null;
+        let currentPage = 0;
+        let calculationSequence = 0;
+        let calculationTimer = null;
+        const AUTO_DELAY_MS = 180;
         const DEFAULT_EMPTY_MESSAGE = '在左侧输入数据后\n在此查看实时分析';
 
         function getCore() {
@@ -415,14 +437,14 @@
                 inputHint.textContent = '首行两列，商品行一列；金额最多两位小数，最大余数法按原行顺序补分。部分清单只分摊已列商品。不支持加价、退款或清单超额。';
             }
 
-            processComparison();
+            scheduleComparison();
             inputArea.focus();
         }
 
         function clearInput() {
             const inputArea = document.getElementById('inputArea');
             inputArea.value = '';
-            processComparison();
+            scheduleComparison();
             inputArea.focus();
         }
 
@@ -434,32 +456,99 @@
             }
         }
 
-        function processComparison() {
-            const core = getCore();
-            const input = document.getElementById('inputArea').value;
-            const result = currentMode === 'A'
-                ? core.compareUnitPrices(input)
-                : core.allocateDiscount(input);
-            lastResult = result;
+        function invalidateResult() {
+            calculationSequence += 1;
+            window.clearTimeout(calculationTimer);
+            lastResult = null;
+            currentPage = 0;
+            setCopyEnabled(false);
+            document.getElementById('resultPager').hidden = true;
+        }
 
+        function prepareCalculation() {
+            invalidateResult();
+            const input = document.getElementById('inputArea').value;
+            const check = getCore().inspectInput(input, currentMode);
+            const button = document.getElementById('calculateBtn');
+            button.disabled = !check.ok || check.empty;
+            const status = document.getElementById('calculationStatus');
+            if (!check.ok) {
+                status.textContent = check.error;
+                renderEmpty(check.error);
+                return null;
+            }
+            if (check.empty) {
+                status.textContent = '';
+                renderDefaultEmpty();
+                return null;
+            }
+            return { input: input, mode: currentMode, sequence: calculationSequence, check: check };
+        }
+
+        function scheduleComparison() {
+            const task = prepareCalculation();
+            if (!task) return;
+            if (task.check.requiresManual) {
+                document.getElementById('calculationStatus').textContent = '输入已更改：较大输入请点击计算。';
+                renderEmpty('输入已更改，请点击计算；原结果已失效。');
+                return;
+            }
+            document.getElementById('calculationStatus').textContent = '输入已更改，等待自动计算…';
+            renderEmpty('输入已更改，等待重新计算；原结果已失效。');
+            calculationTimer = window.setTimeout(function () { calculateSnapshot(task); }, AUTO_DELAY_MS);
+        }
+
+        function processComparison() {
+            const task = prepareCalculation();
+            if (!task) return;
+            document.getElementById('calculationStatus').textContent = '正在计算…';
+            renderEmpty('正在计算，原结果已失效。');
+            calculationTimer = window.setTimeout(function () { calculateSnapshot(task); }, 0);
+        }
+
+        function calculateSnapshot(task) {
+            if (task.sequence !== calculationSequence || task.mode !== currentMode || task.input !== document.getElementById('inputArea').value) return;
+            const core = getCore();
+            const result = task.mode === 'A' ? core.compareUnitPrices(task.input) : core.allocateDiscount(task.input);
+            lastResult = result;
+            document.getElementById('calculationStatus').textContent = result.error || result.summary || '';
             if (result.empty) {
                 renderDefaultEmpty();
                 setCopyEnabled(false);
                 return;
             }
-
             if (result.error && (currentMode === 'A' ? result.products.length === 0 : result.items.length === 0)) {
                 renderEmpty(result.error);
                 setCopyEnabled(false);
                 return;
             }
-
-            if (currentMode === 'A') {
-                renderModeA(result);
-            } else {
-                renderModeB(result);
-            }
+            renderCurrentPage();
             setCopyEnabled(result.copyable);
+        }
+
+        function resultRows() {
+            return lastResult ? (lastResult.mode === 'A' ? lastResult.products : lastResult.items) : [];
+        }
+
+        function changePage(page) {
+            if (!lastResult) return;
+            const pageCount = Math.max(1, Math.ceil(resultRows().length / getCore().BUDGET.pageSize));
+            currentPage = Math.max(0, Math.min(page, pageCount - 1));
+            renderCurrentPage();
+        }
+
+        function renderCurrentPage() {
+            const result = lastResult;
+            if (!result) return;
+            if (result.mode === 'A') renderModeA(result);
+            else renderModeB(result);
+            const count = resultRows().length;
+            const pageSize = getCore().BUDGET.pageSize;
+            const pages = Math.max(1, Math.ceil(count / pageSize));
+            document.getElementById('resultPager').hidden = count <= pageSize;
+            document.getElementById('pageStatus').textContent = '第 ' + (currentPage + 1) + '/' + pages + ' 页 · ' + (count ? currentPage * pageSize + 1 : 0) + '–' + Math.min((currentPage + 1) * pageSize, count) + ' / ' + count + ' 行';
+            document.getElementById('pageFirst').disabled = document.getElementById('pagePrev').disabled = currentPage === 0;
+            document.getElementById('pageLast').disabled = document.getElementById('pageNext').disabled = currentPage >= pages - 1;
         }
 
         function createOutputLine(isWinner, isInvalid) {
@@ -487,7 +576,7 @@
             summaryLine.appendChild(summaryText);
             wrap.appendChild(summaryLine);
 
-            result.products.forEach(function (product) {
+            result.products.slice(currentPage * getCore().BUDGET.pageSize, (currentPage + 1) * getCore().BUDGET.pageSize).forEach(function (product) {
                 const line = createOutputLine(product.isWinner, !product.valid);
                 const original = document.createElement('div');
                 original.className = 'original-data';
@@ -550,7 +639,7 @@
             summary.append(original, unitPrice);
             wrap.appendChild(summary);
 
-            result.items.forEach(function (item) {
+            result.items.slice(currentPage * getCore().BUDGET.pageSize, (currentPage + 1) * getCore().BUDGET.pageSize).forEach(function (item) {
                 const line = createOutputLine(false, !item.valid);
                 const left = document.createElement('div');
                 left.className = 'original-data';
@@ -635,12 +724,15 @@
             if (!text) {
                 return;
             }
+            const sequence = calculationSequence;
             copyTextToClipboard(text).then(function () {
+                if (sequence !== calculationSequence) return;
                 btn.textContent = '已复制';
                 window.setTimeout(function () {
                     btn.textContent = '复制';
                 }, 1500);
             }).catch(function () {
+                if (sequence !== calculationSequence) return;
                 btn.textContent = '复制失败';
                 window.setTimeout(function () {
                     btn.textContent = '复制';

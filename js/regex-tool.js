@@ -769,7 +769,7 @@
                 if (!preset) return;
 
                 isLoadingPreset = true;
-                regexInput.value = preset.pattern.replace(/^\/|\/[gim]*$/g, '');
+                regexInput.value = preset.pattern;
                 testTextInput.value = preset.test;
                 replaceInput.value = preset.replacement ?? '';
                 const presetFlags = preset.flags || 'g';

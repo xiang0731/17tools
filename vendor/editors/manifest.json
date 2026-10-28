@@ -1,0 +1,163 @@
+[
+  {
+    "file": "prettier/2.8.8/standalone.js",
+    "source": "https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/standalone.js",
+    "bytes": 446916,
+    "sha256": "5e2ba39568a5e285eed1652d84dbbd8e564cbdb03e35065996f92c75d648f768",
+    "sri": "sha512-6CmYrGjyq2oxBGJ2S+foHLVexl2EbevOSGYSkITDKg1BliTkQSRgWH1M1KuA8grdRpV4k7COBf/ZO0j2y4lf3g=="
+  },
+  {
+    "file": "prettier/2.8.8/parser-babel.js",
+    "source": "https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-babel.js",
+    "bytes": 325005,
+    "sha256": "6b92e06626b4e7f99633e7b784f8c3d6e64fe0ae19911d61bc03996efd505ab1",
+    "sri": "sha512-MNHrbW8Uz16VtO3XPAHbhdwlvPNU7IbNeKEt3Z3PtbspwWtcUvx68GC9NYCeqnC2bNYMANg45W5o68pZsFWPRA=="
+  },
+  {
+    "file": "prettier/2.8.8/parser-typescript.js",
+    "source": "https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-typescript.js",
+    "bytes": 1256493,
+    "sha256": "d232e77576fd0b842dd4446609209ce5385dd357f49a418f5647be1f6674b6e9",
+    "sri": "sha512-wTdWFr3uMGx0a0v8+50Cyr6GTr1KwJf1/q7IqlDdpOgm50ndgGR/8bOwc76/g01KlrF0BgyuadBxKGZL5N0ByQ=="
+  },
+  {
+    "file": "prettier/2.8.8/parser-html.js",
+    "source": "https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-html.js",
+    "bytes": 161497,
+    "sha256": "2191f511ed22927284590c73fa0e3cdea411a9e616e33acf17049463ba630ae6",
+    "sri": "sha512-2bZycb/wlWHOzvxh1ycky2/CXiw5xloxBNbjE9Hq4RV6Kpivwp2Kx1V4CpMEZSAhOIjRtjIf24zhI4WzI3lxkg=="
+  },
+  {
+    "file": "prettier/2.8.8/parser-postcss.js",
+    "source": "https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-postcss.js",
+    "bytes": 157727,
+    "sha256": "719aa4ea00141b9158395af25ce0852bb18f30618173b686954d473d0c10a3cc",
+    "sri": "sha512-E2R9e85w+oZZKIGZ/zSKs5KwEIPq2NT//jLO67RfDf2uu90Im9rZ7xXorEf5WHZFXJNrmq7HG+Zl9UoO+GhDOw=="
+  },
+  {
+    "file": "prettier/2.8.8/parser-yaml.js",
+    "source": "https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-yaml.js",
+    "bytes": 128517,
+    "sha256": "23fdaafb8be0b03375cbd643ed4d4b93c2d595c4898e7b3b54de4e937666e363",
+    "sri": "sha512-ALiwzthsjepNM+urTVfcfcWnNiLIIs0NIJeZpB6+p448VgadcJQWENJGbSUVCPVitorJ3Qn2KbBZMf8nXJq8pw=="
+  },
+  {
+    "file": "prettier/2.8.8/parser-markdown.js",
+    "source": "https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-markdown.js",
+    "bytes": 169662,
+    "sha256": "c54dbdaf8966772e2804b378e6bf0d7ea8436ca177173680290bd7d513e7e665",
+    "sri": "sha512-+3wrTjpi2RG6xEs6DwdrjMX6idsbGgmVuCBkP+WeS2xaTvjrC3RVXAFTVJ/ZegYzhmioy/82fSL4WcTitKHZ1A=="
+  },
+  {
+    "file": "prettier/2.8.8/parser-graphql.js",
+    "source": "https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-graphql.js",
+    "bytes": 43151,
+    "sha256": "179a5c1b171337034bca2314377ed494ac5c4a3c0b0b7fe8ac3c7f15301a9e35",
+    "sri": "sha512-PRKFWXCYGiT/P9ddrTqyPOOLwVepgFJWSApvt4RuvgfjVcQ9GfJg1FavYqcv0BrsPDprMZe0QmCck/SGrXY3lw=="
+  },
+  {
+    "file": "highlight.js/11.9.0/highlight.min.js",
+    "source": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js",
+    "bytes": 121727,
+    "sha256": "837a6fa5b0c736b52bbde2b2b6190f305da3fc9ed41681db5321507057b5c846",
+    "sri": "sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ=="
+  },
+  {
+    "file": "highlight.js/11.9.0/styles/github.min.css",
+    "source": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css",
+    "bytes": 1309,
+    "sha256": "3a9a5def8b9c311e5ae43abde85c63133185eed4f0d9f67fea4b00a8308cf066",
+    "sri": "sha512-0aPQyyeZrWj9sCA46UlmWgKOP0mUipLQ6OZXu8l4IcAmD2u31EPEy9VcIMvl7SoAaKe8bLXZhYoMaE/in+gcgA=="
+  },
+  {
+    "file": "highlight.js/11.9.0/styles/github-dark.min.css",
+    "source": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css",
+    "bytes": 1315,
+    "sha256": "9f208d022102b1d0c7aebfecd8e42ca7997d5de636649d2b31ea63093d809019",
+    "sri": "sha512-rO+olRTkcf304DQBxSWxln8JXCzTHlKnIdnMUwYvQa9/Jd4cQaNkItIUj6Z4nvW1dqK0SKXLbn9h4KwZTNtAyw=="
+  },
+  {
+    "file": "highlight.js/11.7.0/highlight.min.js",
+    "source": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js",
+    "bytes": 120762,
+    "sha256": "9f19cebc1d4441ae1f0ffc696a42628b9f865fe5d99deda1f1e8cd5bec878888",
+    "sri": "sha512-bgHRAiTjGrzHzLyKOnpFvaEpGzJet3z4tZnXGjpsCcqOnAH6VGUx9frc5bcIhKTVLEiCO6vEhNAgx5jtLUYrfA=="
+  },
+  {
+    "file": "highlight.js/11.7.0/styles/github.min.css",
+    "source": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css",
+    "bytes": 1309,
+    "sha256": "3a9a5def8b9c311e5ae43abde85c63133185eed4f0d9f67fea4b00a8308cf066",
+    "sri": "sha512-0aPQyyeZrWj9sCA46UlmWgKOP0mUipLQ6OZXu8l4IcAmD2u31EPEy9VcIMvl7SoAaKe8bLXZhYoMaE/in+gcgA=="
+  },
+  {
+    "file": "marked/12.0.1/marked.min.js",
+    "source": "https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js",
+    "bytes": 35418,
+    "sha256": "cb4cf2efefd2b1f602bf2f27d594fc0a26340d2661b60cddfcaac7a7b9261886",
+    "sri": "sha512-pSeTnZAQF/RHxb0ysMoYQI/BRZsa5XuklcrgFfU3YZIdnD3LvkkqzrIeHxzFi6gKtI8Cpq2DEWdZjMTcNVhUYA=="
+  },
+  {
+    "file": "jsdiff/5.1.0/diff.min.js",
+    "source": "https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js",
+    "bytes": 17458,
+    "sha256": "3a29bd9374b219bd6964550085cddf6b62fc4073893d3f251c1d61ef1ea56b7f",
+    "sri": "sha512-vco9RAxEuv4PQ+iTQyuKElwoUOcsVdp+WgU6Lgo82ASpDfF7vI66LlWz+CZc2lMdn52tjjLOuHvy8BQJFp8a1A=="
+  },
+  {
+    "file": "diff2html/3.4.56/bundles/js/diff2html-ui-slim.min.js",
+    "source": "https://cdn.jsdelivr.net/npm/diff2html@3.4.56/bundles/js/diff2html-ui-slim.min.js",
+    "bytes": 301714,
+    "sha256": "7bf8f0b288986bce9f8a8f5d4608eadd02a715ff95135a2fa28d1a10fcad2310",
+    "sri": "sha512-CPdxeQvVk+vCFdUDN3d6D1RfuE3/irA/npu8lsaqBrQFUZLyAECDyuhrHUhor+6y34DNZgn9W0l+/AXbRatJzg=="
+  },
+  {
+    "file": "diff2html/3.4.56/bundles/css/diff2html.min.css",
+    "source": "https://cdn.jsdelivr.net/npm/diff2html@3.4.56/bundles/css/diff2html.min.css",
+    "bytes": 17331,
+    "sha256": "d3ecc0e9b2b1e5c8466c19de29bed052fd0863475d25829ecc858446efded372",
+    "sri": "sha512-1mTXcOIpTlt1QDpJfE5r7XxEB9chGqfQ8r4RGBsL+Nh3Vg/z4JVPrgQEBLDy5FeXcW6ZkPA6zy5onbOKPci6KQ=="
+  },
+  {
+    "file": "prettier/2.8.8/LICENSE",
+    "source": "https://raw.githubusercontent.com/prettier/prettier/2.8.8/LICENSE",
+    "bytes": 1065,
+    "sha256": "b0f2417199889f1c0d28ec4e0244eacf1a15de5819d61f641dd7d8f45153ac9c",
+    "sri": "sha512-yIkGFEOp0mQ4p+NrWO7q6MRGPdI9c8r0mqX6qjdvG+5l0ua9mWKOkpjIcDrs1/P0bFE/e9f/as8qf+eh1EgBzg=="
+  },
+  {
+    "file": "highlight.js/11.9.0/LICENSE",
+    "source": "https://raw.githubusercontent.com/highlightjs/highlight.js/11.9.0/LICENSE",
+    "bytes": 1514,
+    "sha256": "6c081431591d9df696c82dc598fe1423765b8a299b200ed00b281afd0f64c490",
+    "sri": "sha512-x+H8zWMm8lpL+1qzg+3uj2qgGz0fm8WPna8qpy9yeQyPAxDyd0r9164LiX5tFiltRtNytZOldfAFQLCWVT97Xw=="
+  },
+  {
+    "file": "highlight.js/11.7.0/LICENSE",
+    "source": "https://raw.githubusercontent.com/highlightjs/highlight.js/11.7.0/LICENSE",
+    "bytes": 1514,
+    "sha256": "6c081431591d9df696c82dc598fe1423765b8a299b200ed00b281afd0f64c490",
+    "sri": "sha512-x+H8zWMm8lpL+1qzg+3uj2qgGz0fm8WPna8qpy9yeQyPAxDyd0r9164LiX5tFiltRtNytZOldfAFQLCWVT97Xw=="
+  },
+  {
+    "file": "marked/12.0.1/LICENSE",
+    "source": "https://raw.githubusercontent.com/markedjs/marked/v12.0.1/LICENSE.md",
+    "bytes": 2942,
+    "sha256": "8e3a3f82f59a60958f56ca08f445647c32a4733dc7ca6c2c46f6eb898471ab9c",
+    "sri": "sha512-Pmh8fLubxyn5WUD4IOzq7jucNkqg8aRGKQMG00wOlfg9bl30R0FOu7HZvpVUiwRzdxB/hiOV8hpM0Jx9588KXw=="
+  },
+  {
+    "file": "jsdiff/5.1.0/LICENSE",
+    "source": "https://raw.githubusercontent.com/kpdecker/jsdiff/v5.1.0/LICENSE",
+    "bytes": 1572,
+    "sha256": "152f0fb43e953fcf5c56c5bfa4c834bb96b1603e4026319c613dd3e734f305cf",
+    "sri": "sha512-lYm4Q8EbQXoaAzwP7uhhY3jovowaLQsUoDduSjaWT5/Xde3l4gWCFQ6ObmV7vkvZoiTs38hwnNDnEE2cuVJ5kw=="
+  },
+  {
+    "file": "diff2html/3.4.56/LICENSE",
+    "source": "https://cdn.jsdelivr.net/npm/diff2html@3.4.56/LICENSE.md",
+    "bytes": 1091,
+    "sha256": "6de794566a8feb4233594420299cec2dbfba51ae57201763541a5e7d627cb245",
+    "sri": "sha512-hcnM+ziflIhFdTOaD6FAgoL03IsZSY92xwR9c83nUgm5h2RoLLkcxB8tOV+4ikA8f1CE1EtH1GbKQREUDwRxsg=="
+  }
+]

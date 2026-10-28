@@ -20,6 +20,7 @@
         ['Calendar.html', '万年历', '时间工具', '农历 公历 日历 节日 工作日 调休'],
         ['DateCalculator.html', '时间计算', '时间工具', '日期 天数 工作日 间隔 加几天'],
         ['WorldTime.html', '世界时间', '时间工具', '时区 世界时钟 时差 夏令时'],
+        ['Kinship.html', '亲属称呼', '其他工具', '亲戚 亲属 称呼 辈分 家庭 表叔 表舅 称谓 关系计算'],
         ['EnergyCost.html', '汽车能耗成本', '其他工具', '油费 电费 充电 养车 年度成本'],
         ['TireSelector.html', '轮胎选择器', '其他工具', '轮胎 胎宽 外径 车速 轮毂'],
         ['MartianText.html', '火星文转换', '其他工具', '火星文字 花字 随机装饰'],
@@ -40,7 +41,7 @@
     function createPreferences(store) {
         var keys = { favorites: '17tools-favorites', recent: '17tools-recent-tools' };
         function read(key, max) { try { return cleanIds(store.getItem(key), max); } catch (error) { return []; } }
-        var favorites = read(keys.favorites, 20), recent = read(keys.recent, 5);
+        var favorites = read(keys.favorites, TOOLS.length), recent = read(keys.recent, 5);
         function save(key, ids) {
             try {
                 var value = JSON.stringify(ids), result = store.setItem(key, value);

@@ -96,14 +96,14 @@
     ]);
     const PRETTIER_VERSION = '2.8.8';
     const HIGHLIGHT_VERSION = '11.7.0';
-    const PRETTIER_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/prettier/' + PRETTIER_VERSION;
-    const HIGHLIGHT_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/' + HIGHLIGHT_VERSION;
+    const PRETTIER_CDN = '../vendor/editors/prettier/' + PRETTIER_VERSION;
+    const HIGHLIGHT_CDN = '../vendor/editors/highlight.js/' + HIGHLIGHT_VERSION;
     const PRETTIER_SRI = Object.freeze({
         'standalone.js': 'sha512-6CmYrGjyq2oxBGJ2S+foHLVexl2EbevOSGYSkITDKg1BliTkQSRgWH1M1KuA8grdRpV4k7COBf/ZO0j2y4lf3g==',
         'parser-babel.js': 'sha512-MNHrbW8Uz16VtO3XPAHbhdwlvPNU7IbNeKEt3Z3PtbspwWtcUvx68GC9NYCeqnC2bNYMANg45W5o68pZsFWPRA==',
         'parser-typescript.js': 'sha512-wTdWFr3uMGx0a0v8+50Cyr6GTr1KwJf1/q7IqlDdpOgm50ndgGR/8bOwc76/g01KlrF0BgyuadBxKGZL5N0ByQ==',
-        'parser-html.js': 'sha512-2bZycb/wlWHOzvxh1ycky2/CXiw5xloxBNbjE9Hq4RV6Kpivwp2Kx1V4CpMEZSAhOIjRtjIf24zhI3WzI3lxkg==',
-        'parser-postcss.js': 'sha512-E2R9e85w+oZZKIGZ/zSKs5KwEIPq2NT//jLO67RfDf2uu90Im9rZ8xXorEf5WHZFXJNrmq7HG+Zl9UoO+GhDOw==',
+        'parser-html.js': 'sha512-2bZycb/wlWHOzvxh1ycky2/CXiw5xloxBNbjE9Hq4RV6Kpivwp2Kx1V4CpMEZSAhOIjRtjIf24zhI4WzI3lxkg==',
+        'parser-postcss.js': 'sha512-E2R9e85w+oZZKIGZ/zSKs5KwEIPq2NT//jLO67RfDf2uu90Im9rZ7xXorEf5WHZFXJNrmq7HG+Zl9UoO+GhDOw==',
         'parser-yaml.js': 'sha512-ALiwzthsjepNM+urTVfcfcWnNiLIIs0NIJeZpB6+p448VgadcJQWENJGbSUVCPVitorJ3Qn2KbBZMf8nXJq8pw==',
         'parser-markdown.js': 'sha512-+3wrTjpi2RG6xEs6DwdrjMX6idsbGgmVuCBkP+WeS2xaTvjrC3RVXAFTVJ/ZegYzhmioy/82fSL4WcTitKHZ1A==',
         'parser-graphql.js': 'sha512-PRKFWXCYGiT/P9ddrTqyPOOLwVepgFJWSApvt4RuvgfjVcQ9GfJg1FavYqcv0BrsPDprMZe0QmCck/SGrXY3lw=='
@@ -122,6 +122,10 @@
         graphql: Object.freeze(['standalone.js', 'parser-graphql.js'])
     });
 
+    function localIntegrity(value) {
+        return typeof location !== 'undefined' && location.protocol === 'file:' ? '' : value || '';
+    }
+
     function prettierResourcesForLanguage(language) {
         const files = PRETTIER_PARSER_FILES[String(language || '')];
         if (!files) {
@@ -130,7 +134,7 @@
         return files.map(function (file) {
             return {
                 url: PRETTIER_CDN + '/' + file,
-                integrity: PRETTIER_SRI[file] || ''
+                integrity: localIntegrity(PRETTIER_SRI[file])
             };
         });
     }
@@ -145,8 +149,8 @@
         return {
             script: HIGHLIGHT_CDN + '/highlight.min.js',
             style: HIGHLIGHT_CDN + '/styles/github.min.css',
-            scriptIntegrity: HIGHLIGHT_SRI.script,
-            styleIntegrity: HIGHLIGHT_SRI.style
+            scriptIntegrity: localIntegrity(HIGHLIGHT_SRI.script),
+            styleIntegrity: localIntegrity(HIGHLIGHT_SRI.style)
         };
     }
 

@@ -3,10 +3,10 @@
  * 统一管理所有页面的版本号显示
  * 
  * @author 17Tools Team
- * @version 2.19.1
+ * @version 2.20.3
  */
 
-const DEFAULT_VERSION = '2.19.1';
+const DEFAULT_VERSION = '2.20.3';
 
 class GlobalVersionManager {
     constructor() {

@@ -413,6 +413,13 @@
         .advanced-result { color:var(--text-secondary);line-height:1.7;overflow-wrap:anywhere; }
         .advanced-result strong { color:var(--text-primary); }
         .advanced-result [data-state="invalid"] { color:var(--error-color); }
+        .hybrid-card { margin-top: var(--spacing-lg); }
+        .hybrid-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: var(--spacing-md); }
+        .equivalent-card { min-width: 0; padding: var(--spacing-md); background: var(--background-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-md); }
+        .equivalent-card h3 { margin: 0 0 var(--spacing-sm); font-size: 16px; }
+        .equivalent-value { margin: var(--spacing-sm) 0; color: var(--primary-color); font-size: 18px; font-weight: 700; overflow-wrap: anywhere; }
+        .equivalent-message { margin: 0; color: var(--text-secondary); font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+        .equivalent-card[data-state="invalid"] .equivalent-message { color: var(--error-color); }
     </style>
 </head>
 
@@ -424,7 +431,7 @@
                     <i class="fas fa-gas-pump" aria-hidden="true"></i>
                     汽车能耗成本
                 </h1>
-                <p class="header-note">填入百公里油耗或电耗，以及对应单价，计算每公里花费。填写油箱容积或电池容量后，按同样的能耗估算大约能跑多少公里。可选填行驶里程，算出这次行程的总价，并对比油车和电车。上方简易模式只计算能源费用；下方可选高级模式可加入保险、保养、折旧等年度费用。</p>
+                <p class="header-note">填入百公里油耗或电耗，以及对应单价，计算每公里花费。填写油箱容积或电池容量后，按同样的能耗估算大约能跑多少公里。可选填行驶里程，算出这次行程的总价，并对比油车和电车。混动 / 增程车可同时填写电耗和油耗，按费用或日常油电折算等效能耗。简易模式只计算能源费用；下方可选高级模式可加入油车、电车的保险、保养、折旧等年度费用。</p>
             </div>
             <button class="text-button" id="clear-btn" type="button">清空</button>
         </header>
@@ -554,6 +561,50 @@
             <p class="compare-detail" id="compare-detail"></p>
         </section>
 
+        <section class="vehicle-card hybrid-card" aria-labelledby="hybrid-title">
+            <h2 class="card-title" id="hybrid-title"><i class="fas fa-car electric-icon" aria-hidden="true"></i>混动 / 增程车</h2>
+            <p class="formula" id="hybrid-formula">填写同一百公里下的电耗和油耗，例如 12 度电 + 2.9 升油。两项均可填 0，留空表示未知。费用沿用上方油价、电价和行驶里程，不另加高级模式的充电损耗或混合电价。</p>
+            <div class="hybrid-grid">
+                <label class="field">
+                    <span class="field-label">百公里电耗</span>
+                    <span class="field-control"><input id="hybrid-electric-consumption" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" maxlength="24" placeholder="例如 12；不用电填 0" aria-describedby="hybrid-formula"><span class="field-unit">度</span></span>
+                </label>
+                <label class="field">
+                    <span class="field-label">百公里油耗</span>
+                    <span class="field-control"><input id="hybrid-gas-consumption" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" maxlength="24" placeholder="例如 2.9；不用油填 0" aria-describedby="hybrid-formula"><span class="field-unit">升</span></span>
+                </label>
+            </div>
+            <div class="result" id="hybrid-result" data-state="empty" aria-live="polite">
+                <p class="result-kicker">每公里能源费用（油 + 电）</p>
+                <p class="result-main"><span class="result-value" id="hybrid-per-km">—</span><span class="result-unit">元</span></p>
+                <p class="result-sub" id="hybrid-per-100"></p>
+                <p class="result-sub" id="hybrid-trip"></p>
+                <p class="result-note" id="hybrid-message"></p>
+                <p class="field-message" id="hybrid-distance-message"></p>
+            </div>
+            <div class="hybrid-grid">
+                <div class="equivalent-card" id="hybrid-cost-equivalent" data-state="empty" aria-live="polite">
+                    <h3>按费用等价</h3>
+                    <p class="formula">百公里总费用 = 电耗 × 电价 + 油耗 × 油价<br>等效电耗 = 总费用 ÷ 电价；等效油耗 = 总费用 ÷ 油价</p>
+                    <p class="equivalent-value" id="hybrid-cost-electric"></p>
+                    <p class="equivalent-value" id="hybrid-cost-gas"></p>
+                    <p class="equivalent-message" id="hybrid-cost-message"></p>
+                </div>
+                <div class="equivalent-card" id="hybrid-energy-equivalent" data-state="empty" aria-live="polite">
+                    <h3>按日常油电折算（估算）</h3>
+                    <p class="formula">等效电耗 = 电耗 + 油耗 × 油电折算系数<br>等效油耗 = 等效电耗 ÷ 油电折算系数；无需填写价格</p>
+                    <label class="field">
+                        <span class="field-label">油电折算系数（可按实测调整）</span>
+                        <span class="field-control"><input id="hybrid-conversion-factor" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" maxlength="24" placeholder="默认 3" aria-describedby="hybrid-factor-note"><span class="field-unit">度/升</span></span>
+                    </label>
+                    <p class="equivalent-value" id="hybrid-energy-electric"></p>
+                    <p class="equivalent-value" id="hybrid-energy-gas"></p>
+                    <p class="equivalent-message" id="hybrid-energy-message"></p>
+                    <p class="formula" id="hybrid-factor-note">默认按 1 升油 ≈ 3 度可用电量粗估，已考虑油电转换损耗，不使用汽油的全部热能。系数因车型、温度及工况而异，并非统一实测标准；可按同车相近工况的纯电电耗 ÷ 电池电量基本不变时的油耗校准。混动直驱也折为等效电量，不代表实际发电量。</p>
+                </div>
+            </div>
+        </section>
+
         <section class="advanced-card" aria-labelledby="advanced-title">
             <h2 id="advanced-title">高级：一年养车费用</h2>
             <label class="save-toggle"><input id="advanced-enabled" type="checkbox">启用高级成本（可随时关闭）</label>
@@ -610,13 +661,16 @@
             var electricConsumption = document.getElementById('electric-consumption');
             var electricPrice = document.getElementById('electric-price');
             var electricBattery = document.getElementById('electric-battery');
+            var hybridElectricConsumption = document.getElementById('hybrid-electric-consumption');
+            var hybridGasConsumption = document.getElementById('hybrid-gas-consumption');
+            var hybridConversionFactor = document.getElementById('hybrid-conversion-factor');
             var compareCard = document.getElementById('compare-card');
             var compareHeadline = document.getElementById('compare-headline');
             var compareDetail = document.getElementById('compare-detail');
             var saveOnDevice = document.getElementById('save-on-device');
             var storageStatus = document.getElementById('storage-status');
             var legacyBanner = document.getElementById('legacy-banner');
-            var inputs = [distanceInput, gasConsumption, gasPrice, gasTank, electricConsumption, electricPrice, electricBattery];
+            var inputs = [distanceInput, gasConsumption, gasPrice, gasTank, electricConsumption, electricPrice, electricBattery, hybridElectricConsumption, hybridGasConsumption, hybridConversionFactor];
             var advancedEnabled = document.getElementById('advanced-enabled');
             var advancedKeys = Object.keys(core.blankAdvanced()).filter(function (key) { return key !== 'enabled'; });
             var advancedInputs = advancedKeys.map(function (key) { return document.getElementById(key); });
@@ -680,10 +734,11 @@
                 var text = '';
                 if (range.status === 'ok') {
                     text = '大约可跑 ' + range.rangeText + ' 公里';
-                    if (range.shareText === '0' && !range.overRange) {
+                    if (range.shareText === '0' && Number(distanceInput.value) !== 0 && !range.overRange) {
                         text += '，这次行程不到 0.1%';
-                    } else if (range.overRange && range.multiplesText) {
-                        text += '，这次行程大约需要 ' + range.multiplesText + noun;
+                    } else if (range.overRange) {
+                        text += '，这次行程已超出单次续航';
+                        if (range.multiplesText) text += '，大约需要 ' + range.multiplesText + noun;
                     } else if (range.shareText) {
                         text += '，这次行程大约用掉 ' + range.shareText + '%';
                     }
@@ -696,6 +751,23 @@
                 line.dataset.state = range.status === 'invalid' ? 'invalid' : 'empty';
             }
 
+            function renderHybrid(prefs) {
+                var result = core.calculateHybridEnergy(prefs);
+                renderVehicle('hybrid', result.cost);
+                setText('hybrid-distance-message', core.describeDistance(result.cost.distanceStatus));
+                ['cost', 'energy'].forEach(function (basis) {
+                    var equivalent = result[basis + 'Equivalent'];
+                    document.getElementById('hybrid-' + basis + '-equivalent').dataset.state = equivalent.status;
+                    setText('hybrid-' + basis + '-electric', equivalent.electricText !== '' ? '相当于 ' + equivalent.electricText + ' 度/百公里' : '');
+                    setText('hybrid-' + basis + '-gas', equivalent.gasText !== '' ? '相当于 ' + equivalent.gasText + ' 升/百公里' : '');
+                    var note = basis === 'cost' ? '同样费用下的纯电 / 纯油能耗，分别除以上方对应的正单价；零用量不要求填写其单价。' : '按 1 升油 ≈ ' + result.conversionFactorText + ' 度可用电量估算，已按系数计入转换损耗。';
+                    setText('hybrid-' + basis + '-message', equivalent.status === 'ok' ? note : equivalent.message);
+                    ['electric', 'gas'].forEach(function (direction) {
+                        document.getElementById('hybrid-' + basis + '-' + direction).dataset.state = equivalent[direction + 'Status'] || equivalent.status;
+                    });
+                });
+            }
+
             function currentPrefs() {
                 return {
                     gasConsumption: gasConsumption.value,
@@ -704,7 +776,10 @@
                     electricConsumption: electricConsumption.value,
                     electricPrice: electricPrice.value,
                     electricBattery: electricBattery.value,
-                    distanceKm: distanceInput.value
+                    distanceKm: distanceInput.value,
+                    hybridElectricConsumption: hybridElectricConsumption.value,
+                    hybridGasConsumption: hybridGasConsumption.value,
+                    hybridConversionFactor: hybridConversionFactor.value
                 };
             }
 
@@ -741,6 +816,7 @@
                 compareHeadline.textContent = comparison.headline;
                 compareDetail.textContent = comparison.detail;
                 compareCard.dataset.state = comparison.status === 'ok' ? comparison.winner : 'incomplete';
+                renderHybrid(prefs);
                 renderAdvanced(prefs);
             }
 
@@ -753,6 +829,9 @@
                 electricPrice.value = data.electricPrice || '';
                 electricBattery.value = data.electricBattery || '';
                 distanceInput.value = data.distanceKm || '';
+                hybridElectricConsumption.value = data.hybridElectricConsumption || '';
+                hybridGasConsumption.value = data.hybridGasConsumption || '';
+                hybridConversionFactor.value = data.hybridConversionFactor || '';
             }
 
             function setStorageStatus(text) {

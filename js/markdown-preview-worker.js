@@ -1,6 +1,9 @@
 /* 17Tools markdown preview worker — classic script */
 importScripts('./markdown-preview-core.js');
 
+// Only these release-pinned local files may execute in this Worker.
+var TRUSTED_DEPENDENCIES = Object.freeze(['../vendor/editors/marked/12.0.1/marked.min.js', '../vendor/editors/highlight.js/11.9.0/highlight.min.js']);
+
 self.onmessage = function (event) {
     var msg = (event && event.data) || {};
     var requestId = msg.requestId;
@@ -12,6 +15,10 @@ self.onmessage = function (event) {
     if (msg.type === 'load') {
         try {
             var urls = Array.isArray(msg.urls) ? msg.urls : [];
+            if (urls.some(function (url) { return TRUSTED_DEPENDENCIES.indexOf(url) === -1; })) {
+                throw new Error('拒绝未登记的后台依赖');
+            }
+            if (urls.length !== TRUSTED_DEPENDENCIES.length || urls.some(function (url, index) { return url !== TRUSTED_DEPENDENCIES[index]; })) throw new Error('后台依赖清单不完整');
             var warning = '';
             if (urls.length) importScripts(urls[0]);
             if (urls.length > 1) try { importScripts.apply(self, urls.slice(1)); }

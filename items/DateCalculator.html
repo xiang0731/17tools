@@ -619,7 +619,7 @@
                 <i class="fas fa-calculator"></i>
                 计算
             </button>
-            <button type="button" class="action-button btn-secondary" id="copyBtn">
+            <button type="button" class="action-button btn-secondary" id="copyBtn" disabled>
                 <i class="fas fa-copy"></i>
                 复制结果
             </button>
@@ -647,7 +647,35 @@
     <script src="../js/theme.js"></script>
     <script>
         let selectedFunction = '';
+        let resultSource = null;
+        let resultRevision = 0;
+        let copyRequestId = 0;
+        let copyFeedbackTimer = 0;
         const MILLISECONDS_PER_DAY = 86400000;
+
+        function readResultSource() {
+            const area = document.getElementById('input' + selectedFunction);
+            if (!area) return '';
+            return JSON.stringify({ mode: selectedFunction, fields: Array.from(area.querySelectorAll('input, select')).map(field => [field.id, field.type === 'checkbox' ? field.checked : field.value]) });
+        }
+
+        function resetCopyFeedback() {
+            window.clearTimeout(copyFeedbackTimer);
+            const button = document.getElementById('copyBtn');
+            button.replaceChildren(faIcon('fas fa-copy'), document.createTextNode(' 复制结果'));
+        }
+
+        function resetResultSource() {
+            resultRevision += 1;
+            resultSource = null;
+            document.getElementById('copyBtn').disabled = true;
+            resetCopyFeedback();
+        }
+
+        function invalidateChangedResult() {
+            if (resultSource === null || resultSource === readResultSource()) return;
+            clearResult(selectedFunction === 'C' ? '日期已更改，请补全有效日期后自动转换' : '输入已更改，请重新计算');
+        }
 
         function getCalendarDayNumber(year, month, day) {
             return Math.floor(Date.UTC(year, month - 1, day) / MILLISECONDS_PER_DAY);
@@ -869,6 +897,7 @@
 
         // 结果显示函数
         function showResult(content, type = 'success') {
+            resetResultSource();
             const resultElement = document.getElementById('result');
             resultElement.replaceChildren();
             if (type === 'error') {
@@ -880,9 +909,11 @@
             }
             if (content instanceof Node) {
                 resultElement.appendChild(content);
-                return;
+            } else {
+                resultElement.textContent = String(content == null ? '' : content);
             }
-            resultElement.textContent = String(content == null ? '' : content);
+            resultSource = readResultSource();
+            document.getElementById('copyBtn').disabled = !resultSource;
         }
 
         // 功能按钮点击事件
@@ -996,12 +1027,14 @@
             if (inputId === 'solarDate') {
                 input.dispatchEvent(new Event('change'));
             }
+            invalidateChangedResult();
         }
 
         // 设置指定输入框为现在
         function setNow(inputId) {
             document.getElementById(inputId).value = getNowString();
             clearFieldError(inputId);
+            invalidateChangedResult();
         }
 
         // 设置默认日期
@@ -1174,15 +1207,23 @@
 
         // 复制按钮
         document.getElementById('copyBtn').addEventListener('click', async function () {
+            if (resultSource === null || resultSource !== readResultSource()) {
+                invalidateChangedResult();
+                return;
+            }
+            const copiedSource = resultSource;
+            const copiedRevision = resultRevision;
+            const requestId = ++copyRequestId;
             const resultText = document.getElementById('result').textContent;
             if (resultText && !resultText.includes('请选择功能')) {
                 const copied = await ToolsClipboard.copyText(resultText);
+                if (requestId !== copyRequestId || resultRevision !== copiedRevision || resultSource !== copiedSource || copiedSource !== readResultSource()) return;
                 if (copied.ok) {
                     // 临时显示复制成功提示
-                    const originalText = document.getElementById('copyBtn').textContent;
+                    window.clearTimeout(copyFeedbackTimer);
                     document.getElementById('copyBtn').textContent = '已复制！';
-                    setTimeout(() => {
-                        document.getElementById('copyBtn').textContent = originalText;
+                    copyFeedbackTimer = setTimeout(() => {
+                        resetCopyFeedback();
                     }, 1000);
                 } else {
                     setModeError(copied.message);
@@ -1381,12 +1422,13 @@
         });
 
         // 清空结果
-        function clearResult() {
+        function clearResult(message) {
+            resetResultSource();
             const resultElement = document.getElementById('result');
             resultElement.replaceChildren();
             resultElement.appendChild(resultLine([
                 faIcon('fas fa-info-circle'),
-                '请选择功能并输入数据进行计算'
+                message || '请选择功能并输入数据进行计算'
             ], '', 'color: var(--text-tertiary);'));
         }
 
@@ -1399,6 +1441,9 @@
 
         function clearErrorForTarget(target) {
             if (!target || !target.id) return;
+            const area = target.closest('.input-area');
+            if (!area || area.id !== 'input' + selectedFunction) return;
+            invalidateChangedResult();
             if (target.id === 'solarDate' || target.id === 'lunarYear' || target.id === 'lunarMonth' || target.id === 'lunarDay' || target.id === 'isLeapMonth') {
                 return;
             }

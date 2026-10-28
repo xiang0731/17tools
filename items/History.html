@@ -322,6 +322,89 @@
         </header>
 
         <div class="timeline">
+            <!-- 版本 2.20.3 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 2.20.3</div>
+                    <div class="version-date">2026-10-23</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">逻辑改动与优化</div>
+                    <ul>
+                        <li><span class="tag ui">界面</span>模块标题：将继承文字黑白色的图标统一为主题彩色，适配浅色与深色模式，保留已有彩色和渐变效果</li>
+                        <li><span class="tag improved">优化</span>优惠计算器：增加输入与结果预算，大输入改为主动计算，每页只显示 50 行，复制保留完整结果</li>
+                        <li><span class="tag ux">体验</span>Markdown 编辑器：默认不加载外链图片，可主动允许当前文章加载；正文变化后重新关闭，预览、复制与导出保持相同规则</li>
+                        <li><span class="tag improved">优化</span>编辑器依赖：Markdown、代码格式化与代码对比使用固定版本本地依赖，后台计算只接受已登记资源</li>
+                    </ul>
+                    <div class="feature-category">缺陷修复</div>
+                    <ul>
+                        <li><span class="tag fixed">修复</span>二维码工具：保留 WiFi 名称与密码的原始空格，生成自检核对原始字段；网址区分显式协议、协议相对地址和裸主机，拒绝不支持的协议</li>
+                        <li><span class="tag fixed">修复</span>时间计算：输入、单位和快捷填值变化后禁用旧结果复制，实时历法转换成功后恢复；忽略过期复制反馈</li>
+                        <li><span class="tag fixed">修复</span>导航收藏：按当前公开工具数量恢复全部收藏，避免刷新后丢失末项</li>
+                        <li><span class="tag fixed">修复</span>汽车能耗成本：按未舍入金额比较费用、按真实能耗判断续航边界，并允许混动零用量省略对应单价，费用等效方向独立提示未知或非法单价</li>
+                        <li><span class="tag fixed">修复</span>优惠计算器：输入更改后立即停用旧结果复制，避免计算等待期间复制过期金额</li>
+                        <li><span class="tag fixed">修复</span>历史回归：功能记录在全部历史中核验，避免无关新版本使亲属称呼回归误报</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- 版本 2.20.2 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 2.20.2</div>
+                    <div class="version-date">2026-10-16</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">逻辑改动与优化</div>
+                    <ul>
+                        <li><span class="tag ux">体验</span>世界时间：地区列表按中文名拼音统一排序，并按 A、B 等首字母添加分段标记，地区名后标注所在洲；地区选择与时钟标题显示 HKT、JST 等时区缩写及 UTC 偏移，随夏令时自动更新；时差说明在 A、B 后显示所选地区名；增加协调世界时 UTC 选项，窄屏按内容展开时钟卡片</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- 版本 2.20.1 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 2.20.1</div>
+                    <div class="version-date">2026-10-12</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">逻辑改动与优化</div>
+                    <ul>
+                        <li><span class="tag ui">界面</span>正则表达式：可视化生成器的自定义内容和测试文本默认显示一行，支持换行输入与拖动增高；验证区标题简化，生成的表达式置于测试文本上方，两个复制按钮排列在表达式下方</li>
+                        <li><span class="tag ui">界面</span>亲属称呼：顶部标题增加与侧栏一致的家庭关系图标</li>
+                    </ul>
+                    <div class="feature-category">缺陷修复</div>
+                    <ul>
+                        <li><span class="tag fixed">修复</span>亲属称呼：关系链达到 6 层后隐藏添加按钮，不再显示第 7 层待选择节点；删除一层后恢复添加入口</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- 版本 2.20.0 -->
+            <div class="version-entry">
+                <div class="version-dot"></div>
+                <div class="version-header">
+                    <div class="version-number">版本 2.20.0</div>
+                    <div class="version-date">2026-10-11</div>
+                </div>
+                <div class="update-list">
+                    <div class="feature-category">新功能</div>
+                    <ul>
+                        <li><span class="tag new">新增</span>亲属称呼：以“我”为共同基准计算两位亲属的双向称呼，支持性别、堂表亲、姻亲与关系链，提供快捷关系按钮和互换；全部离线计算</li>
+                    </ul>
+                    <div class="feature-category">逻辑改动与优化</div>
+                    <ul>
+                        <li><span class="tag ui">界面</span>亲属称呼：侧栏使用家庭关系图标，入口归入“其他工具”；左 A 右 B 的角色图以两条反向箭头标明互称，角色与编辑区配色对应；关系链支持点选替换、右上角删除节点、末尾 + 追加和同行单人重置，删除中间层后自动接上后续关系；结果下方显示“可能的情况”，分别解释双向候选称呼的支系、长幼与同人条件</li>
+                        <li><span class="tag improved">优化</span>汽车能耗成本：混动日常油电折算默认使用考虑转换损耗的 3 度/升估算系数，可按实测调整；旧汽油热值不再作为可用电量系数恢复</li>
+                        <li><span class="tag ux">体验</span>正则表达式：默认先配置预设和片段再验证样例，增加必须含数字、字母和不包含文本条件；明确整段长度适用模式、排除规则与预设校验边界</li>
+                    </ul>
+                    <div class="feature-category">缺陷修复</div>
+                    <ul>
+                        <li><span class="tag fixed">修复</span>正则表达式：自定义片段按整体重复并保护分支边界，完全匹配严格检查结尾；修复长度约束、排除正则、无效次数和含斜杠或换行的复制结果，网址支持长域名后缀</li>
+                    </ul>
+                </div>
+            </div>
             <!-- 版本 2.19.1 -->
             <div class="version-entry">
                 <div class="version-dot"></div>
@@ -333,6 +416,7 @@
                     <div class="feature-category">新功能</div>
                     <ul>
                         <li><span class="tag new">新增</span>图片处理：新增展示用与防盗用增强水印预设，支持随机错行平铺、可拖动定位的主体大水印和分享尺寸副本，预览与导出使用相同布局</li>
+                        <li><span class="tag new">新增</span>汽车能耗成本：混动 / 增程车可同时填写百公里电耗和油耗，计算合计能源费用，并按费用或能量换算等效电耗与油耗，汽油热值可调整</li>
                     </ul>
                     <div class="feature-category">逻辑改动与优化</div>
                     <ul>

@@ -127,7 +127,17 @@
     function normalizeUrl(raw) {
         const value = trim(raw);
         if (!value) return { ok: false, empty: true };
-        const withScheme = /^(https?:)\/\//i.test(value) ? value : 'https://' + value;
+        // 先识别协议，再补全裸主机，防止 ftp:// 被编码成另一个 HTTPS 主机。
+        const bareHostPort = /^(?:localhost|[^\s/:?#]+\.[^\s/:?#]+|\[[0-9a-f:.]+\]):\d+(?:[/?#]|$)/i.test(value);
+        const explicitScheme = /^[a-z][a-z0-9+.-]*:/i.test(value);
+        let withScheme;
+        if (/^https?:\/\//i.test(value)) withScheme = value;
+        else if (value.startsWith('//')) withScheme = 'https:' + value;
+        else if (explicitScheme && !bareHostPort) return { ok: false, empty: false };
+        else withScheme = 'https://' + value;
+        if (/[\\\u0000-\u001f\u007f]/.test(withScheme) || !/^https?:\/\/[^/]/i.test(withScheme)) {
+            return { ok: false, empty: false };
+        }
         try {
             const parsed = new URL(withScheme);
             if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
@@ -192,6 +202,38 @@
         return String(value).replace(/([\\;,:])/g, '\\$1');
     }
 
+    // WiFi 分隔符必须在处理反斜线转义的同时解析，不能直接 split(';')。
+    function parseWifiPayload(payload) {
+        if (typeof payload !== 'string' || !payload.startsWith('WIFI:')) return null;
+        const fields = {};
+        let token = '', escaped = false;
+        for (const char of payload.slice(5)) {
+            if (escaped) { token += char; escaped = false; }
+            else if (char === '\\') escaped = true;
+            else if (char === ';') {
+                if (token) {
+                    const separator = token.indexOf(':');
+                    if (separator < 1) return null;
+                    const key = token.slice(0, separator);
+                    if (Object.prototype.hasOwnProperty.call(fields, key)) return null;
+                    fields[key] = token.slice(separator + 1);
+                    token = '';
+                }
+            } else token += char;
+        }
+        if (escaped || token || !Object.prototype.hasOwnProperty.call(fields, 'S')) return null;
+        return fields;
+    }
+
+    function wifiMatchesInput(payload, input) {
+        const fields = parseWifiPayload(payload);
+        const source = input || {};
+        const auth = source.auth === 'WEP' || source.auth === 'nopass' ? source.auth : 'WPA';
+        return Boolean(fields && fields.T === auth && fields.S === String(source.ssid == null ? '' : source.ssid)
+            && (auth === 'nopass' ? !Object.prototype.hasOwnProperty.call(fields, 'P') : fields.P === String(source.password == null ? '' : source.password))
+            && (fields.H === 'true') === Boolean(source.hidden));
+    }
+
     function escapeVCard(value) {
         return String(value)
             .replace(/\\/g, '\\\\')
@@ -201,12 +243,12 @@
     }
 
     function buildWifi(fields) {
-        const ssid = trim(fields.ssid);
+        const ssid = String(fields.ssid == null ? '' : fields.ssid);
         const auth = fields.auth === 'WEP' || fields.auth === 'nopass' ? fields.auth : 'WPA';
         const hidden = Boolean(fields.hidden);
         const errors = {};
         if (!ssid) errors.ssid = MSG.wifiSsid;
-        const password = trim(fields.password);
+        const password = String(fields.password == null ? '' : fields.password);
         if (auth !== 'nopass' && !password) errors.password = MSG.wifiPassword;
         if (Object.keys(errors).length) return fail(errors);
         const parts = ['WIFI:T:' + auth, 'S:' + escapeWifi(ssid)];
@@ -279,6 +321,8 @@
         normalizeUrl: normalizeUrl,
         normalizePhone: normalizePhone,
         escapeWifi: escapeWifi,
+        parseWifiPayload: parseWifiPayload,
+        wifiMatchesInput: wifiMatchesInput,
         escapeVCard: escapeVCard
     };
 });

@@ -36,7 +36,7 @@
         }
 
         .container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
             display: flex;
             flex-direction: column;
@@ -1106,6 +1106,20 @@
             }
         }
 
+        .generator-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--spacing-lg); align-items: start; }
+        .generator-intro { margin-bottom: var(--spacing-md); }
+        .generator-conditions { border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: var(--spacing-md); display: grid; gap: var(--spacing-sm); min-width: 0; }
+        .generator-conditions .flags-container { margin: 0; }
+        .generator-layout .anchor-grid { grid-template-columns: minmax(0, 1fr); }
+        .generator-layout #selectAnchorMode { width: 100%; }
+        .generator-layout .segment-fields { flex-direction: column; align-items: stretch; }
+        .generator-layout .segment-fields .form-select, .generator-layout .input-text-custom { width: 100%; max-width: 100%; min-width: 0; }
+        .generator-layout .input-text-custom { flex: none; line-height: 1.5; resize: vertical; }
+        #genTestTextInput { height: auto; padding: var(--spacing-sm) var(--spacing-md); resize: vertical; }
+        .generator-layout button:disabled { opacity: 0.55; cursor: not-allowed; }
+        .generator-layout input:disabled, .generator-layout fieldset:disabled { opacity: 0.65; }
+        .generator-layout .result-actions { gap: var(--spacing-sm); }
+        @media (max-width: 1000px) { .generator-layout { grid-template-columns: minmax(0, 1fr); } }
         .engine-note { color: var(--text-secondary); font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
         .kit-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(90px, 160px); gap: var(--spacing-md); }
         .kit-fields .kit-wide { grid-column: 1 / -1; }
@@ -1138,55 +1152,12 @@
             </button>
         </div>
 
-        <!-- 1. Visual Generator Tab Content -->
+        <!-- Visual generator: configure first, then verify the current rule. -->
         <div id="tab-visual" class="tab-content">
-            <div class="card short-path">
-                <div class="card-title">
-                    <span><i class="fas fa-flask"></i> 输入样例并测试</span>
-                </div>
-
-                <label class="field-label" for="genTestTextInput">输入样例</label>
-                <textarea class="testing-textarea" id="genTestTextInput" placeholder="在此粘贴或输入需要测试的文本..."></textarea>
-                <button type="button" class="btn-primary-action" id="btnGenerateTest">
-                    <i class="fas fa-play" aria-hidden="true"></i> 生成并测试
-                </button>
-
-                <div class="error-message" id="genErrorMessage"></div>
-
-                <div class="result-actions">
-                    <div class="result-regex-container">
-                        <span class="regex-slash">/</span>
-                        <input aria-label="生成的 JavaScript 正则表达式" type="text" class="result-regex-input" id="resultRegexInput" value="...">
-                        <span class="regex-slash">/</span>
-                        <span class="result-regex-flags" id="resultRegexFlags">g</span>
-                    </div>
-                    <button type="button" class="btn-action-copy" id="btnCopyRegex">
-                        <i class="fas fa-copy" aria-hidden="true"></i> 复制结果
-                    </button>
-                    <span id="manualEditBadge" class="badge-warning hidden-field">
-                        <i class="fas fa-edit" aria-hidden="true"></i> 已手动修改
-                    </span>
-                </div>
-
-                <p class="engine-note">JavaScript 正则（当前浏览器引擎），上方显示实际 flags；复制到其他语言前需重新核对语法与测试。</p>
-                <div class="testing-pane">
-                    <div class="pane-title">
-                        <span>匹配结果预览</span>
-                        <span class="badge-matches" id="genMatchBadge">共 0 处匹配</span>
-                    </div>
-                    <div class="highlight-output-container" id="genHighlightOutput">
-                        <span class="empty-preview">输入测试文本后在此展示匹配高亮</span>
-                    </div>
-                </div>
-
-                <button type="button" class="advanced-toggle" id="regexAdvancedToggle" aria-expanded="false" aria-controls="regexAdvancedPanel">
-                    <span>高级设置</span>
-                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
-                </button>
-                <div id="regexAdvancedPanel" class="advanced-panel" hidden>
-                    <div class="card-title">
-                        <span><i class="fas fa-cog" aria-hidden="true"></i> 生成选项配置</span>
-                    </div>
+            <p class="engine-note generator-intro">先选择预设或配置规则片段，再输入样例验证。样例不会自动推导规则；下方可用正反例测试集检查更多情况。</p>
+            <div class="generator-layout">
+                <div class="card" id="generatorConfigCard">
+                    <div class="card-title"><span>1. 配置规则</span></div>
                     <div class="preset-dropdown-wrapper">
                         <label for="visualPresetSelect" class="field-label">
                             <i class="fas fa-star" style="color: var(--warning-color);" aria-hidden="true"></i> 载入常用预设：
@@ -1196,32 +1167,33 @@
                         </select>
                     </div>
 
+                    <p id="genPresetNote" class="engine-note" hidden></p>
                     <div class="anchor-grid">
                         <div>
                             <label class="field-label" for="selectAnchorMode">
-                                匹配位置约束 (锚点)
+                                匹配位置
                                 <span class="tooltip" data-tooltip="用 ^ 和 $ 约束匹配起点与终点。例如完全匹配常用于手机号、邮箱等格式校验。">
                                     <i class="fas fa-question-circle text-tertiary" style="cursor: help;" aria-hidden="true"></i>
                                 </span>
                             </label>
                             <select class="form-select" id="selectAnchorMode">
-                                <option value="none">无约束 (文本中任意位置匹配)</option>
-                                <option value="start">匹配开头 (以这些规则开始) [^]</option>
-                                <option value="end">匹配结尾 (以这些规则结束) [$]</option>
-                                <option value="both" selected>完全匹配 (整段文本完全符合格式) [^...$]</option>
+                                <option value="none">提取文本中的匹配片段</option>
+                                <option value="start">从文本开头匹配</option>
+                                <option value="end">匹配文本结尾</option>
+                                <option value="both" selected>完全匹配（校验整段文本）</option>
                             </select>
                         </div>
                         <div>
                             <label class="flag-checkbox-label" for="chkLimitLength">
-                                <input type="checkbox" id="chkLimitLength"> 限制总字符数
-                                <span class="tooltip" data-tooltip="限制匹配结果的字符数范围。开启后可设定最小与最大匹配长度。">
+                                <input type="checkbox" id="chkLimitLength"> 限制整段长度
+                                <span class="tooltip" data-tooltip="用于整段校验的总长度；提取或多行匹配时暂不应用。表情可能计为两位。">
                                     <i class="fas fa-question-circle text-tertiary" style="cursor: help;" aria-hidden="true"></i>
                                 </span>
                             </label>
                             <div id="lengthLimitInputs" class="quantity-range-wrapper hidden-field">
                                 <input type="number" class="form-input input-number" id="inputMinLength" placeholder="最少" min="0" value="6">
                                 <span>到</span>
-                                <input type="number" class="form-input input-number" id="inputMaxLength" placeholder="最多" min="1" value="20">
+                                <input type="number" class="form-input input-number" id="inputMaxLength" placeholder="最多" min="0" value="20">
                                 <span>位字符</span>
                             </div>
                         </div>
@@ -1237,6 +1209,21 @@
                         </button>
                     </div>
 
+                    <p class="engine-note">片段按序连接。“排除”匹配范围外的单个字符；排除正则时，该位置不能以此模式开始。排除整段中的词请用“不包含文本”。</p>
+                    <fieldset class="generator-conditions" id="wholeConditions">
+                        <legend class="field-label">整段条件</legend>
+                        <div class="flags-container">
+                            <label class="flag-checkbox-label"><input type="checkbox" id="chkRequireDigit"> 必须含数字</label>
+                            <label class="flag-checkbox-label"><input type="checkbox" id="chkRequireLetter"> 必须含英文字母</label>
+                        </div>
+                        <label class="field-label" for="inputForbiddenText">不包含文本</label>
+                        <input type="text" class="form-input" id="inputForbiddenText" placeholder="例如：禁止出现 admin（按文本原样匹配）">
+                    </fieldset>
+                    <p class="engine-note" id="wholeConstraintHint">整段长度和条件用于完全匹配，关闭多行匹配时生效。表情可能计为两位。</p>
+                    <button type="button" class="advanced-toggle" id="regexAdvancedToggle" aria-expanded="false" aria-controls="regexAdvancedPanel">
+                        <span>高级设置</span><i class="fas fa-chevron-down" aria-hidden="true"></i>
+                    </button>
+                    <div id="regexAdvancedPanel" class="advanced-panel" hidden>
                     <div class="logic-row">
                         <label for="inputSegmentsLogic" class="field-label">
                             片段逻辑关系：
@@ -1267,12 +1254,51 @@
                                 <i class="fas fa-question-circle text-tertiary" style="cursor: help;" aria-hidden="true"></i>
                             </span>
                         </label>
-                        <button type="button" class="btn-action-reset hidden-field" id="btnRegenerate">
-                            <i class="fas fa-arrows-rotate" aria-hidden="true"></i> 重新生成
-                        </button>
+
+
+                    </div>
+
+                    </div>
                         <button type="button" class="btn-action-reset" id="btnResetAll">
                             <i class="fas fa-rotate-left" aria-hidden="true"></i> 重置生成器
                         </button>
+                </div>
+                <div class="card short-path" id="generatorTestCard">
+                    <div class="card-title"><span>2.验证样例</span></div>
+                    <label class="field-label" for="resultRegexInput">正则表达式</label>
+                    <div class="result-regex-container">
+                        <span class="regex-slash">/</span>
+                        <input aria-label="生成的 JavaScript 正则表达式" type="text" class="result-regex-input" id="resultRegexInput" value="">
+                        <span class="regex-slash">/</span>
+                        <span class="result-regex-flags" id="resultRegexFlags">g</span>
+                    </div>
+                    <div class="result-actions">
+                        <button type="button" class="btn-action-copy" id="btnCopyRegex" disabled>
+                            <i class="fas fa-copy" aria-hidden="true"></i> 复制 JavaScript 正则
+                        </button>
+                        <button type="button" class="btn-action-copy" id="btnCopyPattern" disabled>复制模式</button>
+                        <span id="manualEditBadge" class="badge-warning hidden-field">
+                            <i class="fas fa-edit" aria-hidden="true"></i> 已手动修改
+                        </span>
+                    </div>
+                    <button type="button" class="btn-action-reset hidden-field" id="btnRegenerate">
+                        <i class="fas fa-arrows-rotate" aria-hidden="true"></i> 重新生成
+                    </button>
+                    <p class="engine-note">JavaScript 正则（当前浏览器引擎），上方显示实际 flags；复制到其他语言前需重新核对语法与测试。</p>
+                    <label class="field-label" for="genTestTextInput">测试文本</label>
+                    <textarea class="testing-textarea" id="genTestTextInput" rows="1" placeholder="输入样例，验证当前规则…"></textarea>
+                    <button type="button" class="btn-primary-action" id="btnGenerateTest">
+                        <i class="fas fa-play" aria-hidden="true"></i> 验证当前规则
+                    </button>
+                    <div class="error-message" id="genErrorMessage"></div>
+                    <div class="testing-pane">
+                        <div class="pane-title">
+                            <span>匹配结果预览</span>
+                            <span class="badge-matches" id="genMatchBadge">共 0 处匹配</span>
+                        </div>
+                        <div class="highlight-output-container" id="genHighlightOutput">
+                            <span class="empty-preview">输入测试文本后在此展示匹配高亮</span>
+                        </div>
                     </div>
 
                     <div class="explanation-box">
@@ -1478,78 +1504,10 @@
     </div>
 
     <script src="../js/regex-tool-core.js"></script>
+    <script src="../js/regex-generator-core.js"></script>
     <script src="../js/regex-tool.js"></script>
     <script>
-        // Preset regex data
-        const PRESETS = [
-            {
-                name: "手机号码",
-                pattern: "^1[3-9]\\d{9}$",
-                desc: "匹配中国大陆11位手机号码，支持13-19开头的号码格式",
-                test: "13812345678\n18900001111\n12345678901\n19988887777\n1381234567"
-            },
-            {
-                name: "电子邮箱",
-                pattern: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
-                desc: "匹配标准的电子邮件地址，包括二级域名等格式",
-                test: "hello@world.com\nuser.name+tag@company.co.uk\ninvalid_email@domain\nregular-user@gmail.com"
-            },
-            {
-                name: "身份证号 (18位)",
-                pattern: "^[1-9]\\d{5}(18|19|20)\\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])\\d{3}[\\dxX]$",
-                desc: "校验中国大陆第二代18位身份证号，支持最后一位校验码 x/X",
-                test: "110101199003072345\n11010119951231888X\n110101199003072\n440301202001019999"
-            },
-            {
-                name: "IP 地址 (IPv4)",
-                pattern: "^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$",
-                desc: "匹配标准的 IPv4 网络地址格式（0.0.0.0 到 255.255.255.255）",
-                test: "192.168.1.1\n8.8.8.8\n256.0.0.1\n127.0.0.1\n300.400.500.600"
-            },
-            {
-                name: "日期 (YYYY-MM-DD)",
-                pattern: "^\\d{4}-\\d{2}-\\d{2}$",
-                desc: "匹配常规日期，支持4位年份-2位月份-2位日期格式",
-                test: "2026-06-06\n2020-12-31\n1999/01/01\n2025-13-45"
-            },
-            {
-                name: "纯数字",
-                pattern: "^\\d+$",
-                desc: "匹配一个或多个连续数字字符（不含负号和小数点）",
-                test: "123456789\n0\nabc123\n99.9"
-            },
-            {
-                name: "只筛选数字",
-                pattern: "\\d+",
-                desc: "从混合文本中匹配一个或多个连续数字，便于提取所有数字片段",
-                test: "订单 A-1024，共 3 件\n手机号：13812345678"
-            },
-            {
-                name: "只筛选字母",
-                pattern: "[a-zA-Z]+",
-                desc: "从混合文本中匹配连续英文字母（A-Z、a-z），不包含数字、中文和符号",
-                test: "abc123\nOpenAI 2026\n正则Regex工具"
-            },
-            {
-                name: "移除空格",
-                pattern: "\\s+",
-                replacement: "",
-                desc: "匹配连续空白字符，并在自由测试与替换模式中将其替换为空",
-                test: "Hello World\n正 则 工 具\t17 Tools"
-            },
-            {
-                name: "中文字符",
-                pattern: "^[\\u4e00-\\u9fa5]+$",
-                desc: "匹配纯中文字符串，不包含数字、字母及其他符号",
-                test: "你好世界\nHello世界\n测试数据123\n中文字符串"
-            },
-            {
-                name: "URL 网址",
-                pattern: "^https?:\\/\\/(www\\.)?[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}\\b([-a-zA-Z0-9()@:%_\\+.~#?&//=]*)$",
-                desc: "匹配以 http:// 或 https:// 开头的网络网址路径",
-                test: "https://www.google.com\nhttp://github.com/xiang0731/17tools\nftp://invalid-url.com\nhttps://demo.api/v1/users?id=12"
-            }
-        ];
+        const PRESETS = window.RegexGeneratorCore.PRESETS;
 
         // State variables
         let segmentCounter = 0;
@@ -1578,6 +1536,7 @@
         const resultRegexInput = document.getElementById('resultRegexInput');
         const resultRegexFlags = document.getElementById('resultRegexFlags');
         const btnCopyRegex = document.getElementById('btnCopyRegex');
+        const btnCopyPattern = document.getElementById('btnCopyPattern');
         const btnResetAll = document.getElementById('btnResetAll');
         const btnRegenerate = document.getElementById('btnRegenerate');
         const manualEditBadge = document.getElementById('manualEditBadge');
@@ -1626,214 +1585,7 @@
             });
         }
 
-        // Regex characters escape helper
-        function escapeRegExp(string) {
-            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        }
-
-        // Regex character class escape helper (for exclude mode in custom input)
-        function escapeCharClass(string) {
-            return string.replace(/[\\\]\-^]/g, '\\$&');
-        }
-
-        // Logical OR choice parser
-        function parseChoice(choice) {
-            choice = choice.trim();
-            if (!choice) return '';
-            // If it's a standard shorthand or character class or group, keep it raw
-            if (/^(\\\w|\[[^\]]+\]|\([^)]+\))[?*+]*$/.test(choice)) {
-                return choice;
-            }
-            return escapeRegExp(choice);
-        }
-
-        // Logical AND choice parser
-        function parseAndChoice(choice) {
-            choice = choice.trim();
-            if (!choice) return '';
-            
-            // Friendly keyword translations
-            const friendlyMap = {
-                '数字': '\\d',
-                '包含数字': '\\d',
-                '小写字母': '[a-z]',
-                '包含小写字母': '[a-z]',
-                '大写字母': '[A-Z]',
-                '包含大写字母': '[A-Z]',
-                '字母': '[a-zA-Z]',
-                '包含字母': '[a-zA-Z]',
-                '字母与数字': '[0-9a-zA-Z]',
-                '包含字母与数字': '[0-9a-zA-Z]',
-                '空白': '\\s',
-                '包含空白': '\\s'
-            };
-            
-            if (friendlyMap[choice]) {
-                return `.*${friendlyMap[choice]}`;
-            }
-            
-            // If it already starts with .*, we keep it
-            if (choice.startsWith('.*')) {
-                return choice;
-            }
-            
-            // Check if it is a shorthand regex
-            if (/^(\\\w|\[[^\]]+\]|\([^)]+\))[?*+]*$/.test(choice)) {
-                return `.*${choice}`;
-            }
-            
-            // Otherwise, treat as literal and escape
-            return `.*${escapeRegExp(choice)}`;
-        }
-
         // HTML escape helper
-        function escapeHtml(str) {
-            return window.RegexToolCore.escapeHtml(str);
-        }
-
-        function escapeHtmlAttr(str) {
-            return escapeHtml(str);
-        }
-
-        // Visual Presets Mapping Configuration
-        const VISUAL_PRESETS_CONFIG = [
-            {
-                // 1. 手机号码
-                anchorMode: "both",
-                limitLength: false,
-                flags: { global: true, ignoreCase: false, multiline: false },
-                logic: "1 AND 2 AND 3",
-                segments: [
-                    { status: 'include', type: 'custom', customValue: '1', quantifier: 'exactly' },
-                    { status: 'include', type: 'regex', customValue: '[3-9]', quantifier: 'exactly' },
-                    { status: 'include', type: 'digit', quantifier: 'n-times', nValue: 9 }
-                ]
-            },
-            {
-                // 2. 电子邮箱
-                anchorMode: "both",
-                limitLength: false,
-                flags: { global: true, ignoreCase: false, multiline: false },
-                logic: "",
-                segments: [
-                    { status: 'include', type: 'regex', customValue: '[a-zA-Z0-9._%+-]', quantifier: 'one-or-more' },
-                    { status: 'include', type: 'custom', customValue: '@', quantifier: 'exactly' },
-                    { status: 'include', type: 'regex', customValue: '[a-zA-Z0-9.-]', quantifier: 'one-or-more' },
-                    { status: 'include', type: 'custom', customValue: '.', quantifier: 'exactly' },
-                    { status: 'include', type: 'regex', customValue: '[a-zA-Z]', quantifier: 'range', minValue: 2, maxValue: '' }
-                ]
-            },
-            {
-                // 3. 身份证号 (18位)
-                anchorMode: "both",
-                limitLength: false,
-                flags: { global: true, ignoreCase: false, multiline: false },
-                logic: "",
-                segments: [
-                    { status: 'include', type: 'regex', customValue: '[1-9]', quantifier: 'exactly' },
-                    { status: 'include', type: 'digit', quantifier: 'n-times', nValue: 5 },
-                    { status: 'include', type: 'regex', customValue: '(?:18|19|20)', quantifier: 'exactly' },
-                    { status: 'include', type: 'digit', quantifier: 'n-times', nValue: 2 },
-                    { status: 'include', type: 'regex', customValue: '(?:0[1-9]|1[0-2])', quantifier: 'exactly' },
-                    { status: 'include', type: 'regex', customValue: '(?:0[1-9]|[12]\\d|3[01])', quantifier: 'exactly' },
-                    { status: 'include', type: 'digit', quantifier: 'n-times', nValue: 3 },
-                    { status: 'include', type: 'regex', customValue: '[\\dxX]', quantifier: 'exactly' }
-                ]
-            },
-            {
-                // 4. IP 地址 (IPv4)
-                anchorMode: "both",
-                limitLength: false,
-                flags: { global: true, ignoreCase: false, multiline: false },
-                logic: "",
-                segments: [
-                    { status: 'include', type: 'regex', customValue: '(?:(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.)', quantifier: 'n-times', nValue: 3 },
-                    { status: 'include', type: 'regex', customValue: '(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)', quantifier: 'exactly' }
-                ]
-            },
-            {
-                // 5. 日期 (YYYY-MM-DD)
-                anchorMode: "both",
-                limitLength: false,
-                flags: { global: true, ignoreCase: false, multiline: false },
-                logic: "",
-                segments: [
-                    { status: 'include', type: 'digit', quantifier: 'n-times', nValue: 4 },
-                    { status: 'include', type: 'custom', customValue: '-', quantifier: 'exactly' },
-                    { status: 'include', type: 'digit', quantifier: 'n-times', nValue: 2 },
-                    { status: 'include', type: 'custom', customValue: '-', quantifier: 'exactly' },
-                    { status: 'include', type: 'digit', quantifier: 'n-times', nValue: 2 }
-                ]
-            },
-            {
-                // 6. 纯数字
-                anchorMode: "both",
-                limitLength: false,
-                flags: { global: true, ignoreCase: false, multiline: false },
-                logic: "",
-                segments: [
-                    { status: 'include', type: 'digit', quantifier: 'one-or-more' }
-                ]
-            },
-            {
-                // 7. 只筛选数字
-                anchorMode: "none",
-                limitLength: false,
-                flags: { global: true, ignoreCase: false, multiline: false },
-                logic: "",
-                segments: [
-                    { status: 'include', type: 'digit', quantifier: 'one-or-more' }
-                ]
-            },
-            {
-                // 8. 只筛选字母
-                anchorMode: "none",
-                limitLength: false,
-                flags: { global: true, ignoreCase: false, multiline: false },
-                logic: "",
-                segments: [
-                    { status: 'include', type: 'letter', quantifier: 'one-or-more' }
-                ]
-            },
-            {
-                // 9. 移除空格
-                anchorMode: "none",
-                limitLength: false,
-                flags: { global: true, ignoreCase: false, multiline: false },
-                logic: "",
-                segments: [
-                    { status: 'include', type: 'whitespace', quantifier: 'one-or-more' }
-                ]
-            },
-            {
-                // 10. 中文字符
-                anchorMode: "both",
-                limitLength: false,
-                flags: { global: true, ignoreCase: false, multiline: false },
-                logic: "",
-                segments: [
-                    { status: 'include', type: 'regex', customValue: '[\\u4e00-\\u9fa5]', quantifier: 'one-or-more' }
-                ]
-            },
-            {
-                // 11. URL 网址
-                anchorMode: "both",
-                limitLength: false,
-                flags: { global: true, ignoreCase: false, multiline: false },
-                logic: "",
-                segments: [
-                    { status: 'include', type: 'regex', customValue: 'https?', quantifier: 'exactly' },
-                    { status: 'include', type: 'custom', customValue: '://', quantifier: 'exactly' },
-                    { status: 'include', type: 'regex', customValue: 'www\\.', quantifier: 'optional' },
-                    { status: 'include', type: 'regex', customValue: '[-a-zA-Z0-9@:%._\\+~#=]', quantifier: 'range', minValue: 1, maxValue: 256 },
-                    { status: 'include', type: 'custom', customValue: '.', quantifier: 'exactly' },
-                    { status: 'include', type: 'regex', customValue: '[a-zA-Z0-9()]', quantifier: 'range', minValue: 1, maxValue: 6 },
-                    { status: 'include', type: 'regex', customValue: '\\b', quantifier: 'exactly' },
-                    { status: 'include', type: 'regex', customValue: '[-a-zA-Z0-9()@:%_\\+.~#?&//=]', quantifier: 'zero-or-more' }
-                ]
-            }
-        ];
-
         // Initialize visual builder & presets
         function initApp() {
             window.PRESETS = PRESETS; // Expose presets globally for other files
@@ -1842,14 +1594,15 @@
             const visualPresetSelect = document.getElementById('visualPresetSelect');
             const manualPresetSelect = document.getElementById('manualPresetSelect');
             
-            const optionsHtml = PRESETS.map((p, idx) => `<option value="${idx}">${escapeHtml(p.name)}</option>`).join('');
-            
-            if (visualPresetSelect) {
-                visualPresetSelect.innerHTML = `<option value="">-- 选择预设模板 --</option>` + optionsHtml;
-            }
-            if (manualPresetSelect) {
-                manualPresetSelect.innerHTML = `<option value="">-- 选择预设模板 --</option>` + optionsHtml;
-            }
+            [visualPresetSelect, manualPresetSelect].forEach(select => {
+                if (!select) return;
+                PRESETS.forEach((preset, index) => {
+                    const option = document.createElement('option');
+                    option.value = String(index);
+                    option.textContent = preset.name;
+                    select.appendChild(option);
+                });
+            });
 
             if (window.RegexToolUi && typeof window.RegexToolUi.initRegexTool === 'function') {
                 window.RegexToolUi.initRegexTool();
@@ -1912,6 +1665,9 @@
                 currentPresetName = '';
                 currentPresetDesc = '';
                 if (visualPresetSelect) visualPresetSelect.value = '';
+                const note = document.getElementById('genPresetNote');
+                note.hidden = true;
+                note.textContent = '';
             }
 
             // visualPresetSelect dropdown select
@@ -1922,11 +1678,11 @@
                     if (idx === '') return;
                     
                     const preset = PRESETS[idx];
-                    const config = VISUAL_PRESETS_CONFIG[idx];
+                    const config = preset.config;
                     if (!config) return;
                     
                     // Clear current segments
-                    segmentsContainer.innerHTML = '';
+                    segmentsContainer.replaceChildren();
                     segmentCounter = 0;
                     isManuallyModified = false;
                     manualEditBadge.classList.add('hidden-field');
@@ -1947,15 +1703,22 @@
                         lengthLimitInputs.classList.add('hidden-field');
                     }
                     
-                    genFlagGlobal.checked = config.flags?.global !== false;
-                    genFlagIgnoreCase.checked = !!config.flags?.ignoreCase;
-                    genFlagMultiline.checked = !!config.flags?.multiline;
+                    genFlagGlobal.checked = config.flags.includes('g');
+                    genFlagIgnoreCase.checked = config.flags.includes('i');
+                    genFlagMultiline.checked = config.flags.includes('m');
                     
                     // Load segments
                     config.segments.forEach(seg => {
                         addSegmentRow(seg);
                     });
                     
+                    document.getElementById('chkRequireDigit').checked = !!config.requireDigit;
+                    document.getElementById('chkRequireLetter').checked = !!config.requireLetter;
+                    document.getElementById('inputForbiddenText').value = config.forbiddenText || '';
+                    const note = document.getElementById('genPresetNote');
+                    note.textContent = preset.desc;
+                    note.hidden = false;
+                    syncWholeControls();
                     currentPresetName = preset.name;
                     currentPresetDesc = preset.desc;
                     
@@ -1969,6 +1732,7 @@
             // Anchor select
             selectAnchorMode.addEventListener('change', () => {
                 clearPresetState();
+                syncWholeControls();
                 if (!isManuallyModified) generateRegex();
             });
 
@@ -1985,6 +1749,14 @@
 
             [inputMinLength, inputMaxLength].forEach(input => {
                 input.addEventListener('input', () => {
+                    clearPresetState();
+                    if (!isManuallyModified) generateRegex();
+                });
+            });
+
+            ['chkRequireDigit', 'chkRequireLetter', 'inputForbiddenText'].forEach(id => {
+                const input = document.getElementById(id);
+                input.addEventListener(input.type === 'checkbox' ? 'change' : 'input', () => {
                     clearPresetState();
                     if (!isManuallyModified) generateRegex();
                 });
@@ -2026,7 +1798,7 @@
                         if (target.value === 'regex') {
                             customInput.placeholder = '输入正则表达式，如: [a-z0-9] 或 (?:abc|def)';
                         } else {
-                            customInput.placeholder = '匹配的特定内容...';
+                            customInput.placeholder = '要匹配的文本，可输入换行';
                         }
                     } else {
                         customInput.classList.add('hidden-field');
@@ -2088,6 +1860,7 @@
             [genFlagGlobal, genFlagIgnoreCase, genFlagMultiline].forEach(cb => {
                 cb.addEventListener('change', () => {
                     clearPresetState();
+                    syncWholeControls();
                     // Sync flags
                     resultRegexFlags.textContent = (genFlagGlobal.checked ? 'g' : '') + 
                                                    (genFlagIgnoreCase.checked ? 'i' : '') + 
@@ -2123,7 +1896,7 @@
                 editBody.textContent = '在此状态下，可视化生成器配置暂时失效，匹配校验已按照您修改后的正则表达式实时更新。您可以继续修改、测试和复制。';
                 const editHint = document.createElement('p');
                 editHint.className = 'text-tertiary text-sm mt-2';
-                editHint.textContent = '提示：在高级设置里点击“重新生成”，可恢复积木块自动配置。';
+                editHint.textContent = '提示：点击结果附近的“重新生成”，可恢复按左侧配置自动生成。';
                 explanationContent.append(editTitle, editBody, editHint);
 
                 evaluateGenMatches();
@@ -2141,8 +1914,14 @@
 
             // Copy button
             btnCopyRegex.addEventListener('click', () => {
-                const text = `/${resultRegexInput.value}/${resultRegexFlags.textContent}`;
-                copyToClipboard(text);
+                try {
+                    const text = window.RegexGeneratorCore.toLiteral(resultRegexInput.value, resultRegexFlags.textContent);
+                    copyToClipboard(text);
+                } catch (err) { showToast('规则无效，请修正后再复制。', 'error'); }
+            });
+
+            btnCopyPattern.addEventListener('click', () => {
+                if (!btnCopyPattern.disabled) copyToClipboard(resultRegexInput.value);
             });
 
             const btnGenerateTest = document.getElementById('btnGenerateTest');
@@ -2160,83 +1939,84 @@
             btnResetAll.addEventListener('click', resetGenerator);
         }
 
-        // Segments rendering and list interactions
+        // Build controls with DOM APIs; custom text never enters HTML markup.
         function addSegmentRow(data = {}) {
             segmentCounter++;
-            const rowHTML = createSegmentRowHTML(segmentCounter, data);
-            segmentsContainer.insertAdjacentHTML('beforeend', rowHTML);
-            updateRowIndices();
-        }
-
-        function createSegmentRowHTML(id, data = {}) {
-            const status = data.status || 'include';
+            const row = document.createElement('div');
+            row.className = 'segment-row';
+            row.dataset.id = String(segmentCounter);
+            const index = document.createElement('div');
+            index.className = 'segment-index';
+            const fields = document.createElement('div');
+            fields.className = 'segment-fields';
             const type = data.type || 'digit';
-            const customValue = data.customValue || '';
             const quantifier = data.quantifier || 'exactly';
-            const nValue = data.nValue !== undefined ? data.nValue : 1;
-            const minValue = data.minValue !== undefined ? data.minValue : 1;
-            const maxValue = data.maxValue !== undefined ? data.maxValue : '';
 
-            const customHidden = ['custom', 'regex'].includes(type) ? '' : 'hidden-field';
-            const nTimesHidden = quantifier === 'n-times' ? '' : 'hidden-field';
-            const rangeHidden = quantifier === 'range' ? '' : 'hidden-field';
-
-            let placeholderText = '匹配的特定内容...';
-            if (type === 'regex') {
-                placeholderText = '输入正则表达式，如: [a-z0-9] 或 (?:abc|def)';
+            function select(className, choices, value, label) {
+                const control = document.createElement('select');
+                control.className = 'form-select ' + className;
+                control.dataset.label = label;
+                choices.forEach(([key, text]) => {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = text;
+                    control.appendChild(option);
+                });
+                control.value = value;
+                return control;
+            }
+            function number(className, value, label, minimum) {
+                const control = document.createElement('input');
+                control.type = 'number';
+                control.className = 'form-input input-number ' + className;
+                control.dataset.label = label;
+                control.min = String(minimum);
+                control.max = String(window.RegexGeneratorCore.MAX_COUNT);
+                control.value = String(value);
+                return control;
             }
 
-            return `
-                <div class="segment-row" data-id="${id}">
-                    <div class="segment-index">${id}</div>
-                    <div class="segment-fields">
-                        <!-- Include/Exclude match status dropdown -->
-                        <select class="form-select select-status">
-                            <option value="include" ${status === 'include' ? 'selected' : ''}>匹配 (包含)</option>
-                            <option value="exclude" ${status === 'exclude' ? 'selected' : ''}>排除 (不包含)</option>
-                        </select>
- 
-                        <select class="form-select select-type">
-                            <option value="digit" ${type === 'digit' ? 'selected' : ''}>数字 [0-9]</option>
-                            <option value="lower" ${type === 'lower' ? 'selected' : ''}>小写字母 [a-z]</option>
-                            <option value="upper" ${type === 'upper' ? 'selected' : ''}>大写字母 [A-Z]</option>
-                            <option value="letter" ${type === 'letter' ? 'selected' : ''}>英文字母 [a-zA-Z]</option>
-                            <option value="alphanumeric" ${type === 'alphanumeric' ? 'selected' : ''}>字母与数字 [0-9a-zA-Z]</option>
-                            <option value="whitespace" ${type === 'whitespace' ? 'selected' : ''}>空白字符 [\\s]</option>
-                            <option value="any" ${type === 'any' ? 'selected' : ''}>任意单个字符 [.]</option>
-                            <option value="custom" ${type === 'custom' ? 'selected' : ''}>自定义文本 (转义)</option>
-                            <option value="regex" ${type === 'regex' ? 'selected' : ''}>自定义正则 (不转义)</option>
-                        </select>
- 
-                        <input type="text" class="form-input input-text-custom ${customHidden}" 
-                               placeholder="${placeholderText}" value="${escapeHtmlAttr(customValue)}">
- 
-                        <select class="form-select select-quantifier">
-                            <option value="exactly" ${quantifier === 'exactly' ? 'selected' : ''}>出现 1 次</option>
-                            <option value="optional" ${quantifier === 'optional' ? 'selected' : ''}>可选 (0 或 1 次) [?]</option>
-                            <option value="one-or-more" ${quantifier === 'one-or-more' ? 'selected' : ''}>至少 1 次 (1 或多次) [+]</option>
-                            <option value="zero-or-more" ${quantifier === 'zero-or-more' ? 'selected' : ''}>任意次 (0 或多次) [*]</option>
-                            <option value="n-times" ${quantifier === 'n-times' ? 'selected' : ''}>精确出现 N 次</option>
-                            <option value="range" ${quantifier === 'range' ? 'selected' : ''}>出现 M 到 N 次</option>
-                        </select>
- 
-                        <input type="number" class="form-input input-number quantity-n ${nTimesHidden}" 
-                               placeholder="次数" min="1" value="${nValue}">
- 
-                        <div class="quantity-range-wrapper quantity-range ${rangeHidden}">
-                            <input type="number" class="form-input input-number quantity-min" 
-                                   placeholder="最少" min="0" value="${minValue}">
-                            <span>到</span>
-                            <input type="number" class="form-input input-number quantity-max" 
-                                   placeholder="最多" min="1" value="${maxValue}">
-                            <span>次</span>
-                        </div>
-                    </div>
-                    <button type="button" class="btn-delete" title="删除此片段">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
-                </div>
-            `;
+            const statusSelect = select('select-status', [['include', '匹配所选内容'], ['exclude', '排除所选范围的字符']], data.status || 'include', '匹配方式');
+            const typeSelect = select('select-type', [
+                ['digit', '数字 [0-9]'], ['lower', '小写字母 [a-z]'], ['upper', '大写字母 [A-Z]'],
+                ['letter', '英文字母 [a-zA-Z]'], ['alphanumeric', '字母与数字 [0-9a-zA-Z]'],
+                ['whitespace', '空白字符 [\\s]'], ['any', '任意单个字符 [.]'],
+                ['custom', '自定义文本 (转义)'], ['regex', '自定义正则 (不转义)']
+            ], type, '字符类型');
+            const customInput = document.createElement('textarea');
+            customInput.className = 'form-input input-text-custom' + (['custom', 'regex'].includes(type) ? '' : ' hidden-field');
+            customInput.rows = 1;
+            customInput.maxLength = window.RegexGeneratorCore.MAX_COUNT;
+            customInput.dataset.label = '自定义内容';
+            customInput.placeholder = type === 'regex' ? '例如：[a-z0-9] 或 abc|def' : '要匹配的文本，可输入换行';
+            customInput.value = data.customValue || '';
+            const quantitySelect = select('select-quantifier', [
+                ['exactly', '出现 1 次'], ['optional', '可选 (0 或 1 次) [?]'],
+                ['one-or-more', '至少 1 次 (1 或多次) [+]'], ['zero-or-more', '任意次 (0 或多次) [*]'],
+                ['n-times', '精确出现 N 次'], ['range', '出现 M 到 N 次']
+            ], quantifier, '出现次数');
+            const exact = number('quantity-n' + (quantifier === 'n-times' ? '' : ' hidden-field'), data.nValue ?? 1, '精确次数', 1);
+            exact.placeholder = '次数';
+            const range = document.createElement('div');
+            range.className = 'quantity-range-wrapper quantity-range' + (quantifier === 'range' ? '' : ' hidden-field');
+            const minimum = number('quantity-min', data.minValue ?? 1, '最少次数', 0);
+            minimum.placeholder = '最少';
+            const maximum = number('quantity-max', data.maxValue ?? '', '最多次数', 0);
+            maximum.placeholder = '最多';
+            const separator = document.createElement('span');
+            separator.textContent = '到';
+            const unit = document.createElement('span');
+            unit.textContent = '次';
+            range.append(minimum, separator, maximum, unit);
+            fields.append(statusSelect, typeSelect, customInput, quantitySelect, exact, range);
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'btn-delete';
+            remove.title = '删除此片段';
+            appendFaIcon(remove, 'fas fa-trash-alt');
+            row.append(index, fields, remove);
+            segmentsContainer.appendChild(row);
+            updateRowIndices();
         }
 
         // Helper to update default logic expression
@@ -2256,6 +2036,8 @@
             const rows = document.querySelectorAll('#segmentsContainer .segment-row');
             rows.forEach((row, index) => {
                 row.querySelector('.segment-index').textContent = index + 1;
+                row.querySelectorAll('[data-label]').forEach(control => control.setAttribute('aria-label', '片段 ' + (index + 1) + ' ' + control.dataset.label));
+                row.querySelector('.btn-delete').setAttribute('aria-label', '删除片段 ' + (index + 1));
             });
 
             // Show/hide delete buttons
@@ -2297,223 +2079,73 @@
             genErrorMessage.style.display = 'block';
         }
 
-        // Core Regex compilation
-        function generateRegex() {
-            if (isManuallyModified) return; // Prevent overwriting manual edits
+        function generatorFlags() {
+            return (genFlagGlobal.checked ? 'g' : '') +
+                (genFlagIgnoreCase.checked ? 'i' : '') +
+                (genFlagMultiline.checked ? 'm' : '');
+        }
 
+        function syncWholeControls() {
+            const allowed = window.RegexGeneratorCore.supportsWholeConstraints(selectAnchorMode.value, generatorFlags());
+            chkLimitLength.disabled = !allowed;
+            inputMinLength.disabled = !allowed;
+            inputMaxLength.disabled = !allowed;
+            document.getElementById('wholeConditions').disabled = !allowed;
+            document.getElementById('wholeConstraintHint').textContent = allowed
+                ? '整段长度和条件用于完全匹配。长度按字符单元计算，表情可能计为两位。'
+                : '当前为提取、开头、结尾或多行匹配；暂不应用整段长度和条件，切回完全匹配并关闭多行后恢复。';
+        }
+
+        function generatorConfig() {
+            const segments = Array.from(segmentsContainer.querySelectorAll('.segment-row')).map(row => ({
+                status: row.querySelector('.select-status').value,
+                type: row.querySelector('.select-type').value,
+                customValue: row.querySelector('.input-text-custom').value,
+                quantifier: row.querySelector('.select-quantifier').value,
+                nValue: row.querySelector('.quantity-n').value,
+                minValue: row.querySelector('.quantity-min').value,
+                maxValue: row.querySelector('.quantity-max').value
+            }));
+            return {
+                segments,
+                anchorMode: selectAnchorMode.value,
+                flags: generatorFlags(),
+                logic: inputSegmentsLogic.value.trim(),
+                limitLength: chkLimitLength.checked,
+                minLength: inputMinLength.value,
+                maxLength: inputMaxLength.value,
+                requireDigit: document.getElementById('chkRequireDigit').checked,
+                requireLetter: document.getElementById('chkRequireLetter').checked,
+                forbiddenText: document.getElementById('inputForbiddenText').value
+            };
+        }
+
+        function generateRegex() {
+            syncWholeControls();
+            if (isManuallyModified) return;
             genErrorMessage.style.display = 'none';
             genErrorMessage.textContent = '';
-            
-            const rows = document.querySelectorAll('#segmentsContainer .segment-row');
-            let patternParts = [];
-            let segmentExplanations = [];
-
-            for (let i = 0; i < rows.length; i++) {
-                const row = rows[i];
-                const status = row.querySelector('.select-status').value;
-                const type = row.querySelector('.select-type').value;
-                const customVal = row.querySelector('.input-text-custom').value;
-                const quantifier = row.querySelector('.select-quantifier').value;
-                
-                const nValue = Math.max(1, parseInt(row.querySelector('.quantity-n').value, 10) || 1);
-                const minValue = Math.max(0, parseInt(row.querySelector('.quantity-min').value, 10) || 0);
-                const maxValueInput = row.querySelector('.quantity-max').value;
-                const maxValue = maxValueInput !== '' ? Math.max(1, parseInt(maxValueInput, 10) || 1) : '';
-
-                if (quantifier === 'range') {
-                    if (maxValue !== '' && minValue > maxValue) {
-                        setGenErrorMessage(`规则片段 ${i + 1} 配置错误：最少出现次数不能大于最多出现次数。`);
-                        resultRegexInput.value = '';
-                        setExplanationError(`配置错误：片段 ${i + 1} 的出现次数范围无效（最少次数不应大于最多次数）。`);
-                        window.RegexToolUi.setEmptyPreview(genHighlightOutput, '配置错误，无法进行测试匹配', true);
-                        return;
-                    }
-                }
-
-                const isExclude = (status === 'exclude');
-
-                // 1. Get segment base pattern & description
-                let basePattern = '';
-                let contentDesc = '';
-                switch (type) {
-                    case 'digit':
-                        basePattern = isExclude ? '\\D' : '\\d';
-                        contentDesc = isExclude ? '非数字字符' : '数字字符 (0-9)';
-                        break;
-                    case 'lower':
-                        basePattern = isExclude ? '[^a-z]' : '[a-z]';
-                        contentDesc = isExclude ? '非小写英文字母' : '小写英文字母 (a-z)';
-                        break;
-                    case 'upper':
-                        basePattern = isExclude ? '[^A-Z]' : '[A-Z]';
-                        contentDesc = isExclude ? '非大写英文字母' : '大写英文字母 (A-Z)';
-                        break;
-                    case 'letter':
-                        basePattern = isExclude ? '[^a-zA-Z]' : '[a-zA-Z]';
-                        contentDesc = isExclude ? '非英文字母' : '英文字母 (a-zA-Z)';
-                        break;
-                    case 'alphanumeric':
-                        basePattern = isExclude ? '[^a-zA-Z0-9]' : '[a-zA-Z0-9]';
-                        contentDesc = isExclude ? '非英文字母及数字' : '英文字母或数字';
-                        break;
-                    case 'whitespace':
-                        basePattern = isExclude ? '\\S' : '\\s';
-                        contentDesc = isExclude ? '非空白字符' : '空白字符 (如空格/制表符/换行)';
-                        break;
-                    case 'any':
-                        basePattern = isExclude ? '[^\\s\\S]' : '.';
-                        contentDesc = isExclude ? '排除任意字符 (匹配空)' : '任意单个字符 (除了换行符)';
-                        break;
-                    case 'custom':
-                        if (isExclude) {
-                            basePattern = customVal ? `[^${escapeCharClass(customVal)}]` : '[^\\s\\S]';
-                            contentDesc = customVal ? `非 "${customVal}" 中的任意字符` : '空文本';
-                        } else {
-                            basePattern = escapeRegExp(customVal);
-                            contentDesc = customVal ? `字面量文本 "${customVal}"` : '空文本';
-                        }
-                        break;
-                    case 'regex':
-                        basePattern = customVal || '';
-                        contentDesc = customVal ? `正则模式 "${customVal}"` : '空正则';
-                        if (isExclude) {
-                            basePattern = `(?!${basePattern})`;
-                            contentDesc = `排除${contentDesc}`;
-                        }
-                        break;
-                }
-
-                // 2. Get segment quantifier
-                let qSymbol = '';
-                let qDesc = '';
-                switch (quantifier) {
-                    case 'exactly':
-                        qSymbol = '';
-                        qDesc = '，出现过正好 1 次';
-                        break;
-                    case 'optional':
-                        qSymbol = '?';
-                        qDesc = '，出现过 0 次或 1 次（可选）';
-                        break;
-                    case 'one-or-more':
-                        qSymbol = '+';
-                        qDesc = '，出现过 1 次或多次（至少 1 次）';
-                        break;
-                    case 'zero-or-more':
-                        qSymbol = '*';
-                        qDesc = '，出现过 0 次或多次';
-                        break;
-                    case 'n-times':
-                        qSymbol = `{${nValue}}`;
-                        qDesc = `，出现过正好 ${nValue} 次`;
-                        break;
-                    case 'range':
-                        if (minValue !== '' && maxValue !== '') {
-                            qSymbol = `{${minValue},${maxValue}}`;
-                            qDesc = `，出现过 ${minValue} 到 ${maxValue} 次`;
-                        } else if (minValue !== '') {
-                            qSymbol = `{${minValue},}`;
-                            qDesc = `，出现过至少 ${minValue} 次`;
-                        } else if (maxValue !== '') {
-                            qSymbol = `{0,${maxValue}}`;
-                            qDesc = `，出现过最多 ${maxValue} 次`;
-                        } else {
-                            qSymbol = '';
-                            qDesc = '，出现过正好 1 次';
-                        }
-                        break;
-                }
-
-                // Wrap multi-character custom patterns in a non-capturing group if they have quantifier
-                let finalSegmentPattern = basePattern;
-                if (qSymbol !== '') {
-                    if (basePattern.length > 1) {
-                        const isCharacterClass = basePattern.startsWith('[') && basePattern.endsWith(']');
-                        const isEscapeSequence = basePattern.startsWith('\\') && basePattern.length === 2;
-                        const isAlreadyGrouped = basePattern.startsWith('(') && basePattern.endsWith(')');
-                        if (!isCharacterClass && !isEscapeSequence && !isAlreadyGrouped) {
-                            finalSegmentPattern = `(?:${basePattern})`;
-                        }
-                    }
-                }
-                finalSegmentPattern = finalSegmentPattern + qSymbol;
-
-                patternParts.push(finalSegmentPattern);
-                segmentExplanations.push({
-                    contentDesc,
-                    qDesc
-                });
-            }
-
-            // 3. Compile Anchors and Lookahead Constraints
-            const anchorMode = selectAnchorMode.value;
-            let lengthLookahead = '';
-            
-            if (chkLimitLength.checked) {
-                const min = Math.max(0, parseInt(inputMinLength.value, 10) || 0);
-                const maxInput = inputMaxLength.value;
-                const max = maxInput !== '' ? Math.max(1, parseInt(maxInput, 10) || 1) : '';
-                
-                if (max !== '' && min > max) {
-                    setGenErrorMessage('限制总字符数错误：最少字符数不能大于最多字符数。');
-                    resultRegexInput.value = '';
-                    setExplanationError('配置错误：总字符数字数限制范围无效（最少字符数不应大于最多字符数）。');
-                    window.RegexToolUi.setEmptyPreview(genHighlightOutput, '配置错误，无法进行测试匹配', true);
-                    return;
-                }
-                
-                let range = '';
-                if (min !== '' && max !== '') {
-                    range = `{${min},${max}}`;
-                } else if (min !== '') {
-                    range = `{${min},}`;
-                } else if (max !== '') {
-                    range = `{0,${max}}`;
-                }
-                
-                if (range) {
-                    const endAnchor = (anchorMode === 'both' || anchorMode === 'end') ? '$' : '';
-                    lengthLookahead = `(?=.${range}${endAnchor})`;
-                }
-            }
-
-            // Apply segment logic relation expression
-            let compiledPattern = '';
-            const logicExpr = inputSegmentsLogic ? inputSegmentsLogic.value.trim() : '';
-            
+            resultRegexFlags.textContent = generatorFlags();
             try {
-                compiledPattern = window.RegexToolCore.compileLogicExpression(logicExpr, patternParts);
+                const config = generatorConfig();
+                const generated = window.RegexGeneratorCore.generate(config);
+                resultRegexInput.value = generated.pattern;
+                btnCopyRegex.disabled = false;
+                btnCopyPattern.disabled = false;
+                renderGenExplanation(generated.segments, config.logic);
+                evaluateGenMatches();
             } catch (err) {
+                genEvalToken += 1;
                 const code = document.createElement('code');
                 code.textContent = err.message;
-                setGenErrorMessage('逻辑关系配置错误: ', code);
+                setGenErrorMessage('规则配置错误：', code);
                 resultRegexInput.value = '';
-                setExplanationError(`逻辑配置错误：${err.message}`);
-                window.RegexToolUi.setEmptyPreview(genHighlightOutput, '逻辑配置错误，无法进行测试匹配', true);
-                return;
+                btnCopyRegex.disabled = true;
+                btnCopyPattern.disabled = true;
+                genMatchBadge.textContent = '共 0 处匹配';
+                setExplanationError('配置错误：' + err.message);
+                window.RegexToolUi.setEmptyPreview(genHighlightOutput, '配置错误，请修正规则后再验证', true);
             }
-            
-            if (anchorMode === 'both') {
-                compiledPattern = `^${lengthLookahead}${compiledPattern}$`;
-            } else if (anchorMode === 'start') {
-                compiledPattern = `^${lengthLookahead}${compiledPattern}`;
-            } else if (anchorMode === 'end') {
-                compiledPattern = `${lengthLookahead}${compiledPattern}$`;
-            } else {
-                compiledPattern = `${lengthLookahead}${compiledPattern}`;
-            }
-
-            // Compile Flags
-            resultRegexInput.value = compiledPattern;
-            resultRegexFlags.textContent = (genFlagGlobal.checked ? 'g' : '') + 
-                                           (genFlagIgnoreCase.checked ? 'i' : '') + 
-                                           (genFlagMultiline.checked ? 'm' : '');
-
-            // Build Chinese explanations
-            renderGenExplanation(segmentExplanations, logicExpr);
-
-            // Trigger match highlights
-            evaluateGenMatches();
         }
 
         function renderGenExplanation(explanations, logicExpr) {
@@ -2521,12 +2153,12 @@
             let prefix = '在文本中任意位置匹配以下规则：';
             if (anchorMode === 'start') prefix = '匹配文本开头位置，且后续符合以下规则：';
             if (anchorMode === 'end') prefix = '匹配以符合以下规则的内容结尾的文本：';
-            if (anchorMode === 'both') prefix = '校验整段文本是否完全符合以下格式要求：';
+            if (anchorMode === 'both') prefix = genFlagMultiline.checked ? '按行定位开头与结尾并匹配以下规则：' : '校验整段文本是否完全符合以下格式要求：';
 
             const flagsDesc = [];
             if (genFlagGlobal.checked) flagsDesc.push('全局匹配所有符合条件的项');
             if (genFlagIgnoreCase.checked) flagsDesc.push('忽略大小写限制');
-            if (genFlagMultiline.checked) flagsDesc.push('支持多行校验');
+            if (genFlagMultiline.checked) flagsDesc.push('按行定位开头与结尾');
 
             const settingsText = flagsDesc.length > 0 ? flagsDesc.join('，') : '精确区分大小写，且仅查找第一个匹配项';
 
@@ -2548,16 +2180,29 @@
                 explanationContent.appendChild(banner);
             }
 
-            if (chkLimitLength.checked) {
+            if (chkLimitLength.checked && !chkLimitLength.disabled) {
                 const min = inputMinLength.value || 0;
                 const max = inputMaxLength.value || '';
-                const lengthRange = max !== '' ? `${min} 到 ${max}` : `至少 ${min}`;
+                const lengthRange = max !== '' ? `${min} 到 ${max} 位` : `至少 ${min} 位`;
                 const lengthP = document.createElement('p');
                 lengthP.className = 'font-semibold';
                 lengthP.style.cssText = 'color: var(--warning-color); margin-bottom: 8px;';
                 appendFaIcon(lengthP, 'fas fa-arrows-left-right');
-                lengthP.appendChild(document.createTextNode(` 字符总长度限制：必须在 ${lengthRange} 个字符以内。`));
+                lengthP.appendChild(document.createTextNode(` 整段长度：${lengthRange}（表情可能计为两位）。`));
                 explanationContent.appendChild(lengthP);
+            }
+
+            if (!document.getElementById('wholeConditions').disabled) {
+                const conditions = [];
+                if (document.getElementById('chkRequireDigit').checked) conditions.push('必须含数字');
+                if (document.getElementById('chkRequireLetter').checked) conditions.push('必须含英文字母');
+                const forbidden = document.getElementById('inputForbiddenText').value;
+                if (forbidden) conditions.push('不包含文本 "' + forbidden + '"');
+                if (conditions.length) {
+                    const paragraph = document.createElement('p');
+                    paragraph.textContent = '整段条件：' + conditions.join('；') + '。';
+                    explanationContent.appendChild(paragraph);
+                }
             }
 
             if (logicExpr) {
@@ -2613,16 +2258,31 @@
             genEvalToken = token;
 
             if (!pattern) {
+                btnCopyRegex.disabled = true;
+                btnCopyPattern.disabled = true;
                 genMatchBadge.textContent = '共 0 处匹配';
                 ui.setEmptyPreview(genHighlightOutput, '输入测试文本后在此展示匹配高亮');
                 return;
             }
 
+            let literal;
+            try {
+                literal = window.RegexGeneratorCore.toLiteral(pattern, flags);
+                btnCopyRegex.disabled = false;
+                btnCopyPattern.disabled = false;
+            } catch (err) {
+                btnCopyRegex.disabled = true;
+                btnCopyPattern.disabled = true;
+                setGenErrorMessage('正则表达式语法错误：' + err.message);
+                genMatchBadge.textContent = '共 0 处匹配';
+                ui.setEmptyPreview(genHighlightOutput, '当前规则无效，请修正后再验证', true);
+                return;
+            }
             genErrorMessage.style.display = 'none';
             genMatchBadge.textContent = '正在匹配…';
 
             ui.evaluateAsync({
-                rawRegex: pattern,
+                rawRegex: literal,
                 testText: text,
                 replacement: '',
                 flags: flags
@@ -2682,7 +2342,7 @@
         // Reset generator to defaults
         function resetGenerator() {
             if (confirm("确定要重置当前所有的可视化匹配片段和输入吗？")) {
-                segmentsContainer.innerHTML = '';
+                segmentsContainer.replaceChildren();
                 segmentCounter = 0;
                 isManuallyModified = false;
                 currentPresetName = '';
@@ -2704,6 +2364,11 @@
                 genFlagMultiline.checked = false;
                 
                 genTestTextInput.value = '';
+                document.getElementById('chkRequireDigit').checked = false;
+                document.getElementById('chkRequireLetter').checked = false;
+                document.getElementById('inputForbiddenText').value = '';
+                document.getElementById('visualPresetSelect').value = '';
+                document.getElementById('genPresetNote').hidden = true;
                 
                 addSegmentRow({ status: 'include', type: 'digit', quantifier: 'one-or-more' });
                 generateRegex();

@@ -24,16 +24,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../css/theme.css">
     <link href="../vendor/fontawesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css"
-        integrity="sha512-0aPQyyeZrWj9sCA46UlmWgKOP0mUipLQ6OZXu8l4IcAmD2u31EPEy9VcIMvl7SoAaKe8bLXZhYoMaE/in+gcgA=="
-        crossorigin="anonymous"
+    <link rel="stylesheet" data-editor-href="../vendor/editors/highlight.js/11.9.0/styles/github.min.css"
+        data-editor-integrity="sha512-0aPQyyeZrWj9sCA46UlmWgKOP0mUipLQ6OZXu8l4IcAmD2u31EPEy9VcIMvl7SoAaKe8bLXZhYoMaE/in+gcgA=="
         id="hljs-light" data-hljs-managed="pair">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
-        integrity="sha512-rO+olRTkcf304DQBxSWxln8JXCzTHlKnIdnMUwYvQa9/Jd4cQaNkItIUj6Z4nvW1dqK0SKXLbn9h4KwZTNtAyw=="
-        crossorigin="anonymous"
+    <link rel="stylesheet" data-editor-href="../vendor/editors/highlight.js/11.9.0/styles/github-dark.min.css"
+        data-editor-integrity="sha512-rO+olRTkcf304DQBxSWxln8JXCzTHlKnIdnMUwYvQa9/Jd4cQaNkItIUj6Z4nvW1dqK0SKXLbn9h4KwZTNtAyw=="
         id="hljs-dark" data-hljs-managed="pair" disabled>
     <script>
         (function syncHljsEarly() {
+            document.querySelectorAll('link[data-editor-href]').forEach(function (link) {
+                if (location.protocol !== 'file:') {
+                    link.integrity = link.getAttribute('data-editor-integrity');
+                    link.crossOrigin = 'anonymous';
+                }
+                link.href = link.getAttribute('data-editor-href');
+            });
             var theme = document.documentElement.getAttribute('data-theme');
             try {
                 if (theme !== 'light' && theme !== 'dark') {
@@ -1045,6 +1050,7 @@
                     <div class="sync-scroll-indicator active" id="sync-indicator">
                         <i class="fas fa-link" aria-hidden="true"></i> 同步滚动
                     </div>
+                    <button class="pane-action-btn" id="btn-external-images" type="button" aria-pressed="false" title="允许当前文章加载外链图片；可能向图片服务器发送访问请求">允许当前文章外链图片</button>
                     <button class="pane-action-btn" id="btn-render-preview" title="渲染预览">
                         <i class="fas fa-play" aria-hidden="true"></i> 渲染预览
                     </button>
@@ -1189,6 +1195,7 @@
         let lastFullSanitizedHtml = '';
         let latestPreviewId = 0;
         let sourceVersion = 0;
+        let externalImagesAllowed = false;
         let renderedVersion = -1;
         let renderedSource = null;
         const previewTasks = EditorTaskCore.createController();
@@ -1202,9 +1209,9 @@
         let shownWorkerFallback = false;
         const markdownLoader = LazyScriptCore.createResourceLoader({ document: document });
         const WORKER_URL = '../js/markdown-preview-worker.js';
-        const MARKED_URL = 'https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js';
+        const MARKED_URL = '../vendor/editors/marked/12.0.1/marked.min.js';
         const MARKED_INTEGRITY = 'sha512-pSeTnZAQF/RHxb0ysMoYQI/BRZsa5XuklcrgFfU3YZIdnD3LvkkqzrIeHxzFi6gKtI8Cpq2DEWdZjMTcNVhUYA==';
-        const MARKDOWN_HLJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js';
+        const MARKDOWN_HLJS_URL = '../vendor/editors/highlight.js/11.9.0/highlight.min.js';
         const MARKDOWN_HLJS_INTEGRITY = 'sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==';
 
         function setComputeHint(message) {
@@ -1227,9 +1234,9 @@
 
         async function ensureMarkdownDeps() {
             if (markdownDepsReady) return;
-            await markdownLoader.loadScript({ url: MARKED_URL, integrity: MARKED_INTEGRITY });
+            await markdownLoader.loadScript({ url: MARKED_URL, integrity: location.protocol === 'file:' ? '' : MARKED_INTEGRITY });
             try {
-                await markdownLoader.loadScript({ url: MARKDOWN_HLJS_URL, integrity: MARKDOWN_HLJS_INTEGRITY });
+                await markdownLoader.loadScript({ url: MARKDOWN_HLJS_URL, integrity: location.protocol === 'file:' ? '' : MARKDOWN_HLJS_INTEGRITY });
             } catch (error) {
                 showToast('高亮库加载失败，代码将安全显示为普通文本');
             }
@@ -1424,6 +1431,20 @@
                     }
                 });
 
+                if (tagName === 'IMG') {
+                    const source = node.getAttribute('src');
+                    if (source && !MarkdownPreviewCore.isEmbeddedImage(source)) {
+                        if (!externalImagesAllowed) {
+                            const placeholder = document.createElement('span');
+                            placeholder.className = 'external-image-placeholder';
+                            placeholder.textContent = '外链图片未加载' + (node.getAttribute('alt') ? '：' + node.getAttribute('alt') : '');
+                            node.replaceWith(placeholder);
+                            return;
+                        }
+                        node.setAttribute('referrerpolicy', 'no-referrer');
+                    }
+                }
+
                 if (tagName === 'A' && node.hasAttribute('target')) {
                     node.setAttribute('rel', 'noopener noreferrer');
                 }
@@ -1583,7 +1604,30 @@
             return result;
         }
 
+        function resetExternalImages() {
+            const wasAllowed = externalImagesAllowed;
+            externalImagesAllowed = false;
+            const button = document.getElementById('btn-external-images');
+            button.textContent = '允许当前文章外链图片';
+            button.setAttribute('aria-pressed', 'false');
+            // Re-sanitize the current rendered snapshot immediately, before debounce.
+            if (wasAllowed) applyPreviewHtml(sanitizeMarkdownHtml(lastFullSanitizedHtml));
+        }
+
+        document.getElementById('btn-external-images').addEventListener('click', function () {
+            externalImagesAllowed = !externalImagesAllowed;
+            this.textContent = externalImagesAllowed ? '关闭外链图片' : '允许当前文章外链图片';
+            this.setAttribute('aria-pressed', String(externalImagesAllowed));
+            if (!externalImagesAllowed) applyPreviewHtml(sanitizeMarkdownHtml(lastFullSanitizedHtml));
+            // Resource policy is part of the output version even when source is unchanged.
+            sourceVersion += 1;
+            latestPreviewId = EditorRuntimeCore.nextRequestId(latestPreviewId);
+            disposePreviewWorker('cancelled');
+            updatePreview({ force: true });
+        });
+
         function commitEditorChange(options) {
+            resetExternalImages();
             sourceVersion += 1;
             latestPreviewId = EditorRuntimeCore.nextRequestId(latestPreviewId);
             disposePreviewWorker('cancelled');

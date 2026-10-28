@@ -24,6 +24,24 @@
         incomparable: '无法比价'
     });
 
+    const BUDGET = Object.freeze({ inputChars: 200000, inputLines: 10001, results: 10000, autoChars: 12000, autoResults: 200, pageSize: 50 });
+
+    function inspectInput(text, mode) {
+        const source = String(text == null ? '' : text);
+        if (source.length > BUDGET.inputChars) return { ok: false, error: '输入超限：最多 ' + BUDGET.inputChars + ' 字符；原文已保留' };
+        const lines = source.split(/\r\n|\n|\r/);
+        if (lines.length > BUDGET.inputLines) return { ok: false, error: '输入超限：最多 ' + BUDGET.inputLines + ' 物理行；原文已保留' };
+        const nonEmpty = lines.reduce(function (count, line) { return count + (line.trim() ? 1 : 0); }, 0);
+        const count = Math.max(0, nonEmpty - (mode === 'B' ? 1 : 0));
+        if (count > BUDGET.results) return { ok: false, error: '结果超限：最多 ' + BUDGET.results + ' 行；原文已保留' };
+        return { ok: true, lineCount: lines.length, resultCount: count, empty: nonEmpty === 0,
+            requiresManual: source.length > BUDGET.autoChars || count > BUDGET.autoResults };
+    }
+
+    function budgetError(mode, check) {
+        return Object.assign(emptyResult(mode), { empty: false, error: check.error, budgetExceeded: true });
+    }
+
     function parseNumber(token) {
         if (token == null || token === '') {
             return NaN;
@@ -150,13 +168,15 @@
     }
 
     function compareUnitPrices(text) {
+        const check = inspectInput(text, 'A');
+        if (!check.ok) return budgetError('A', check);
         const rawText = String(text || '').replace(/^\uFEFF/, '');
         if (rawText.trim() === '') {
             return emptyResult('A');
         }
 
         const products = [];
-        rawText.split(/\n/).forEach(function (line, index) {
+        rawText.split(/\r\n|\n|\r/).forEach(function (line, index) {
             const raw = line.trim();
             if (raw.length === 0) {
                 return;
@@ -178,10 +198,12 @@
             return a.unitPrice < b.unitPrice ? -1 : 1;
         });
 
+        const firstRankByPrice = new Map();
+        sorted.forEach(function (product, index) {
+            if (!firstRankByPrice.has(product.unitPrice)) firstRankByPrice.set(product.unitPrice, index + 1);
+        });
         validProducts.forEach(function (product) {
-            product.rank = sorted.findIndex(function (other) {
-                return other.unitPrice === product.unitPrice;
-            }) + 1;
+            product.rank = firstRankByPrice.get(product.unitPrice);
             product.rankLabel = rankLabel(product.rank);
         });
 
@@ -241,6 +263,8 @@
     }
 
     function allocateDiscount(text) {
+        const check = inspectInput(text, 'B');
+        if (!check.ok) return budgetError('B', check);
         const raw = String(text || '').replace(/^\uFEFF/, '');
         if (!raw.trim()) return emptyResult('B');
         const lines = raw.split(/\r\n|\n|\r/).map(function (line, index) {
@@ -357,6 +381,8 @@
 
     return {
         MESSAGES: MESSAGES,
+        BUDGET: BUDGET,
+        inspectInput: inspectInput,
         parseNumber: parseNumber,
         parseMoney: parseMoney,
         roundMoney: roundMoney,

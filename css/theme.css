@@ -151,6 +151,12 @@ body {
     transition: background-color var(--transition-base), color var(--transition-base);
 }
 
+/* 模块标题图标默认使用主题色，避免继承标题文字的黑白色；页面可保留自己的配色。 */
+h1 > i[class*="fa-"],
+h1 > svg[aria-hidden="true"] {
+    color: var(--primary-color);
+}
+
 /* 主题切换通用类 */
 .theme-transition {
     transition: all var(--transition-base);

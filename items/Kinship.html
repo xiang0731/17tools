@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>亲属称呼</title>
+    <link rel="stylesheet" href="../css/theme.css">
+    <style>
+        body { padding: var(--spacing-lg); }
+        .app-container { max-width: 1180px; margin: auto; }
+        h1 { display: flex; align-items: center; justify-content: center; gap: var(--spacing-sm); font-size: 24px; text-align: center; margin-bottom: var(--spacing-sm); }
+        h1 svg { flex-shrink: 0; color: var(--primary-color); }
+        .subtitle { text-align: center; color: var(--text-secondary); margin-bottom: var(--spacing-lg); }
+        .main-layout { display: grid; gap: var(--spacing-lg); }
+        .identity-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spacing-lg); }
+        .panel { min-width: 0; background: var(--background-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
+        .panel-header { padding: var(--spacing-md) var(--spacing-lg); border-bottom: 1px solid var(--border-color); font-size: 16px; font-weight: 600; }
+        .panel-body { padding: var(--spacing-lg); }
+        .relationship-diagram { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1fr); gap: var(--spacing-lg); align-items: center; }
+        .role-card { border: 1px solid var(--primary-color); border-radius: var(--radius-md); width: 100%; min-width: 0; text-align: center; padding: var(--spacing-lg); background: var(--background-primary); border-color: var(--primary-color); }
+        .role-card[data-person="B"] { border-color: var(--accent-color); }
+        .role-summary { display: block; width: 100%; padding: 0; border: 0; background: transparent; }
+        .role-chain { justify-content: center; margin-top: var(--spacing-sm); }
+        .role-chain button { font-size: 13px; padding: var(--spacing-xs); }
+        .role-card[data-person="B"] .chain button[aria-pressed="true"] { border-color: var(--accent-color); color: var(--accent-color); background: var(--background-tertiary); }
+        .role-marker { display: block; color: var(--primary-color); font-size: 14px; font-weight: 700; margin-bottom: var(--spacing-sm); }
+        .role-card[data-person="B"] .role-marker { color: var(--accent-color); }
+        .role-name { display: block; font-size: clamp(20px, 2.8vw, 32px); font-weight: 700; overflow-wrap: anywhere; }
+        .role-path { display: block; color: var(--text-secondary); font-size: 13px; margin-top: var(--spacing-sm); overflow-wrap: anywhere; }
+        .role-edit-hint { display: block; color: var(--text-secondary); font-size: 12px; margin-top: var(--spacing-sm); }
+        .mutual-arrows { min-width: 0; text-align: center; }
+        .arrow-caption { color: var(--text-secondary); font-size: 12px; }
+        .result-name { color: var(--primary-color); font-size: clamp(18px, 2.4vw, 30px); font-weight: 700; line-height: 1.4; overflow-wrap: anywhere; }
+        .reverse-name { color: var(--accent-color); }
+        .arrow-line { position: relative; height: 2px; background: var(--primary-color); margin: var(--spacing-md) 0; }
+        .arrow-line::after { content: ''; position: absolute; right: 0; top: -5px; width: 12px; height: 12px; border-top: 2px solid var(--primary-color); border-right: 2px solid var(--primary-color); transform: rotate(45deg); }
+        .arrow-line.reverse { background: var(--accent-color); }
+        .arrow-line.reverse::after { left: 0; right: auto; border-color: var(--accent-color); transform: rotate(-135deg); }
+        .note, .hint { color: var(--text-secondary); font-size: 13px; overflow-wrap: anywhere; }
+        .note { margin-top: var(--spacing-md); }
+        .possibilities { margin-top: var(--spacing-lg); border-top: 1px solid var(--border-color); padding-top: var(--spacing-md); }
+        .possibilities h3 { font-size: 15px; margin-bottom: var(--spacing-sm); }
+        .possibility-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spacing-lg); }
+        .possibility-direction { min-width: 0; }
+        .possibility-direction h4 { font-size: 13px; color: var(--primary-color); margin-bottom: var(--spacing-sm); }
+        .possibility-direction:last-child h4, .possibility-direction:last-child dt { color: var(--accent-color); }
+        .possibility-direction dt { font-size: 14px; font-weight: 600; color: var(--primary-color); margin-top: var(--spacing-sm); }
+        .possibility-direction dd { margin: var(--spacing-xs) 0 0; font-size: 13px; color: var(--text-secondary); overflow-wrap: anywhere; }
+        .hint { margin-top: var(--spacing-sm); }
+        .error { color: var(--text-error); background: var(--background-tertiary); border-radius: var(--radius-md); padding: var(--spacing-md); margin-bottom: var(--spacing-md); overflow-wrap: anywhere; }
+        .sex-row { display: flex; gap: var(--spacing-lg); align-items: center; flex-wrap: wrap; padding-bottom: var(--spacing-md); }
+        .sex-row label { display: inline-flex; align-items: center; gap: var(--spacing-xs); cursor: pointer; }
+        input[type="radio"] { accent-color: var(--primary-color); }
+        fieldset { min-width: 0; border: 1px solid var(--primary-color); padding: var(--spacing-md); border-radius: var(--radius-md); }
+        #personB { border-color: var(--accent-color); }
+        legend { padding: 0 var(--spacing-sm); font-size: 14px; font-weight: 600; color: var(--primary-color); }
+        #personB legend { color: var(--accent-color); }
+        .field-label { display: block; margin: var(--spacing-sm) 0 var(--spacing-xs); font-size: 13px; color: var(--text-secondary); }
+        input[type="text"], select { font: inherit; font-size: 14px; color: var(--text-primary); background: var(--background-primary); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: var(--spacing-sm); min-height: 44px; min-width: 0; width: 100%; }
+        .chain-row { display: flex; align-items: flex-start; gap: var(--spacing-sm); }
+        .chain-row .chain { flex: 1; min-width: 0; padding-top: var(--spacing-xs); }
+        .chain-reset { flex-shrink: 0; margin-left: auto; font-size: 13px; }
+        .chain-node { position: relative; display: inline-flex; max-width: 100%; margin-right: var(--spacing-xs); }
+        .chain .node-delete { position: absolute; top: -6px; right: -6px; min-height: 24px; width: 24px; padding: 0; border-radius: var(--radius-full); font-size: 14px; line-height: 1; color: var(--text-secondary); background: var(--background-primary); z-index: 1; }
+        .chain .node-delete:hover { color: var(--text-error); border-color: var(--error-color); }
+        .chain .chain-add { min-width: 44px; font-size: 20px; line-height: 1; }
+        .chain { display: flex; flex-wrap: wrap; gap: var(--spacing-xs); align-items: center; min-height: 44px; }
+        .chain-root, .chain-join { color: var(--text-secondary); font-size: 13px; }
+        .chain button { padding: var(--spacing-sm); max-width: 100%; min-width: 0; overflow-wrap: anywhere; }
+        .chain button[aria-pressed="true"] { border-color: var(--primary-color); background: var(--primary-light); color: var(--primary-color); font-weight: 600; }
+        #personB .chain button[aria-pressed="true"] { border-color: var(--accent-color); color: var(--accent-color); background: var(--background-tertiary); }
+        .selection-label { margin: var(--spacing-md) 0 var(--spacing-sm); font-size: 13px; font-weight: 600; color: var(--text-primary); }
+        .step-buttons { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--spacing-sm); }
+        .actions, .examples { display: flex; gap: var(--spacing-sm); flex-wrap: wrap; }
+        button { min-height: 44px; font: inherit; font-size: 14px; padding: var(--spacing-sm) var(--spacing-md); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: var(--text-primary); background: var(--background-primary); cursor: pointer; }
+        button:hover { background: var(--background-hover); }
+        button:disabled { opacity: .55; cursor: default; }
+        button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+        .step-buttons button { padding: var(--spacing-xs); }
+        .actions { margin-top: var(--spacing-md); }
+        .examples-label { display: block; margin: var(--spacing-md) 0 var(--spacing-sm); color: var(--text-secondary); font-size: 13px; }
+        .examples button { font-size: 13px; }
+        [hidden] { display: none !important; }
+        @media (max-width: 700px) { .identity-grid, .possibility-grid { grid-template-columns: minmax(0, 1fr); } .relationship-diagram { gap: var(--spacing-sm); } .role-card { padding: var(--spacing-md) var(--spacing-sm); } }
+        @media (max-width: 480px) {
+            body { padding: var(--spacing-md); }
+            .panel-body, .panel-header { padding: var(--spacing-md); }
+            .step-buttons { gap: var(--spacing-xs); }
+            .role-card { padding: var(--spacing-sm) var(--spacing-xs); }
+            .role-name { font-size: 18px; }
+            .role-path, .role-edit-hint, .arrow-caption { font-size: 11px; }
+            .role-edit-hint { display: none; }
+            .result-name { font-size: 17px; }
+        }
+    </style>
+</head>
+<body>
+    <main class="app-container">
+        <h1>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+                <circle cx="12" cy="3" r="2.5"/>
+                <circle cx="5" cy="16" r="2.5"/>
+                <circle cx="19" cy="16" r="2.5"/>
+                <path d="M7.5 10a4.5 4.5 0 0 1 9 0H13v1h7v2h-2v-1H6v1H4v-2h7v-1H7.5ZM.5 23a4.5 4.5 0 0 1 9 0h-9Zm14 0a4.5 4.5 0 0 1 9 0h-9Z"/>
+            </svg>
+            亲属称呼
+        </h1>
+        <p class="subtitle">两个人都从“我”出发，看看彼此该怎么叫。</p>
+        <div class="main-layout">
+            <section class="panel" aria-labelledby="resultTitle">
+                <h2 class="panel-header" id="resultTitle">双方怎么称呼</h2>
+                <div class="panel-body">
+                    <p class="error" id="error" role="status" hidden></p>
+                    <div class="relationship-diagram">
+                        <div class="role-card" data-person="A">
+                            <button type="button" class="role-summary" id="roleA" aria-controls="personA" aria-label="编辑 A 的身份">
+                                <span class="role-marker">A</span><span class="role-name" id="roleNameA">女儿</span>
+                            </button>
+                            <div class="chain role-chain" id="rolePathA" aria-label="A 的身份关系链"></div>
+                            <span class="role-edit-hint">点击关系节点更换</span>
+                        </div>
+                        <div class="mutual-arrows" aria-live="polite" aria-atomic="true">
+                            <p class="arrow-caption">A 称呼 B</p>
+                            <p class="result-name" id="forwardResult">正在计算…</p>
+                            <div class="arrow-line" aria-hidden="true"></div>
+                            <div class="arrow-line reverse" aria-hidden="true"></div>
+                            <p class="result-name reverse-name" id="reverseResult">正在计算…</p>
+                            <p class="arrow-caption">B 称呼 A</p>
+                        </div>
+                        <div class="role-card" data-person="B">
+                            <button type="button" class="role-summary" id="roleB" aria-controls="personB" aria-label="编辑 B 的身份">
+                                <span class="role-marker">B</span><span class="role-name" id="roleNameB">表弟</span>
+                            </button>
+                            <div class="chain role-chain" id="rolePathB" aria-label="B 的身份关系链"></div>
+                            <span class="role-edit-hint">点击关系节点更换</span>
+                        </div>
+                    </div>
+                    <section class="possibilities" id="possibilities" aria-labelledby="possibilitiesTitle" hidden>
+                        <h3 id="possibilitiesTitle">可能的情况</h3>
+                        <p class="hint">以下分别说明每个方向的称呼条件，关系链以称呼者为参照。</p>
+                        <div class="possibility-grid">
+                            <div class="possibility-direction"><h4>A 称呼 B</h4><dl id="forwardPossibilities"></dl></div>
+                            <div class="possibility-direction"><h4>B 称呼 A</h4><dl id="reversePossibilities"></dl></div>
+                        </div>
+                    </section>
+                    <p class="note">多个结果表示支系或长幼尚未明确，可以展开成具体关系链。称谓以常见叫法为参考，各地习惯可能不同。</p>
+                </div>
+            </section>
+            <section class="panel" aria-labelledby="inputTitle">
+                <h2 class="panel-header" id="inputTitle">选择 A、B 的身份</h2>
+                <div class="panel-body">
+                    <div class="sex-row" role="group" aria-labelledby="sexLabel">
+                        <span id="sexLabel">我的性别</span>
+                        <label><input type="radio" name="sex" value="1" checked> 男</label>
+                        <label><input type="radio" name="sex" value="0"> 女</label>
+                    </div>
+                    <div class="identity-grid">
+                        <fieldset id="personA">
+                            <legend>A · 左边的角色</legend>
+                            <div class="chain-row"><div class="chain" id="chainA" aria-label="A 的关系链"></div><button type="button" class="chain-reset" id="resetA" aria-label="重置A的关系">重置</button></div>
+                            <p class="selection-label" id="selectionA" aria-live="polite"></p>
+                            <div class="step-buttons" id="stepsA" aria-label="选择 A 当前节点的角色"></div>
+                            <label class="field-label" for="commonA">更多角色（更换选中节点）</label>
+                            <select id="commonA"><option value="">选择一个角色…</option></select>
+                            <label class="field-label" for="relationA">也可以直接输入 A 的关系链</label>
+                            <input id="relationA" type="text" value="女儿" maxlength="48" placeholder="例如：爸爸的姐姐的儿子" aria-describedby="chainHint" autocomplete="off" spellcheck="false">
+                            <p class="hint" id="editErrorA" role="status" hidden></p>
+                        </fieldset>
+                        <fieldset id="personB">
+                            <legend>B · 右边的角色</legend>
+                            <div class="chain-row"><div class="chain" id="chainB" aria-label="B 的关系链"></div><button type="button" class="chain-reset" id="resetB" aria-label="重置B的关系">重置</button></div>
+                            <p class="selection-label" id="selectionB" aria-live="polite"></p>
+                            <div class="step-buttons" id="stepsB" aria-label="选择 B 当前节点的角色"></div>
+                            <label class="field-label" for="commonB">更多角色（更换选中节点）</label>
+                            <select id="commonB"><option value="">选择一个角色…</option></select>
+                            <label class="field-label" for="relationB">也可以直接输入 B 的关系链</label>
+                            <input id="relationB" type="text" value="表弟" maxlength="48" placeholder="例如：妈妈的弟弟的儿子" aria-describedby="chainHint" autocomplete="off" spellcheck="false">
+                            <p class="hint" id="editErrorB" role="status" hidden></p>
+                        </fieldset>
+                    </div>
+                    <p class="hint" id="chainHint">点击关系链中的任意一层，再在下方选择角色，只更换这一层。右上角 × 删除该层，末尾 + 添加一层，右侧重置清空当前关系。最多 6 层，留空表示“我”。</p>
+                    <div class="actions"><button type="button" id="swap">交换 A / B</button><button type="button" id="reset">重置</button></div>
+                    <span class="examples-label">试试这些关系</span><div class="examples" id="examples"></div>
+                </div>
+            </section>
+        </div>
+    </main>
+    <script src="../vendor/relationship/1.2.9/relationship.min.js"></script>
+    <script src="../js/kinship-core.js"></script>
+    <script>
+        (function () {
+            'use strict';
+            const core = window.KinshipCore;
+            const byId = id => document.getElementById(id);
+            const inputs = { A: byId('relationA'), B: byId('relationB') };
+            const selected = { A: 0, B: 0 };
+            let timer;
+            function selectNode(person, index, focus) {
+                selected[person] = index;
+                renderChain(person);
+                renderRoleChain(person);
+                if (focus) byId('chain' + person).querySelector('[aria-pressed="true"]').focus();
+            }
+            function renderChain(person) {
+                const parts = core.segments(inputs[person].value);
+                const atDepthLimit = parts.length >= core.MAX_DEPTH;
+                const index = Math.min(selected[person], atDepthLimit ? parts.length - 1 : parts.length);
+                selected[person] = index;
+                const chain = byId('chain' + person);
+                const focused = chain.contains(document.activeElement);
+                chain.replaceChildren();
+                const root = document.createElement('span');
+                root.className = 'chain-root'; root.textContent = '我'; chain.appendChild(root);
+                const addNode = (name, position, pending) => {
+                    const join = document.createElement('span'); join.className = 'chain-join'; join.textContent = '的';
+                    chain.appendChild(join);
+                    const wrapper = document.createElement('span'); wrapper.className = 'chain-node';
+                    const button = document.createElement('button'); button.type = 'button'; button.textContent = name || '空白';
+                    button.dataset.index = position;
+                    button.setAttribute('aria-pressed', String(position === index));
+                    button.setAttribute('aria-label', person + ' 第' + (position + 1) + '层：' + (name || '空白'));
+                    button.addEventListener('click', () => selectNode(person, position, true));
+                    wrapper.appendChild(button);
+                    if (!pending) {
+                        const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'node-delete'; remove.textContent = '×';
+                        remove.setAttribute('aria-label', '删除' + person + '第' + (position + 1) + '层：' + (name || '空白'));
+                        remove.addEventListener('click', () => {
+                            const next = core.removeSegment(inputs[person].value, position);
+                            if (!next.ok) return;
+                            const length = core.segments(next.value).length;
+                            selected[person] = Math.max(0, Math.min(selected[person] - (position < selected[person] ? 1 : 0), length - 1));
+                            setRelation(person, next.value);
+                            byId('chain' + person).querySelector('[aria-pressed="true"]').focus();
+                        });
+                        wrapper.appendChild(remove);
+                    }
+                    chain.appendChild(wrapper);
+                };
+                parts.forEach((name, position) => addNode(name, position, false));
+                if (index === parts.length) addNode('待选择', index, true);
+                if (!atDepthLimit) {
+                    const add = document.createElement('button'); add.type = 'button'; add.className = 'chain-add'; add.id = 'add' + person; add.textContent = '+';
+                    add.setAttribute('aria-label', '为' + person + '添加一层角色');
+                    add.disabled = core.normalize(inputs[person].value).length >= core.MAX_LENGTH;
+                    add.addEventListener('click', () => selectNode(person, parts.length, true));
+                    chain.appendChild(add);
+                }
+                byId('selection' + person).textContent = index === parts.length
+                    ? '为第 ' + (index + 1) + ' 层选择角色'
+                    : '更换第 ' + (index + 1) + ' 层：' + (parts[index] || '空白');
+                if (focused) chain.querySelector('[aria-pressed="true"]').focus();
+            }
+            function renderRoleChain(person) {
+                const parts = core.segments(inputs[person].value);
+                const chain = byId('rolePath' + person);
+                chain.replaceChildren();
+                const root = document.createElement('span'); root.className = 'chain-root'; root.textContent = '我';
+                chain.appendChild(root);
+                parts.forEach((name, index) => {
+                    const join = document.createElement('span'); join.className = 'chain-join'; join.textContent = '的';
+                    chain.appendChild(join);
+                    const button = document.createElement('button'); button.type = 'button'; button.textContent = name || '空白';
+                    button.setAttribute('aria-pressed', String(selected[person] === index));
+                    button.setAttribute('aria-label', '更换' + person + '第' + (index + 1) + '层：' + (name || '空白'));
+                    button.addEventListener('click', () => {
+                        selectNode(person, index, true);
+                        byId('person' + person).scrollIntoView({ block: 'nearest' });
+                    });
+                    chain.appendChild(button);
+                });
+            }
+            function render() {
+                clearTimeout(timer);
+                const sex = Number(document.querySelector('input[name="sex"]:checked').value);
+                const value = core.calculate({ a: inputs.A.value, b: inputs.B.value, sex });
+                byId('error').hidden = value.ok;
+                byId('error').textContent = value.ok ? '' : value.error;
+                ['forward', 'reverse'].forEach(direction => {
+                    byId(direction + 'Result').textContent = value.ok ? value[direction].names.join(' / ') || '暂无通用称呼' : '待确认关系';
+                    const list = byId(direction + 'Possibilities');
+                    list.replaceChildren();
+                    if (value.ok && value.possibilities) value.possibilities[direction].forEach(item => {
+                        const name = document.createElement('dt'); name.textContent = item.name; list.appendChild(name);
+                        item.conditions.forEach(condition => {
+                            const description = document.createElement('dd'); description.textContent = condition; list.appendChild(description);
+                        });
+                    });
+                });
+                byId('possibilities').hidden = !value.ok || !value.possibilities;
+                ['A', 'B'].forEach(person => {
+                    const key = person.toLowerCase();
+                    byId('roleName' + person).textContent = value.ok ? value.roles[key].join(' / ') || '亲属' : '待确认';
+                    renderChain(person);
+                    renderRoleChain(person);
+                });
+            }
+            function setRelation(person, text) {
+                inputs[person].value = text;
+                byId('common' + person).value = '';
+                byId('editError' + person).hidden = true;
+                render();
+            }
+            function chooseRole(person, role) {
+                const next = core.replaceSegment(inputs[person].value, selected[person], role);
+                if (!next.ok) {
+                    byId('editError' + person).textContent = next.error;
+                    byId('editError' + person).hidden = false;
+                    byId('common' + person).value = '';
+                    return;
+                }
+                setRelation(person, next.value);
+            }
+            ['A', 'B'].forEach(person => {
+                core.COMMON.filter(name => name !== '我').forEach(name => {
+                    const option = document.createElement('option'); option.value = name; option.textContent = name;
+                    byId('common' + person).appendChild(option);
+                });
+                byId('common' + person).addEventListener('change', event => {
+                    if (event.target.value) chooseRole(person, event.target.value);
+                });
+                core.STEPS.forEach(name => {
+                    const button = document.createElement('button'); button.type = 'button'; button.textContent = name;
+                    button.setAttribute('aria-label', '选择' + person + '的' + name);
+                    button.addEventListener('click', () => chooseRole(person, name));
+                    byId('steps' + person).appendChild(button);
+                });
+                byId('reset' + person).addEventListener('click', () => { selected[person] = 0; setRelation(person, '我'); });
+                byId('role' + person).addEventListener('click', () => {
+                    selectNode(person, Math.max(0, core.segments(inputs[person].value).length - 1), true);
+                    byId('person' + person).scrollIntoView({ block: 'nearest' });
+                });
+                inputs[person].addEventListener('input', () => {
+                    clearTimeout(timer);
+                    selected[person] = Math.max(0, core.segments(inputs[person].value).length - 1);
+                    byId('editError' + person).hidden = true;
+                    renderChain(person);
+                    renderRoleChain(person);
+                    timer = setTimeout(render, 150);
+                });
+            });
+            document.querySelectorAll('input[name="sex"]').forEach(radio => radio.addEventListener('change', render));
+            byId('swap').addEventListener('click', () => {
+                [inputs.A.value, inputs.B.value] = [inputs.B.value, inputs.A.value];
+                [selected.A, selected.B] = [selected.B, selected.A];
+                ['A', 'B'].forEach(person => { byId('common' + person).value = ''; byId('editError' + person).hidden = true; });
+                render();
+            });
+            function loadExample(example) {
+                inputs.A.value = example.a; inputs.B.value = example.b;
+                document.querySelector('input[name="sex"][value="' + example.sex + '"]').checked = true;
+                ['A', 'B'].forEach(person => {
+                    selected[person] = Math.max(0, core.segments(inputs[person].value).length - 1);
+                    byId('common' + person).value = ''; byId('editError' + person).hidden = true;
+                });
+                render();
+            }
+            core.EXAMPLES.forEach(example => {
+                const button = document.createElement('button'); button.type = 'button'; button.textContent = example.label;
+                button.addEventListener('click', () => loadExample(example)); byId('examples').appendChild(button);
+            });
+            byId('reset').addEventListener('click', () => loadExample(core.EXAMPLES[0]));
+            render();
+        })();
+    </script>
+    <script src="../js/unsaved-guard.js"></script>
+    <script src="../js/theme.js"></script>
+</body>
+</html>

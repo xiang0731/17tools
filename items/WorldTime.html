@@ -97,6 +97,7 @@
             flex-direction: column;
             justify-content: center;
             min-height: 0;
+            min-width: 0;
             position: relative;
         }
 
@@ -130,6 +131,15 @@
             margin-top: 4px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+        }
+
+        .clock-title .timezone-code {
+            display: block;
+            margin-top: var(--spacing-sm);
+            color: var(--primary-color);
+            font-size: 0.7em;
+            font-weight: 500;
+            line-height: 1.4;
         }
 
         .clock-container {
@@ -250,8 +260,9 @@
 
         .timezone-selector select {
             width: 100%;
-            max-width: 220px;
-            padding: 8px 12px;
+            max-width: 100%;
+            box-sizing: border-box;
+            padding: 8px 32px 8px 12px;
             border-radius: 10px;
             border: 1px solid var(--border-color);
             background: var(--background-primary);
@@ -288,6 +299,7 @@
         .time-difference-value {
             font-size: clamp(20px, 3.5vh, 26px);
             font-weight: 800;
+            overflow-wrap: anywhere;
         }
 
         .footer-info {
@@ -302,11 +314,15 @@
 
         @media (max-width: 768px) {
             .clocks-grid {
-                grid-template-columns: 1fr;
-                overflow-y: auto;
-                max-height: 60vh;
+                grid-template-columns: minmax(0, 1fr);
+                flex-shrink: 0;
             }
-            body { overflow-y: auto; }
+            .clock-container { flex-shrink: 0; }
+            body {
+                height: auto;
+                min-height: 100vh;
+                overflow-y: auto;
+            }
         }
     </style>
 </head>
@@ -407,66 +423,71 @@
             };
 
             const timezoneData = {
-                'Asia/Shanghai': { cn: '中国 (北京)', en: 'China (Beijing)', offset: 8 },
-                'Asia/Tokyo': { cn: '日本 (东京)', en: 'Japan (Tokyo)', offset: 9 },
-                'Asia/Singapore': { cn: '新加坡', en: 'Singapore', offset: 8 },
-                'Asia/Seoul': { cn: '韩国 (首尔)', en: 'South Korea (Seoul)', offset: 9 },
-                'Asia/Hong_Kong': { cn: '中国 (香港)', en: 'China (Hong Kong)', offset: 8 },
-                'Asia/Taipei': { cn: '中国 (台北)', en: 'China (Taipei)', offset: 8 },
-                'Asia/Bangkok': { cn: '泰国 (曼谷)', en: 'Thailand (Bangkok)', offset: 7 },
-                'Asia/Kuala_Lumpur': { cn: '马来西亚 (吉隆坡)', en: 'Malaysia (Kuala Lumpur)', offset: 8 },
-                'Asia/Manila': { cn: '菲律宾 (马尼拉)', en: 'Philippines (Manila)', offset: 8 },
-                'Asia/Jakarta': { cn: '印尼 (雅加达)', en: 'Indonesia (Jakarta)', offset: 7 },
-                'Asia/Ho_Chi_Minh': { cn: '越南 (胡志明)', en: 'Vietnam (Ho Chi Minh)', offset: 7 },
-                'Asia/Kolkata': { cn: '印度 (新德里)', en: 'India (New Delhi)', offset: 5.5 },
-                'Asia/Dubai': { cn: '阿联酋 (迪拜)', en: 'UAE (Dubai)', offset: 4 },
-                'Asia/Riyadh': { cn: '沙特 (利雅得)', en: 'Saudi Arabia (Riyadh)', offset: 3 },
-                'Asia/Jerusalem': { cn: '以色列 (耶路撒冷)', en: 'Israel (Jerusalem)', offset: 3 },
-                'Asia/Karachi': { cn: '巴基斯坦 (卡拉奇)', en: 'Pakistan (Karachi)', offset: 5 },
-                'Australia/Sydney': { cn: '澳大利亚 (悉尼)', en: 'Australia (Sydney)', offset: 10 },
-                'Australia/Melbourne': { cn: '澳大利亚 (墨尔本)', en: 'Australia (Melbourne)', offset: 10 },
-                'Australia/Perth': { cn: '澳大利亚 (珀斯)', en: 'Australia (Perth)', offset: 8 },
-                'Australia/Brisbane': { cn: '澳大利亚 (布里斯班)', en: 'Australia (Brisbane)', offset: 10 },
-                'Pacific/Auckland': { cn: '新西兰 (奥克兰)', en: 'New Zealand (Auckland)', offset: 12 },
-                'Pacific/Fiji': { cn: '斐济', en: 'Fiji', offset: 12 },
-                'Europe/London': { cn: '英国 (伦敦)', en: 'UK (London)', offset: 1 },
-                'Europe/Paris': { cn: '法国 (巴黎)', en: 'France (Paris)', offset: 2 },
-                'Europe/Berlin': { cn: '德国 (柏林)', en: 'Germany (Berlin)', offset: 2 },
-                'Europe/Rome': { cn: '意大利 (罗马)', en: 'Italy (Rome)', offset: 2 },
-                'Europe/Madrid': { cn: '西班牙 (马德里)', en: 'Spain (Madrid)', offset: 2 },
-                'Europe/Moscow': { cn: '俄罗斯 (莫斯科)', en: 'Russia (Moscow)', offset: 3 },
-                'Europe/Amsterdam': { cn: '荷兰 (阿姆斯特丹)', en: 'Netherlands (Amsterdam)', offset: 2 },
-                'Europe/Brussels': { cn: '比利时 (布鲁塞尔)', en: 'Belgium (Brussels)', offset: 2 },
-                'Europe/Zurich': { cn: '瑞士 (苏黎世)', en: 'Switzerland (Zurich)', offset: 2 },
-                'Europe/Stockholm': { cn: '瑞典 (斯德哥尔摩)', en: 'Sweden (Stockholm)', offset: 2 },
-                'Europe/Oslo': { cn: '挪威 (奥斯陆)', en: 'Norway (Oslo)', offset: 2 },
-                'Europe/Copenhagen': { cn: '丹麦 (哥本哈根)', en: 'Denmark (Copenhagen)', offset: 2 },
-                'Europe/Helsinki': { cn: '芬兰 (赫尔辛基)', en: 'Finland (Helsinki)', offset: 3 },
-                'Europe/Athens': { cn: '希腊 (雅典)', en: 'Greece (Athens)', offset: 3 },
-                'Europe/Istanbul': { cn: '土耳其 (伊斯坦布尔)', en: 'Turkey (Istanbul)', offset: 3 },
-                'Europe/Vienna': { cn: '奥地利 (维也纳)', en: 'Austria (Vienna)', offset: 2 },
-                'Europe/Warsaw': { cn: '波兰 (华沙)', en: 'Poland (Warsaw)', offset: 2 },
-                'Europe/Prague': { cn: '捷克 (布拉格)', en: 'Czech Republic (Prague)', offset: 2 },
-                'Europe/Budapest': { cn: '匈牙利 (布达佩斯)', en: 'Hungary (Budapest)', offset: 2 },
-                'America/New_York': { cn: '美国 (纽约)', en: 'USA (New York)', offset: -4 },
-                'America/Los_Angeles': { cn: '美国 (洛杉矶)', en: 'USA (Los Angeles)', offset: -7 },
-                'America/Chicago': { cn: '美国 (芝加哥)', en: 'USA (Chicago)', offset: -5 },
-                'America/Denver': { cn: '美国 (丹佛)', en: 'USA (Denver)', offset: -6 },
-                'America/Toronto': { cn: '加拿大 (多伦多)', en: 'Canada (Toronto)', offset: -4 },
-                'America/Vancouver': { cn: '加拿大 (温哥华)', en: 'Canada (Vancouver)', offset: -7 },
-                'America/Mexico_City': { cn: '墨西哥 (墨西哥城)', en: 'Mexico (Mexico City)', offset: -5 },
-                'America/Sao_Paulo': { cn: '巴西 (圣保罗)', en: 'Brazil (Sao Paulo)', offset: -3 },
-                'America/Buenos_Aires': { cn: '阿根廷 (布宜诺斯艾利斯)', en: 'Argentina (Buenos Aires)', offset: -3 },
-                'America/Santiago': { cn: '智利 (圣地亚哥)', en: 'Chile (Santiago)', offset: -3 },
-                'America/Lima': { cn: '秘鲁 (利马)', en: 'Peru (Lima)', offset: -5 },
-                'America/Bogota': { cn: '哥伦比亚 (波哥大)', en: 'Colombia (Bogota)', offset: -5 },
-                'Africa/Cairo': { cn: '埃及 (开罗)', en: 'Egypt (Cairo)', offset: 2 },
-                'Africa/Johannesburg': { cn: '南非 (约翰内斯堡)', en: 'South Africa (Johannesburg)', offset: 2 },
-                'Africa/Lagos': { cn: '尼日利亚 (拉各斯)', en: 'Nigeria (Lagos)', offset: 1 },
-                'Africa/Nairobi': { cn: '肯尼亚 (内罗毕)', en: 'Kenya (Nairobi)', offset: 3 },
-                'Africa/Casablanca': { cn: '摩洛哥 (卡萨布兰卡)', en: 'Morocco (Casablanca)', offset: 1 },
-                'Atlantic/Reykjavik': { cn: '冰岛 (雷克雅未克)', en: 'Iceland (Reykjavik)', offset: 0 }
+                // 缩写按实际 UTC 偏移匹配，夏令时切换沿用浏览器的时区规则。
+                'UTC': { cn: '协调世界时', initial: 'X', en: 'Coordinated Universal Time', continent: '全球', codes: { 0: 'UTC' } },
+                'Asia/Shanghai': { cn: '中国 (北京)', initial: 'Z', en: 'China (Beijing)', continent: '亚洲', codes: { 8: 'CST' } },
+                'Asia/Tokyo': { cn: '日本 (东京)', initial: 'R', en: 'Japan (Tokyo)', continent: '亚洲', codes: { 9: 'JST' } },
+                'Asia/Singapore': { cn: '新加坡', initial: 'X', en: 'Singapore', continent: '亚洲', codes: { 8: 'SGT' } },
+                'Asia/Seoul': { cn: '韩国 (首尔)', initial: 'H', en: 'South Korea (Seoul)', continent: '亚洲', codes: { 9: 'KST' } },
+                'Asia/Hong_Kong': { cn: '中国 (香港)', initial: 'Z', en: 'China (Hong Kong)', continent: '亚洲', codes: { 8: 'HKT' } },
+                'Asia/Taipei': { cn: '中国 (台北)', initial: 'Z', en: 'China (Taipei)', continent: '亚洲', codes: { 8: 'CST' } },
+                'Asia/Bangkok': { cn: '泰国 (曼谷)', initial: 'T', en: 'Thailand (Bangkok)', continent: '亚洲', codes: { 7: 'ICT' } },
+                'Asia/Kuala_Lumpur': { cn: '马来西亚 (吉隆坡)', initial: 'M', en: 'Malaysia (Kuala Lumpur)', continent: '亚洲', codes: { 8: 'MYT' } },
+                'Asia/Manila': { cn: '菲律宾 (马尼拉)', initial: 'F', en: 'Philippines (Manila)', continent: '亚洲', codes: { 8: 'PHT' } },
+                'Asia/Jakarta': { cn: '印尼 (雅加达)', initial: 'Y', en: 'Indonesia (Jakarta)', continent: '亚洲', codes: { 7: 'WIB' } },
+                'Asia/Ho_Chi_Minh': { cn: '越南 (胡志明)', initial: 'Y', en: 'Vietnam (Ho Chi Minh)', continent: '亚洲', codes: { 7: 'ICT' } },
+                'Asia/Kolkata': { cn: '印度 (新德里)', initial: 'Y', en: 'India (New Delhi)', continent: '亚洲', codes: { 5.5: 'IST' } },
+                'Asia/Dubai': { cn: '阿联酋 (迪拜)', initial: 'A', en: 'UAE (Dubai)', continent: '亚洲', codes: { 4: 'GST' } },
+                'Asia/Riyadh': { cn: '沙特 (利雅得)', initial: 'S', en: 'Saudi Arabia (Riyadh)', continent: '亚洲', codes: { 3: 'AST' } },
+                'Asia/Jerusalem': { cn: '以色列 (耶路撒冷)', initial: 'Y', en: 'Israel (Jerusalem)', continent: '亚洲', codes: { 2: 'IST', 3: 'IDT' } },
+                'Asia/Karachi': { cn: '巴基斯坦 (卡拉奇)', initial: 'B', en: 'Pakistan (Karachi)', continent: '亚洲', codes: { 5: 'PKT' } },
+                'Australia/Sydney': { cn: '澳大利亚 (悉尼)', initial: 'A', en: 'Australia (Sydney)', continent: '大洋洲', codes: { 10: 'AEST', 11: 'AEDT' } },
+                'Australia/Melbourne': { cn: '澳大利亚 (墨尔本)', initial: 'A', en: 'Australia (Melbourne)', continent: '大洋洲', codes: { 10: 'AEST', 11: 'AEDT' } },
+                'Australia/Perth': { cn: '澳大利亚 (珀斯)', initial: 'A', en: 'Australia (Perth)', continent: '大洋洲', codes: { 8: 'AWST' } },
+                'Australia/Brisbane': { cn: '澳大利亚 (布里斯班)', initial: 'A', en: 'Australia (Brisbane)', continent: '大洋洲', codes: { 10: 'AEST' } },
+                'Pacific/Auckland': { cn: '新西兰 (奥克兰)', initial: 'X', en: 'New Zealand (Auckland)', continent: '大洋洲', codes: { 12: 'NZST', 13: 'NZDT' } },
+                'Pacific/Fiji': { cn: '斐济', initial: 'F', en: 'Fiji', continent: '大洋洲', codes: { 12: 'FJT', 13: 'FJST' } },
+                'Europe/London': { cn: '英国 (伦敦)', initial: 'Y', en: 'UK (London)', continent: '欧洲', codes: { 0: 'GMT', 1: 'BST' } },
+                'Europe/Paris': { cn: '法国 (巴黎)', initial: 'F', en: 'France (Paris)', continent: '欧洲', codes: { 1: 'CET', 2: 'CEST' } },
+                'Europe/Berlin': { cn: '德国 (柏林)', initial: 'D', en: 'Germany (Berlin)', continent: '欧洲', codes: { 1: 'CET', 2: 'CEST' } },
+                'Europe/Rome': { cn: '意大利 (罗马)', initial: 'Y', en: 'Italy (Rome)', continent: '欧洲', codes: { 1: 'CET', 2: 'CEST' } },
+                'Europe/Madrid': { cn: '西班牙 (马德里)', initial: 'X', en: 'Spain (Madrid)', continent: '欧洲', codes: { 1: 'CET', 2: 'CEST' } },
+                'Europe/Moscow': { cn: '俄罗斯 (莫斯科)', initial: 'E', en: 'Russia (Moscow)', continent: '欧洲', codes: { 3: 'MSK' } },
+                'Europe/Amsterdam': { cn: '荷兰 (阿姆斯特丹)', initial: 'H', en: 'Netherlands (Amsterdam)', continent: '欧洲', codes: { 1: 'CET', 2: 'CEST' } },
+                'Europe/Brussels': { cn: '比利时 (布鲁塞尔)', initial: 'B', en: 'Belgium (Brussels)', continent: '欧洲', codes: { 1: 'CET', 2: 'CEST' } },
+                'Europe/Zurich': { cn: '瑞士 (苏黎世)', initial: 'R', en: 'Switzerland (Zurich)', continent: '欧洲', codes: { 1: 'CET', 2: 'CEST' } },
+                'Europe/Stockholm': { cn: '瑞典 (斯德哥尔摩)', initial: 'R', en: 'Sweden (Stockholm)', continent: '欧洲', codes: { 1: 'CET', 2: 'CEST' } },
+                'Europe/Oslo': { cn: '挪威 (奥斯陆)', initial: 'N', en: 'Norway (Oslo)', continent: '欧洲', codes: { 1: 'CET', 2: 'CEST' } },
+                'Europe/Copenhagen': { cn: '丹麦 (哥本哈根)', initial: 'D', en: 'Denmark (Copenhagen)', continent: '欧洲', codes: { 1: 'CET', 2: 'CEST' } },
+                'Europe/Helsinki': { cn: '芬兰 (赫尔辛基)', initial: 'F', en: 'Finland (Helsinki)', continent: '欧洲', codes: { 2: 'EET', 3: 'EEST' } },
+                'Europe/Athens': { cn: '希腊 (雅典)', initial: 'X', en: 'Greece (Athens)', continent: '欧洲', codes: { 2: 'EET', 3: 'EEST' } },
+                'Europe/Istanbul': { cn: '土耳其 (伊斯坦布尔)', initial: 'T', en: 'Turkey (Istanbul)', continent: '欧洲 / 亚洲', codes: { 3: 'TRT' } },
+                'Europe/Vienna': { cn: '奥地利 (维也纳)', initial: 'A', en: 'Austria (Vienna)', continent: '欧洲', codes: { 1: 'CET', 2: 'CEST' } },
+                'Europe/Warsaw': { cn: '波兰 (华沙)', initial: 'B', en: 'Poland (Warsaw)', continent: '欧洲', codes: { 1: 'CET', 2: 'CEST' } },
+                'Europe/Prague': { cn: '捷克 (布拉格)', initial: 'J', en: 'Czech Republic (Prague)', continent: '欧洲', codes: { 1: 'CET', 2: 'CEST' } },
+                'Europe/Budapest': { cn: '匈牙利 (布达佩斯)', initial: 'X', en: 'Hungary (Budapest)', continent: '欧洲', codes: { 1: 'CET', 2: 'CEST' } },
+                'America/New_York': { cn: '美国 (纽约)', initial: 'M', en: 'USA (New York)', continent: '北美洲', codes: { '-5': 'EST', '-4': 'EDT' } },
+                'America/Los_Angeles': { cn: '美国 (洛杉矶)', initial: 'M', en: 'USA (Los Angeles)', continent: '北美洲', codes: { '-8': 'PST', '-7': 'PDT' } },
+                'America/Chicago': { cn: '美国 (芝加哥)', initial: 'M', en: 'USA (Chicago)', continent: '北美洲', codes: { '-6': 'CST', '-5': 'CDT' } },
+                'America/Denver': { cn: '美国 (丹佛)', initial: 'M', en: 'USA (Denver)', continent: '北美洲', codes: { '-7': 'MST', '-6': 'MDT' } },
+                'America/Toronto': { cn: '加拿大 (多伦多)', initial: 'J', en: 'Canada (Toronto)', continent: '北美洲', codes: { '-5': 'EST', '-4': 'EDT' } },
+                'America/Vancouver': { cn: '加拿大 (温哥华)', initial: 'J', en: 'Canada (Vancouver)', continent: '北美洲', codes: { '-8': 'PST', '-7': 'PDT' } },
+                'America/Mexico_City': { cn: '墨西哥 (墨西哥城)', initial: 'M', en: 'Mexico (Mexico City)', continent: '北美洲', codes: { '-6': 'CST', '-5': 'CDT' } },
+                'America/Sao_Paulo': { cn: '巴西 (圣保罗)', initial: 'B', en: 'Brazil (Sao Paulo)', continent: '南美洲', codes: { '-3': 'BRT', '-2': 'BRST' } },
+                'America/Buenos_Aires': { cn: '阿根廷 (布宜诺斯艾利斯)', initial: 'A', en: 'Argentina (Buenos Aires)', continent: '南美洲', codes: { '-3': 'ART' } },
+                'America/Santiago': { cn: '智利 (圣地亚哥)', initial: 'Z', en: 'Chile (Santiago)', continent: '南美洲', codes: { '-4': 'CLT', '-3': 'CLST' } },
+                'America/Lima': { cn: '秘鲁 (利马)', initial: 'M', en: 'Peru (Lima)', continent: '南美洲', codes: { '-5': 'PET' } },
+                'America/Bogota': { cn: '哥伦比亚 (波哥大)', initial: 'G', en: 'Colombia (Bogota)', continent: '南美洲', codes: { '-5': 'COT' } },
+                'Africa/Cairo': { cn: '埃及 (开罗)', initial: 'A', en: 'Egypt (Cairo)', continent: '非洲', codes: { 2: 'EET', 3: 'EEST' } },
+                'Africa/Johannesburg': { cn: '南非 (约翰内斯堡)', initial: 'N', en: 'South Africa (Johannesburg)', continent: '非洲', codes: { 2: 'SAST' } },
+                'Africa/Lagos': { cn: '尼日利亚 (拉各斯)', initial: 'N', en: 'Nigeria (Lagos)', continent: '非洲', codes: { 1: 'WAT' } },
+                'Africa/Nairobi': { cn: '肯尼亚 (内罗毕)', initial: 'K', en: 'Kenya (Nairobi)', continent: '非洲', codes: { 3: 'EAT' } },
+                'Africa/Casablanca': { cn: '摩洛哥 (卡萨布兰卡)', initial: 'M', en: 'Morocco (Casablanca)', continent: '非洲', codes: { 0: 'GMT', 1: '+01' } },
+                'Atlantic/Reykjavik': { cn: '冰岛 (雷克雅未克)', initial: 'B', en: 'Iceland (Reykjavik)', continent: '欧洲', codes: { 0: 'GMT' } }
             };
+
+            const timezoneOptions = new Map();
+            let labelsMinute = null;
 
             function initClockFace(faceId) {
                 const face = document.getElementById(faceId);
@@ -490,8 +511,13 @@
                 };
                 // 更新标题
                 const data = timezoneData[tz];
-                dom[side].title.innerHTML = `${data.cn}<span class="en-title">${data.en}</span>`;
-                updateDiff();
+                const enTitle = document.createElement('span');
+                enTitle.className = 'en-title';
+                enTitle.textContent = data.en;
+                const code = document.createElement('span');
+                code.className = 'timezone-code';
+                dom[side].code = code;
+                dom[side].title.replaceChildren(document.createTextNode(`${data.cn} · ${data.continent}`), enTitle, code);
             }
 
             function getTimeZoneOffsetHours(timeZone, date = new Date()) {
@@ -542,17 +568,50 @@
                 let message = '准确时差暂不可用，请核对浏览器时区支持';
                 if (leftOffset !== null && rightOffset !== null) {
                     const diff = Math.round((leftOffset - rightOffset) * 60);
-                    message = diff === 0 ? "A 与 B 时间相同" : `A 比 B ${diff > 0 ? '早' : '晚'} ${formatOffsetMinutes(Math.abs(diff))}`;
+                    const leftName = `A ${timezoneData[state.left.tz].cn}`;
+                    const rightName = `B ${timezoneData[state.right.tz].cn}`;
+                    message = diff === 0 ? `${leftName} 与 ${rightName} 时间相同` : `${leftName} 比 ${rightName} ${diff > 0 ? '早' : '晚'} ${formatOffsetMinutes(Math.abs(diff))}`;
                 }
                 if (dom.diff.textContent !== message) dom.diff.textContent = message;
+                return { left: leftOffset, right: rightOffset };
+            }
+
+            function getTimezoneLabel(tz, offset) {
+                if (offset === null) return '时区信息暂不可用';
+                const minutes = Math.round(offset * 60);
+                const absolute = Math.abs(minutes);
+                const hours = String(Math.floor(absolute / 60)).padStart(2, '0');
+                const remainder = String(absolute % 60).padStart(2, '0');
+                const utc = `UTC${minutes < 0 ? '-' : '+'}${hours}:${remainder}`;
+                const code = timezoneData[tz].codes[minutes / 60];
+                return code ? `${code} · ${utc}` : utc;
+            }
+
+            function updateTimezoneOptions(tz, offset) {
+                const data = timezoneData[tz];
+                const text = `${data.cn} · ${data.continent} · ${getTimezoneLabel(tz, offset)}`;
+                timezoneOptions.get(tz).forEach(option => {
+                    if (option.textContent !== text) option.textContent = text;
+                });
             }
 
             function tick() {
                 const now = new Date();
-                updateDiff(now);
+                const offsets = updateDiff(now);
+                // 列表每分钟刷新；当前两个时钟每秒刷新，跨夏令时即时同步。
+                const minute = Math.floor(now.getTime() / 60000);
+                if (labelsMinute !== minute) {
+                    Object.keys(timezoneData).forEach(tz => {
+                        updateTimezoneOptions(tz, getTimeZoneOffsetHours(tz, now));
+                    });
+                    labelsMinute = minute;
+                }
                 ['left', 'right'].forEach(side => {
                     const s = state[side];
                     const d = dom[side];
+                    const label = getTimezoneLabel(s.tz, offsets[side]);
+                    if (d.code.textContent !== label) d.code.textContent = label;
+                    updateTimezoneOptions(s.tz, offsets[side]);
                     // 性能优化：使用 textContent 代替 innerHTML
                     d.time.textContent = s.fmt.time.format(now);
                     
@@ -574,21 +633,24 @@
             }
 
             function populateSelectors() {
-                const keys = Object.keys(timezoneData);
-                const groups = { '亚洲': 'Asia/', '大洋洲': ['Australia/', 'Pacific/'], '欧洲': 'Europe/', '美洲': 'America/', '非洲': ['Africa/', 'Atlantic/'] };
+                const collator = new Intl.Collator('zh-CN-u-co-pinyin');
+                const keys = Object.keys(timezoneData).sort((a, b) => collator.compare(timezoneData[a].cn, timezoneData[b].cn));
                 
                 ['left', 'right'].forEach(side => {
                     const select = dom[side].select;
-                    Object.entries(groups).forEach(([label, prefix]) => {
-                        const group = document.createElement('optgroup');
-                        group.label = label;
-                        keys.filter(k => Array.isArray(prefix) ? prefix.some(p => k.startsWith(p)) : k.startsWith(prefix))
-                            .sort((a, b) => timezoneData[b].offset - timezoneData[a].offset)
-                            .forEach(k => {
-                                const opt = new Option(timezoneData[k].cn, k);
-                                group.appendChild(opt);
-                            });
-                        select.appendChild(group);
+                    const groups = new Map();
+                    keys.forEach(k => {
+                        const data = timezoneData[k];
+                        if (!groups.has(data.initial)) {
+                            const group = document.createElement('optgroup');
+                            group.label = `${data.initial} ──────`;
+                            groups.set(data.initial, group);
+                            select.appendChild(group);
+                        }
+                        const opt = new Option(data.cn, k);
+                        if (!timezoneOptions.has(k)) timezoneOptions.set(k, []);
+                        timezoneOptions.get(k).push(opt);
+                        groups.get(data.initial).appendChild(opt);
                     });
                     select.value = state[side].tz;
                     select.onchange = (e) => {

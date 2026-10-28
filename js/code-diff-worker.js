@@ -1,4 +1,7 @@
 /* 17Tools code-diff worker — classic script */
+// Only these release-pinned local files may execute in this Worker.
+var TRUSTED_DEPENDENCIES = Object.freeze(['../vendor/editors/jsdiff/5.1.0/diff.min.js']);
+
 self.onmessage = function (event) {
     var msg = (event && event.data) || {};
     var requestId = msg.requestId;
@@ -9,6 +12,9 @@ self.onmessage = function (event) {
     if (msg.type === 'load') {
         try {
             var urls = Array.isArray(msg.urls) ? msg.urls : [];
+            if (urls.some(function (url) { return TRUSTED_DEPENDENCIES.indexOf(url) === -1; })) {
+                throw new Error('拒绝未登记的后台依赖');
+            }
             if (urls.length) {
                 importScripts.apply(self, urls);
             }

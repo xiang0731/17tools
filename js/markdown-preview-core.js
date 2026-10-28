@@ -163,6 +163,10 @@
         return { kind: 'cancelled', message: MESSAGES.cancelled, apply: false };
     }
 
+    function isEmbeddedImage(source) {
+        return /^data:image\/(?:png|gif|jpe?g|webp);base64,/i.test(String(source || '').trim());
+    }
+
     function createLoadRequest(requestId, urls) {
         return {
             type: 'load',
@@ -249,6 +253,7 @@
             + '<html lang="zh" data-theme="' + theme + '">\n'
             + '<head>\n'
             + '<meta charset="UTF-8">\n'
+            + '<meta name="referrer" content="no-referrer">\n'
             + '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
             + '<title>' + title + '</title>\n'
             + '<style>\n'
@@ -275,6 +280,7 @@
         shouldIgnoreStaleResult: shouldIgnoreStaleResult,
         handleWorkerMessage: handleWorkerMessage,
         disposeReason: disposeReason,
+        isEmbeddedImage: isEmbeddedImage,
         createLoadRequest: createLoadRequest,
         createParseRequest: createParseRequest,
         readThemeVars: readThemeVars,

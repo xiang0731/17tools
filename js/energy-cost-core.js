@@ -15,7 +15,10 @@
         'electricConsumption',
         'electricPrice',
         'electricBattery',
-        'distanceKm'
+        'distanceKm',
+        'hybridElectricConsumption',
+        'hybridGasConsumption',
+        'hybridConversionFactor'
     ];
     const ADVANCED_NUMERIC_KEYS = ['chargeEfficiency', 'homeShare', 'homePrice', 'publicPrice', 'annualMileage', 'gasInsurance', 'gasMaintenance', 'gasOther', 'gasDepreciation', 'electricInsurance', 'electricMaintenance', 'electricOther', 'electricDepreciation'];
     const COST_NAMES = { Insurance: '保险', Maintenance: '保养', Other: '其他固定费用', Depreciation: '折旧' };
@@ -67,7 +70,10 @@
             electricConsumption: '',
             electricPrice: '',
             electricBattery: '',
-            distanceKm: ''
+            distanceKm: '',
+            hybridElectricConsumption: '',
+            hybridGasConsumption: '',
+            hybridConversionFactor: ''
         };
     }
 
@@ -78,6 +84,8 @@
             perKm: null,
             per100km: null,
             tripCost: null,
+            perKmExact: '',
+            tripCostExact: '',
             perKmText: '',
             per100kmText: '',
             tripCostText: '',
@@ -166,6 +174,26 @@
         return formatAmount(placeDecimal(abs.toString(), digits), digits);
     }
 
+    function compareDecimals(left, right) {
+        const scale = Math.max(splitDecimal(left).frac.length, splitDecimal(right).frac.length);
+        const delta = scaledAmount(left, scale) - scaledAmount(right, scale);
+        return delta < 0n ? -1 : delta > 0n ? 1 : 0;
+    }
+
+    function exactDifference(left, right) {
+        const scale = Math.max(splitDecimal(left).frac.length, splitDecimal(right).frac.length);
+        const delta = scaledAmount(left, scale) - scaledAmount(right, scale);
+        return placeDecimal((delta < 0n ? -delta : delta).toString(), scale);
+    }
+
+    function differenceText(left, right, digits, unit) {
+        const exact = exactDifference(left, right);
+        const threshold = placeDecimal('1', digits);
+        return compareDecimals(exact, threshold) < 0
+            ? '差额小于 ' + threshold + ' ' + unit
+            : '少花 ' + formatAmount(exact, digits) + ' 元';
+    }
+
     function isTooBig(decimalString) {
         const whole = splitDecimal(decimalString).whole.replace(/^0+/, '');
         return whole.length > 15;
@@ -230,24 +258,27 @@
             return blankRange('invalid', MESSAGES.overflow);
         }
         const rangeText = formatQuantity(raw, 1);
-        if (rangeText === '0') {
+        if (compareDecimals(multiplyDecimalStrings(capacity.text, '1000'), consumption.text) < 0) {
             return blankRange('invalid', MESSAGES.rangeTooSmall);
         }
 
         const result = blankRange('ok', '');
         result.rangeText = rangeText;
-        if (distance.status !== 'ok' || Number(distance.text) === 0) {
+        if (distance.status !== 'ok') {
             return result;
         }
 
-        const shareRaw = divideTruncated(multiplyDecimalStrings(distance.text, '100'), rangeText, 4);
-        const multiplesRaw = divideTruncated(distance.text, rangeText, 4);
+        const used = multiplyDecimalStrings(distance.text, consumption.text);
+        const available = multiplyDecimalStrings(capacity.text, '100');
+        result.overRange = compareDecimals(used, available) > 0;
+        const shareRaw = divideTruncated(used, capacity.text, 4);
+        const multiplesRaw = divideTruncated(used, available, 4);
         if (!shareRaw || !multiplesRaw || isTooBig(shareRaw) || isTooBig(multiplesRaw)) {
             return result;
         }
         result.shareText = formatQuantity(shareRaw, 1);
         result.multiplesText = formatQuantity(multiplesRaw, 2);
-        result.overRange = scaledAmount(distance.text, 1) > scaledAmount(rangeText, 1);
+        // Business boundaries use the original exact products above.
         return result;
     }
 
@@ -272,6 +303,7 @@
         }
 
         const result = blankResult('ok', '', distanceStatus);
+        result.perKmExact = perKmExact;
         result.perKmText = formatAmount(perKmExact, 4);
         result.per100kmText = formatAmount(per100Exact, 2);
         result.perKm = Number(result.perKmText);
@@ -286,6 +318,7 @@
             result.distanceStatus = 'overflow';
             return result;
         }
+        result.tripCostExact = tripExact;
         result.tripCostText = formatAmount(tripExact, 2);
         result.tripCost = Number(result.tripCostText);
         result.distanceText = formatPlain(distance.text);
@@ -319,35 +352,21 @@
             };
         }
 
-        const gasPer = scaledAmount(gas.perKmText, 4);
-        const electricPer = scaledAmount(electric.perKmText, 4);
-        let winner = 'tie';
-        if (electricPer < gasPer) {
-            winner = 'electric';
-        } else if (gasPer < electricPer) {
-            winner = 'gas';
-        }
-
+        const gasPer = gas.perKmExact || gas.perKmText;
+        const electricPer = electric.perKmExact || electric.perKmText;
+        const order = compareDecimals(gasPer, electricPer);
+        const winner = order > 0 ? 'electric' : order < 0 ? 'gas' : 'tie';
         let headline = MESSAGES.tie;
-        if (winner === 'electric') {
-            headline = '电车每公里少花 ' + subtractAmounts(gas.perKmText, electric.perKmText, 4) + ' 元';
-        } else if (winner === 'gas') {
-            headline = '油车每公里少花 ' + subtractAmounts(electric.perKmText, gas.perKmText, 4) + ' 元';
+        if (winner !== 'tie') {
+            const difference = differenceText(gasPer, electricPer, 4, '元/公里');
+            headline = (winner === 'electric' ? '电车' : '油车') + (difference.startsWith('差额') ? '更省，每公里' : '每公里') + difference;
         }
-
         let detail = '';
         if (gas.tripCostText && electric.tripCostText) {
-            const gasTrip = scaledAmount(gas.tripCostText, 2);
-            const electricTrip = scaledAmount(electric.tripCostText, 2);
-            if (gasTrip === electricTrip) {
-                detail = MESSAGES.tripTie;
-            } else if (winner === 'electric') {
-                detail = '这次行程少花 ' + subtractAmounts(gas.tripCostText, electric.tripCostText, 2) + ' 元';
-            } else if (winner === 'gas') {
-                detail = '这次行程少花 ' + subtractAmounts(electric.tripCostText, gas.tripCostText, 2) + ' 元';
-            } else {
-                detail = '这次行程相差 ' + subtractAmounts(gas.tripCostText, electric.tripCostText, 2) + ' 元';
-            }
+            const gasTrip = gas.tripCostExact || gas.tripCostText;
+            const electricTrip = electric.tripCostExact || electric.tripCostText;
+            detail = compareDecimals(gasTrip, electricTrip) === 0 ? MESSAGES.tripTie
+                : '这次行程' + differenceText(gasTrip, electricTrip, 2, '元');
         }
 
         return {
@@ -363,6 +382,106 @@
         const b = splitDecimal(right);
         const scale = Math.max(a.frac.length, b.frac.length);
         return placeDecimal((scaledAmount(left, scale) + scaledAmount(right, scale)).toString(), scale);
+    }
+
+    function calculateHybridEnergy(input) {
+        const source = input || {};
+        function number(raw, allowZero) {
+            if (String(raw == null ? '' : raw).trim().length > 24) return { status: 'invalid' };
+            return classifyNumber(raw, allowZero);
+        }
+        function equivalent(status, message) {
+            return { status: status, message: message || '', electricText: '', gasText: '', electricStatus: status, gasStatus: status, electricMessage: message || '', gasMessage: message || '' };
+        }
+        function convert(total, electricDivisor, gasDivisor) {
+            const electric = divideTruncated(total, electricDivisor, 12);
+            const gas = divideTruncated(total, gasDivisor, 12);
+            if (isTooBig(electric) || isTooBig(gas)) return equivalent('invalid', MESSAGES.overflow);
+            return { status: 'ok', message: '', electricText: formatAmount(electric, 2), gasText: formatAmount(gas, 2), electricStatus: 'ok', gasStatus: 'ok', electricMessage: '', gasMessage: '' };
+        }
+        const electricity = number(source.hybridElectricConsumption, true);
+        const fuel = number(source.hybridGasConsumption, true);
+        const distance = number(source.distanceKm, true);
+        const result = {
+            cost: blankResult('empty', '填写混动百公里电耗和油耗，两项均可为 0', distance.status),
+            costEquivalent: equivalent('empty', '填写混动百公里电耗和油耗后换算'),
+            energyEquivalent: equivalent('empty', '填写混动百公里电耗和油耗后换算'),
+            conversionFactorText: ''
+        };
+        if (electricity.status !== 'ok' || fuel.status !== 'ok') {
+            if (electricity.status === 'invalid' || fuel.status === 'invalid') {
+                const message = '混动百公里电耗和油耗请填写大于或等于 0 的数字（最多 24 个字符）';
+                result.cost = blankResult('invalid', message, distance.status);
+                result.costEquivalent = equivalent('invalid', message);
+                result.energyEquivalent = equivalent('invalid', message);
+            }
+            return result;
+        }
+
+        const factorRaw = String(source.hybridConversionFactor == null ? '' : source.hybridConversionFactor).trim();
+        const factor = number(factorRaw || '3', false);
+        if (factor.status !== 'ok') {
+            result.energyEquivalent = equivalent(factor.status === 'pending' ? 'empty' : 'invalid', '油电折算系数请填写大于 0 的数字，留空使用 3');
+        } else {
+            result.conversionFactorText = formatQuantity(factor.text, 24);
+            const totalEnergy = addDecimalStrings(electricity.text, multiplyDecimalStrings(fuel.text, factor.text));
+            result.energyEquivalent = convert(totalEnergy, '1', factor.text);
+        }
+
+        const electricPrice = number(source.electricPrice, false);
+        const gasPrice = number(source.gasPrice, false);
+        const requiredPrices = [];
+        if (compareDecimals(electricity.text, '0') > 0) requiredPrices.push(electricPrice);
+        if (compareDecimals(fuel.text, '0') > 0) requiredPrices.push(gasPrice);
+        if (requiredPrices.some(function (price) { return price.status !== 'ok'; })) {
+            const invalid = requiredPrices.some(function (price) { return price.status === 'invalid'; });
+            const message = invalid ? '非零用量对应的单价必须为大于 0 的合法数字' : '请补充非零用量对应的单价；留空表示未知';
+            result.cost = blankResult(invalid ? 'invalid' : 'empty', message, distance.status);
+            result.costEquivalent = equivalent(invalid ? 'invalid' : 'empty', message);
+            return result;
+        }
+        const totalCost = addDecimalStrings(
+            compareDecimals(electricity.text, '0') === 0 ? '0' : multiplyDecimalStrings(electricity.text, electricPrice.text),
+            compareDecimals(fuel.text, '0') === 0 ? '0' : multiplyDecimalStrings(fuel.text, gasPrice.text));
+        if (isTooBig(totalCost)) {
+            result.cost = blankResult('invalid', MESSAGES.overflow, distance.status);
+            result.costEquivalent = equivalent('invalid', MESSAGES.overflow);
+            return result;
+        }
+        result.cost = blankResult('ok', '', distance.status);
+        result.cost.per100kmText = formatAmount(totalCost, 2);
+        result.cost.perKmText = formatAmount(divideByHundred(totalCost), 4);
+        result.cost.per100km = Number(result.cost.per100kmText);
+        result.cost.perKm = Number(result.cost.perKmText);
+        if (distance.status === 'ok') {
+            const trip = divideByHundred(multiplyDecimalStrings(totalCost, distance.text));
+            if (isTooBig(trip)) result.cost.distanceStatus = 'overflow';
+            else {
+                result.cost.tripCostText = formatAmount(trip, 2);
+                result.cost.tripCost = Number(result.cost.tripCostText);
+                result.cost.distanceText = formatPlain(distance.text);
+            }
+        }
+        const costEquivalent = equivalent('empty', '');
+        ['electric', 'gas'].forEach(function (direction) {
+            const price = direction === 'electric' ? electricPrice : gasPrice;
+            const label = direction === 'electric' ? '电价' : '油价';
+            let status = price.status === 'pending' ? 'empty' : price.status;
+            let message = status === 'invalid' ? label + '必须大于 0，不能用零价或非法值作除数' : '填写大于 0 的' + label + '后换算';
+            if (status === 'ok') {
+                const value = divideTruncated(totalCost, price.text, 12);
+                if (isTooBig(value)) { status = 'invalid'; message = MESSAGES.overflow; }
+                else { costEquivalent[direction + 'Text'] = formatAmount(value, 2); message = ''; }
+            }
+            costEquivalent[direction + 'Status'] = status;
+            costEquivalent[direction + 'Message'] = message;
+        });
+        const states = [costEquivalent.electricStatus, costEquivalent.gasStatus];
+        costEquivalent.status = states.every(function (state) { return state === 'ok'; }) ? 'ok'
+            : states.includes('invalid') ? 'invalid' : states.includes('ok') ? 'partial' : 'empty';
+        costEquivalent.message = [costEquivalent.electricMessage, costEquivalent.gasMessage].filter(Boolean).join('；');
+        result.costEquivalent = costEquivalent;
+        return result;
     }
 
     function calculateAdvancedCosts(input) {
@@ -558,6 +677,7 @@
         normalizeAdvanced: normalizeAdvanced,
         advancedEqual: advancedEqual,
         calculateAdvancedCosts: calculateAdvancedCosts,
+        calculateHybridEnergy: calculateHybridEnergy,
         STORAGE_KEY: STORAGE_KEY,
         FIELD_KEYS: FIELD_KEYS,
         MESSAGES: MESSAGES,

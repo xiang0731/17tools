@@ -9,9 +9,9 @@
 
     const JSDIFF_VERSION = '5.1.0';
     const DIFF2HTML_VERSION = '3.4.56';
-    const JSDIFF_URL = 'https://cdnjs.cloudflare.com/ajax/libs/jsdiff/' + JSDIFF_VERSION + '/diff.min.js';
-    const DIFF2HTML_JS_URL = 'https://cdn.jsdelivr.net/npm/diff2html@' + DIFF2HTML_VERSION + '/bundles/js/diff2html-ui-slim.min.js';
-    const DIFF2HTML_CSS_URL = 'https://cdn.jsdelivr.net/npm/diff2html@' + DIFF2HTML_VERSION + '/bundles/css/diff2html.min.css';
+    const JSDIFF_URL = '../vendor/editors/jsdiff/' + JSDIFF_VERSION + '/diff.min.js';
+    const DIFF2HTML_JS_URL = '../vendor/editors/diff2html/' + DIFF2HTML_VERSION + '/bundles/js/diff2html-ui-slim.min.js';
+    const DIFF2HTML_CSS_URL = '../vendor/editors/diff2html/' + DIFF2HTML_VERSION + '/bundles/css/diff2html.min.css';
     const JSDIFF_INTEGRITY = 'sha512-vco9RAxEuv4PQ+iTQyuKElwoUOcsVdp+WgU6Lgo82ASpDfF7vI66LlWz+CZc2lMdn52tjjLOuHvy8BQJFp8a1A==';
     const DIFF2HTML_JS_INTEGRITY = 'sha512-CPdxeQvVk+vCFdUDN3d6D1RfuE3/irA/npu8lsaqBrQFUZLyAECDyuhrHUhor+6y34DNZgn9W0l+/AXbRatJzg==';
     const DIFF2HTML_CSS_INTEGRITY = 'sha512-1mTXcOIpTlt1QDpJfE5r7XxEB9chGqfQ8r4RGBsL+Nh3Vg/z4JVPrgQEBLDy5FeXcW6ZkPA6zy5onbOKPci6KQ==';
@@ -89,11 +89,15 @@
         };
     }
 
+    function localIntegrity(value) {
+        return typeof location !== 'undefined' && location.protocol === 'file:' ? '' : value;
+    }
+
     function assetResources() {
         return {
-            jsdiff: { url: JSDIFF_URL, integrity: JSDIFF_INTEGRITY },
-            diff2htmlJs: { url: DIFF2HTML_JS_URL, integrity: DIFF2HTML_JS_INTEGRITY },
-            diff2htmlCss: { url: DIFF2HTML_CSS_URL, integrity: DIFF2HTML_CSS_INTEGRITY }
+            jsdiff: { url: JSDIFF_URL, integrity: localIntegrity(JSDIFF_INTEGRITY) },
+            diff2htmlJs: { url: DIFF2HTML_JS_URL, integrity: localIntegrity(DIFF2HTML_JS_INTEGRITY) },
+            diff2htmlCss: { url: DIFF2HTML_CSS_URL, integrity: localIntegrity(DIFF2HTML_CSS_INTEGRITY) }
         };
     }
 
